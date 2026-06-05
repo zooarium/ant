@@ -1,0 +1,20 @@
+ENVIRONMENT: production
+SERVER:
+  ADDR: ":8082"
+  HOST: "localhost:8082"
+  READ_TIMEOUT: 5s
+  WRITE_TIMEOUT: 10s
+  IDLE_TIMEOUT: 120s
+DATABASE:
+  PATH: "data/ant.db"
+  DRIVER: "sqlite3"
+  DSN: ""
+LOG:
+  DIR: "log"
+  LEVEL: "info"
+AUTH:
+  JWT_SECRET: "a-very-secure-and-shared-secret-key"
+  JWT_EXPIRY: 24h
+CORS:
+  ALLOWED_ORIGINS:
+    - "*"

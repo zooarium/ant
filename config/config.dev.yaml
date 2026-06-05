@@ -1,0 +1,9 @@
+ENVIRONMENT: dev
+DATABASE:
+  PATH: "data/ant_dev.db"
+LOG:
+  DIR: "log_dev"
+  LEVEL: "debug"
+AUTH:
+  JWT_SECRET: "a-very-secure-and-shared-secret-key"
+  JWT_EXPIRY: 24h

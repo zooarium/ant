@@ -1,0 +1,23 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        GO_VERSION: ${GO_VERSION:-1.26.3}
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./data:/app/data
+      - ./log:/app/log
+    environment:
+      - ANT_ENVIRONMENT=development
+      - ANT_DATABASE_PATH=/app/data/ant.db
+      - ANT_LOG_DIR=/app/log
+    restart: always
+
+  atlas:
+    image: arigaio/atlas
+    volumes:
+      - .:/app
+      - ./data:/data
+    working_dir: /app
