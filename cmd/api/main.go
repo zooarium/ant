@@ -13,11 +13,16 @@ import (
 	"time"
 
 	"ant/docs"
+	"ant/internal/attribute"
 	"ant/internal/db"
+	"ant/internal/order"
 	platformhttp "ant/internal/platform/http"
+	"ant/internal/product"
 	"ant/pkg/config"
 
 	"keeper/pkg/auth"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // @title Ant API
@@ -85,14 +90,25 @@ func main() {
 		}
 	}()
 
-	// Wire entity components here, e.g.:
-	// thingRepo    := thing.NewRepository(client)
-	// thingSvc     := thing.NewService(thingRepo)
-	// thingHandler := thing.NewHandler(thingSvc)
+	attributeRepo := attribute.NewRepository(client)
+	attributeSvc := attribute.NewService(attributeRepo)
+	attributeHandler := attribute.NewHandler(attributeSvc)
+
+	productRepo := product.NewRepository(client)
+	productSvc := product.NewService(productRepo)
+	productHandler := product.NewHandler(productSvc)
+
+	orderRepo := order.NewRepository(client)
+	orderSvc := order.NewService(orderRepo)
+	orderHandler := order.NewHandler(orderSvc)
 
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)
 
-	router := platformhttp.NewRouter(cfg, jwtManager)
+	router := platformhttp.NewRouter(cfg, jwtManager, func(r chi.Router) {
+		r.Mount("/attributes", attributeHandler.Routes())
+		r.Mount("/products", productHandler.Routes())
+		r.Mount("/orders", orderHandler.Routes())
+	})
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Addr,

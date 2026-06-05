@@ -27,9 +27,32 @@ type Product struct {
 	UserID int `json:"user_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Price holds the value of the "price" field.
+	Price float64 `json:"price,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       int8 `json:"status,omitempty"`
+	Status int8 `json:"status,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ProductQuery when eager-loading is set.
+	Edges        ProductEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// ProductEdges holds the relations/edges for other nodes in the graph.
+type ProductEdges struct {
+	// Attributes holds the value of the attributes edge.
+	Attributes []*ProductAttribute `json:"attributes,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// AttributesOrErr returns the Attributes value or an error if the edge
+// was not loaded in eager-loading.
+func (e ProductEdges) AttributesOrErr() ([]*ProductAttribute, error) {
+	if e.loadedTypes[0] {
+		return e.Attributes, nil
+	}
+	return nil, &NotLoadedError{edge: "attributes"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -37,6 +60,8 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case product.FieldPrice:
+			values[i] = new(sql.NullFloat64)
 		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldStatus:
 			values[i] = new(sql.NullInt64)
 		case product.FieldName:
@@ -94,6 +119,12 @@ func (_m *Product) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Name = value.String
 			}
+		case product.FieldPrice:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field price", values[i])
+			} else if value.Valid {
+				_m.Price = value.Float64
+			}
 		case product.FieldStatus:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
@@ -111,6 +142,11 @@ func (_m *Product) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Product) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryAttributes queries the "attributes" edge of the Product entity.
+func (_m *Product) QueryAttributes() *ProductAttributeQuery {
+	return NewProductClient(_m.config).QueryAttributes(_m)
 }
 
 // Update returns a builder for updating this Product.
@@ -150,6 +186,9 @@ func (_m *Product) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("price=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Price))
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))

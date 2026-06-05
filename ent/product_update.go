@@ -5,6 +5,7 @@ package ent
 import (
 	"ant/ent/predicate"
 	"ant/ent/product"
+	"ant/ent/productattribute"
 	"context"
 	"errors"
 	"fmt"
@@ -90,6 +91,27 @@ func (_u *ProductUpdate) SetNillableName(v *string) *ProductUpdate {
 	return _u
 }
 
+// SetPrice sets the "price" field.
+func (_u *ProductUpdate) SetPrice(v float64) *ProductUpdate {
+	_u.mutation.ResetPrice()
+	_u.mutation.SetPrice(v)
+	return _u
+}
+
+// SetNillablePrice sets the "price" field if the given value is not nil.
+func (_u *ProductUpdate) SetNillablePrice(v *float64) *ProductUpdate {
+	if v != nil {
+		_u.SetPrice(*v)
+	}
+	return _u
+}
+
+// AddPrice adds value to the "price" field.
+func (_u *ProductUpdate) AddPrice(v float64) *ProductUpdate {
+	_u.mutation.AddPrice(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ProductUpdate) SetStatus(v int8) *ProductUpdate {
 	_u.mutation.ResetStatus()
@@ -111,9 +133,45 @@ func (_u *ProductUpdate) AddStatus(v int8) *ProductUpdate {
 	return _u
 }
 
+// AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
+func (_u *ProductUpdate) AddAttributeIDs(ids ...int) *ProductUpdate {
+	_u.mutation.AddAttributeIDs(ids...)
+	return _u
+}
+
+// AddAttributes adds the "attributes" edges to the ProductAttribute entity.
+func (_u *ProductUpdate) AddAttributes(v ...*ProductAttribute) *ProductUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAttributeIDs(ids...)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (_u *ProductUpdate) Mutation() *ProductMutation {
 	return _u.mutation
+}
+
+// ClearAttributes clears all "attributes" edges to the ProductAttribute entity.
+func (_u *ProductUpdate) ClearAttributes() *ProductUpdate {
+	_u.mutation.ClearAttributes()
+	return _u
+}
+
+// RemoveAttributeIDs removes the "attributes" edge to ProductAttribute entities by IDs.
+func (_u *ProductUpdate) RemoveAttributeIDs(ids ...int) *ProductUpdate {
+	_u.mutation.RemoveAttributeIDs(ids...)
+	return _u
+}
+
+// RemoveAttributes removes "attributes" edges to ProductAttribute entities.
+func (_u *ProductUpdate) RemoveAttributes(v ...*ProductAttribute) *ProductUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAttributeIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -192,11 +250,62 @@ func (_u *ProductUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(product.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Price(); ok {
+		_spec.SetField(product.FieldPrice, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedPrice(); ok {
+		_spec.AddField(product.FieldPrice, field.TypeFloat64, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(product.FieldStatus, field.TypeInt8, value)
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(product.FieldStatus, field.TypeInt8, value)
+	}
+	if _u.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAttributesIDs(); len(nodes) > 0 && !_u.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -280,6 +389,27 @@ func (_u *ProductUpdateOne) SetNillableName(v *string) *ProductUpdateOne {
 	return _u
 }
 
+// SetPrice sets the "price" field.
+func (_u *ProductUpdateOne) SetPrice(v float64) *ProductUpdateOne {
+	_u.mutation.ResetPrice()
+	_u.mutation.SetPrice(v)
+	return _u
+}
+
+// SetNillablePrice sets the "price" field if the given value is not nil.
+func (_u *ProductUpdateOne) SetNillablePrice(v *float64) *ProductUpdateOne {
+	if v != nil {
+		_u.SetPrice(*v)
+	}
+	return _u
+}
+
+// AddPrice adds value to the "price" field.
+func (_u *ProductUpdateOne) AddPrice(v float64) *ProductUpdateOne {
+	_u.mutation.AddPrice(v)
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *ProductUpdateOne) SetStatus(v int8) *ProductUpdateOne {
 	_u.mutation.ResetStatus()
@@ -301,9 +431,45 @@ func (_u *ProductUpdateOne) AddStatus(v int8) *ProductUpdateOne {
 	return _u
 }
 
+// AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
+func (_u *ProductUpdateOne) AddAttributeIDs(ids ...int) *ProductUpdateOne {
+	_u.mutation.AddAttributeIDs(ids...)
+	return _u
+}
+
+// AddAttributes adds the "attributes" edges to the ProductAttribute entity.
+func (_u *ProductUpdateOne) AddAttributes(v ...*ProductAttribute) *ProductUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddAttributeIDs(ids...)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (_u *ProductUpdateOne) Mutation() *ProductMutation {
 	return _u.mutation
+}
+
+// ClearAttributes clears all "attributes" edges to the ProductAttribute entity.
+func (_u *ProductUpdateOne) ClearAttributes() *ProductUpdateOne {
+	_u.mutation.ClearAttributes()
+	return _u
+}
+
+// RemoveAttributeIDs removes the "attributes" edge to ProductAttribute entities by IDs.
+func (_u *ProductUpdateOne) RemoveAttributeIDs(ids ...int) *ProductUpdateOne {
+	_u.mutation.RemoveAttributeIDs(ids...)
+	return _u
+}
+
+// RemoveAttributes removes "attributes" edges to ProductAttribute entities.
+func (_u *ProductUpdateOne) RemoveAttributes(v ...*ProductAttribute) *ProductUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveAttributeIDs(ids...)
 }
 
 // Where appends a list predicates to the ProductUpdate builder.
@@ -412,11 +578,62 @@ func (_u *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err er
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(product.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Price(); ok {
+		_spec.SetField(product.FieldPrice, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedPrice(); ok {
+		_spec.AddField(product.FieldPrice, field.TypeFloat64, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(product.FieldStatus, field.TypeInt8, value)
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(product.FieldStatus, field.TypeInt8, value)
+	}
+	if _u.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedAttributesIDs(); len(nodes) > 0 && !_u.mutation.AttributesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Product{config: _u.config}
 	_spec.Assign = _node.assignValues

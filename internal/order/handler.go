@@ -35,6 +35,7 @@ func (h *Handler) Routes() chi.Router {
 		r.Get("/", h.GetByID)
 		r.Put("/", h.Update)
 		r.Delete("/", h.Delete)
+		r.Patch("/status", h.UpdateStatus)
 	})
 	return r
 }
@@ -47,9 +48,34 @@ func (h *Handler) getClaims(r *http.Request) (*auth.UserClaims, error) {
 	return claims, nil
 }
 
+func (h *Handler) renderError(w http.ResponseWriter, err error) {
+	var validationErrs validator.ValidationErrors
+	switch {
+	case errors.As(err, &validationErrs):
+		render.Error(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, ErrOrderNotFound):
+		render.Error(w, http.StatusNotFound, ErrOrderNotFound.Error())
+	case errors.Is(err, ErrOrderItemNotFound):
+		render.Error(w, http.StatusNotFound, ErrOrderItemNotFound.Error())
+	case errors.Is(err, ErrProductInvalid),
+		errors.Is(err, ErrProductInactive),
+		errors.Is(err, ErrAttributeNotAssigned),
+		errors.Is(err, ErrInvalidOption),
+		errors.Is(err, ErrMandatoryAttributeMissing),
+		errors.Is(err, ErrDuplicateItemAttribute),
+		errors.Is(err, ErrOrderItemImmutable),
+		errors.Is(err, ErrInvalidOrderItem),
+		errors.Is(err, ErrDuplicateOrderItem),
+		errors.Is(err, ErrInvalidCustomerContact):
+		render.Error(w, http.StatusBadRequest, err.Error())
+	default:
+		render.Error(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
 // Create handles order creation.
 // @Summary Create a new order
-// @Description Create a new order
+// @Description Create an order with one or more items. Items snapshot the product name, price and chosen attribute values; only active products can be added.
 // @Tags orders
 // @Accept json
 // @Produce json
@@ -73,9 +99,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, req)
+	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, req)
 	if err != nil {
-		render.Error(w, http.StatusInternalServerError, err.Error())
+		h.renderError(w, err)
 		return
 	}
 
@@ -84,11 +110,12 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 // List handles listing all orders.
 // @Summary List all orders
-// @Description Get a list of all orders for the authenticated app
+// @Description Get a summary list of orders (no items, products_count only) for the authenticated app
 // @Tags orders
 // @Produce json
 // @Param limit query int false "Max items to return (default 50, max 500)"
 // @Param offset query int false "Items to skip (default 0)"
+// @Param status query int false "Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled)"
 // @Success 200 {object} render.Response{data=[]Order}
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
@@ -102,7 +129,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := platformhttp.ParsePagination(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, p.Limit, p.Offset)
+	status := platformhttp.ParseStatusFilter(r)
+	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, p.Limit, p.Offset, status)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -111,9 +139,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, items)
 }
 
-// GetByID handles getting a order by ID.
+// GetByID handles getting an order by ID.
 // @Summary Get order by ID
-// @Description Get a single order by its ID
+// @Description Get a single order with its items
 // @Tags orders
 // @Produce json
 // @Param id path int true "Order ID"
@@ -131,7 +159,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.getIDParam(r)
+	id, err := h.getIDParam(r, "id")
 	if err != nil {
 		render.Error(w, http.StatusBadRequest, "invalid order ID")
 		return
@@ -139,20 +167,16 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.svc.GetByID(r.Context(), claims.AppID, claims.UserID, id)
 	if err != nil {
-		if errors.Is(err, ErrOrderNotFound) {
-			render.Error(w, http.StatusNotFound, "order not found")
-			return
-		}
-		render.Error(w, http.StatusInternalServerError, err.Error())
+		h.renderError(w, err)
 		return
 	}
 
 	render.JSON(w, http.StatusOK, item)
 }
 
-// Update handles updating a order.
+// Update handles atomically updating an order.
 // @Summary Update order by ID
-// @Description Update an existing order
+// @Description Atomically update customer details and sync items in one call. Items with an id update quantity only (product/attributes immutable); items without an id are added; existing items missing from the payload are deleted. Status is managed via /orders/{id}/status.
 // @Tags orders
 // @Accept json
 // @Produce json
@@ -172,7 +196,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.getIDParam(r)
+	id, err := h.getIDParam(r, "id")
 	if err != nil {
 		render.Error(w, http.StatusBadRequest, "invalid order ID")
 		return
@@ -186,20 +210,59 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	item, err := h.svc.Update(r.Context(), claims.AppID, claims.UserID, id, req)
 	if err != nil {
-		if errors.Is(err, ErrOrderNotFound) {
-			render.Error(w, http.StatusNotFound, "order not found")
-			return
-		}
-		render.Error(w, http.StatusInternalServerError, err.Error())
+		h.renderError(w, err)
 		return
 	}
 
 	render.JSON(w, http.StatusOK, item)
 }
 
-// Delete handles deleting a order.
+// UpdateStatus handles setting an order's status.
+// @Summary Set order status
+// @Description Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path int true "Order ID"
+// @Param body body UpdateOrderStatusRequest true "Status object"
+// @Success 200 {object} render.Response{data=Order}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 404 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /orders/{id}/status [patch]
+func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	id, err := h.getIDParam(r, "id")
+	if err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid order ID")
+		return
+	}
+
+	var req UpdateOrderStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	item, err := h.svc.UpdateStatus(r.Context(), claims.AppID, claims.UserID, id, req)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, item)
+}
+
+// Delete handles deleting an order.
 // @Summary Delete order by ID
-// @Description Delete a order by its ID
+// @Description Delete an order and all its items
 // @Tags orders
 // @Produce json
 // @Param id path int true "Order ID"
@@ -217,24 +280,20 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.getIDParam(r)
+	id, err := h.getIDParam(r, "id")
 	if err != nil {
 		render.Error(w, http.StatusBadRequest, "invalid order ID")
 		return
 	}
 
 	if err := h.svc.Delete(r.Context(), claims.AppID, claims.UserID, id); err != nil {
-		if errors.Is(err, ErrOrderNotFound) {
-			render.Error(w, http.StatusNotFound, "order not found")
-			return
-		}
-		render.Error(w, http.StatusInternalServerError, err.Error())
+		h.renderError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) getIDParam(r *http.Request) (int, error) {
-	return strconv.Atoi(chi.URLParam(r, "id"))
+func (h *Handler) getIDParam(r *http.Request, name string) (int, error) {
+	return strconv.Atoi(chi.URLParam(r, name))
 }

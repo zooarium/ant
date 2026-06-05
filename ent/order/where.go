@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // ID filters vertices based on their ID field.
@@ -74,9 +75,19 @@ func UserID(v int) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldUserID, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.Order {
-	return predicate.Order(sql.FieldEQ(FieldName, v))
+// DivisionID applies equality check predicate on the "division_id" field. It's identical to DivisionIDEQ.
+func DivisionID(v int) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDivisionID, v))
+}
+
+// CustomerName applies equality check predicate on the "customer_name" field. It's identical to CustomerNameEQ.
+func CustomerName(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldCustomerName, v))
+}
+
+// CustomerContact applies equality check predicate on the "customer_contact" field. It's identical to CustomerContactEQ.
+func CustomerContact(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldCustomerContact, v))
 }
 
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
@@ -244,69 +255,174 @@ func UserIDLTE(v int) predicate.Order {
 	return predicate.Order(sql.FieldLTE(FieldUserID, v))
 }
 
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.Order {
-	return predicate.Order(sql.FieldEQ(FieldName, v))
+// DivisionIDEQ applies the EQ predicate on the "division_id" field.
+func DivisionIDEQ(v int) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDivisionID, v))
 }
 
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.Order {
-	return predicate.Order(sql.FieldNEQ(FieldName, v))
+// DivisionIDNEQ applies the NEQ predicate on the "division_id" field.
+func DivisionIDNEQ(v int) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldDivisionID, v))
 }
 
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.Order {
-	return predicate.Order(sql.FieldIn(FieldName, vs...))
+// DivisionIDIn applies the In predicate on the "division_id" field.
+func DivisionIDIn(vs ...int) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldDivisionID, vs...))
 }
 
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.Order {
-	return predicate.Order(sql.FieldNotIn(FieldName, vs...))
+// DivisionIDNotIn applies the NotIn predicate on the "division_id" field.
+func DivisionIDNotIn(vs ...int) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldDivisionID, vs...))
 }
 
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.Order {
-	return predicate.Order(sql.FieldGT(FieldName, v))
+// DivisionIDGT applies the GT predicate on the "division_id" field.
+func DivisionIDGT(v int) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldDivisionID, v))
 }
 
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.Order {
-	return predicate.Order(sql.FieldGTE(FieldName, v))
+// DivisionIDGTE applies the GTE predicate on the "division_id" field.
+func DivisionIDGTE(v int) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldDivisionID, v))
 }
 
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.Order {
-	return predicate.Order(sql.FieldLT(FieldName, v))
+// DivisionIDLT applies the LT predicate on the "division_id" field.
+func DivisionIDLT(v int) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldDivisionID, v))
 }
 
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.Order {
-	return predicate.Order(sql.FieldLTE(FieldName, v))
+// DivisionIDLTE applies the LTE predicate on the "division_id" field.
+func DivisionIDLTE(v int) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldDivisionID, v))
 }
 
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.Order {
-	return predicate.Order(sql.FieldContains(FieldName, v))
+// CustomerNameEQ applies the EQ predicate on the "customer_name" field.
+func CustomerNameEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldCustomerName, v))
 }
 
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.Order {
-	return predicate.Order(sql.FieldHasPrefix(FieldName, v))
+// CustomerNameNEQ applies the NEQ predicate on the "customer_name" field.
+func CustomerNameNEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldCustomerName, v))
 }
 
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.Order {
-	return predicate.Order(sql.FieldHasSuffix(FieldName, v))
+// CustomerNameIn applies the In predicate on the "customer_name" field.
+func CustomerNameIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldCustomerName, vs...))
 }
 
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.Order {
-	return predicate.Order(sql.FieldEqualFold(FieldName, v))
+// CustomerNameNotIn applies the NotIn predicate on the "customer_name" field.
+func CustomerNameNotIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldCustomerName, vs...))
 }
 
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.Order {
-	return predicate.Order(sql.FieldContainsFold(FieldName, v))
+// CustomerNameGT applies the GT predicate on the "customer_name" field.
+func CustomerNameGT(v string) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldCustomerName, v))
+}
+
+// CustomerNameGTE applies the GTE predicate on the "customer_name" field.
+func CustomerNameGTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldCustomerName, v))
+}
+
+// CustomerNameLT applies the LT predicate on the "customer_name" field.
+func CustomerNameLT(v string) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldCustomerName, v))
+}
+
+// CustomerNameLTE applies the LTE predicate on the "customer_name" field.
+func CustomerNameLTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldCustomerName, v))
+}
+
+// CustomerNameContains applies the Contains predicate on the "customer_name" field.
+func CustomerNameContains(v string) predicate.Order {
+	return predicate.Order(sql.FieldContains(FieldCustomerName, v))
+}
+
+// CustomerNameHasPrefix applies the HasPrefix predicate on the "customer_name" field.
+func CustomerNameHasPrefix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasPrefix(FieldCustomerName, v))
+}
+
+// CustomerNameHasSuffix applies the HasSuffix predicate on the "customer_name" field.
+func CustomerNameHasSuffix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasSuffix(FieldCustomerName, v))
+}
+
+// CustomerNameEqualFold applies the EqualFold predicate on the "customer_name" field.
+func CustomerNameEqualFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldEqualFold(FieldCustomerName, v))
+}
+
+// CustomerNameContainsFold applies the ContainsFold predicate on the "customer_name" field.
+func CustomerNameContainsFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldContainsFold(FieldCustomerName, v))
+}
+
+// CustomerContactEQ applies the EQ predicate on the "customer_contact" field.
+func CustomerContactEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldCustomerContact, v))
+}
+
+// CustomerContactNEQ applies the NEQ predicate on the "customer_contact" field.
+func CustomerContactNEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldCustomerContact, v))
+}
+
+// CustomerContactIn applies the In predicate on the "customer_contact" field.
+func CustomerContactIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldCustomerContact, vs...))
+}
+
+// CustomerContactNotIn applies the NotIn predicate on the "customer_contact" field.
+func CustomerContactNotIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldCustomerContact, vs...))
+}
+
+// CustomerContactGT applies the GT predicate on the "customer_contact" field.
+func CustomerContactGT(v string) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldCustomerContact, v))
+}
+
+// CustomerContactGTE applies the GTE predicate on the "customer_contact" field.
+func CustomerContactGTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldCustomerContact, v))
+}
+
+// CustomerContactLT applies the LT predicate on the "customer_contact" field.
+func CustomerContactLT(v string) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldCustomerContact, v))
+}
+
+// CustomerContactLTE applies the LTE predicate on the "customer_contact" field.
+func CustomerContactLTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldCustomerContact, v))
+}
+
+// CustomerContactContains applies the Contains predicate on the "customer_contact" field.
+func CustomerContactContains(v string) predicate.Order {
+	return predicate.Order(sql.FieldContains(FieldCustomerContact, v))
+}
+
+// CustomerContactHasPrefix applies the HasPrefix predicate on the "customer_contact" field.
+func CustomerContactHasPrefix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasPrefix(FieldCustomerContact, v))
+}
+
+// CustomerContactHasSuffix applies the HasSuffix predicate on the "customer_contact" field.
+func CustomerContactHasSuffix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasSuffix(FieldCustomerContact, v))
+}
+
+// CustomerContactEqualFold applies the EqualFold predicate on the "customer_contact" field.
+func CustomerContactEqualFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldEqualFold(FieldCustomerContact, v))
+}
+
+// CustomerContactContainsFold applies the ContainsFold predicate on the "customer_contact" field.
+func CustomerContactContainsFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldContainsFold(FieldCustomerContact, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.
@@ -347,6 +463,29 @@ func StatusLT(v int8) predicate.Order {
 // StatusLTE applies the LTE predicate on the "status" field.
 func StatusLTE(v int8) predicate.Order {
 	return predicate.Order(sql.FieldLTE(FieldStatus, v))
+}
+
+// HasProducts applies the HasEdge predicate on the "products" edge.
+func HasProducts() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProductsTable, ProductsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProductsWith applies the HasEdge predicate on the "products" edge with a given conditions (other predicates).
+func HasProductsWith(preds ...predicate.OrderProduct) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newProductsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

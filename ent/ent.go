@@ -3,8 +3,12 @@
 package ent
 
 import (
+	"ant/ent/attribute"
+	"ant/ent/attributeoption"
 	"ant/ent/order"
+	"ant/ent/orderproduct"
 	"ant/ent/product"
+	"ant/ent/productattribute"
 	"context"
 	"errors"
 	"fmt"
@@ -74,8 +78,12 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			order.Table:   order.ValidColumn,
-			product.Table: product.ValidColumn,
+			attribute.Table:        attribute.ValidColumn,
+			attributeoption.Table:  attributeoption.ValidColumn,
+			order.Table:            order.ValidColumn,
+			orderproduct.Table:     orderproduct.ValidColumn,
+			product.Table:          product.ValidColumn,
+			productattribute.Table: productattribute.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -9,6 +9,58 @@ import (
 )
 
 var (
+	// AntAttributeColumns holds the columns for the "ant_attribute" table.
+	AntAttributeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "app_id", Type: field.TypeInt},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "name", Type: field.TypeString},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+	}
+	// AntAttributeTable holds the schema information for the "ant_attribute" table.
+	AntAttributeTable = &schema.Table{
+		Name:       "ant_attribute",
+		Columns:    AntAttributeColumns,
+		PrimaryKey: []*schema.Column{AntAttributeColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "attribute_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntAttributeColumns[3]},
+			},
+		},
+	}
+	// AntAttributeOptionColumns holds the columns for the "ant_attribute_option" table.
+	AntAttributeOptionColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "value", Type: field.TypeString},
+		{Name: "attribute_id", Type: field.TypeInt},
+	}
+	// AntAttributeOptionTable holds the schema information for the "ant_attribute_option" table.
+	AntAttributeOptionTable = &schema.Table{
+		Name:       "ant_attribute_option",
+		Columns:    AntAttributeOptionColumns,
+		PrimaryKey: []*schema.Column{AntAttributeOptionColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ant_attribute_option_ant_attribute_options",
+				Columns:    []*schema.Column{AntAttributeOptionColumns[4]},
+				RefColumns: []*schema.Column{AntAttributeColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "attributeoption_attribute_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntAttributeOptionColumns[4]},
+			},
+		},
+	}
 	// AntOrderColumns holds the columns for the "ant_order" table.
 	AntOrderColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -16,7 +68,9 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "app_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
-		{Name: "name", Type: field.TypeString},
+		{Name: "division_id", Type: field.TypeInt},
+		{Name: "customer_name", Type: field.TypeString},
+		{Name: "customer_contact", Type: field.TypeString},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
 	}
 	// AntOrderTable holds the schema information for the "ant_order" table.
@@ -26,9 +80,47 @@ var (
 		PrimaryKey: []*schema.Column{AntOrderColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "order_app_id",
+				Name:    "order_app_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{AntOrderColumns[3]},
+				Columns: []*schema.Column{AntOrderColumns[3], AntOrderColumns[8]},
+			},
+		},
+	}
+	// AntOrderProductColumns holds the columns for the "ant_order_product" table.
+	AntOrderProductColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "product_id", Type: field.TypeInt},
+		{Name: "product_name", Type: field.TypeString},
+		{Name: "price", Type: field.TypeFloat64},
+		{Name: "quantity", Type: field.TypeInt},
+		{Name: "attributes", Type: field.TypeJSON},
+		{Name: "order_id", Type: field.TypeInt},
+	}
+	// AntOrderProductTable holds the schema information for the "ant_order_product" table.
+	AntOrderProductTable = &schema.Table{
+		Name:       "ant_order_product",
+		Columns:    AntOrderProductColumns,
+		PrimaryKey: []*schema.Column{AntOrderProductColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ant_order_product_ant_order_products",
+				Columns:    []*schema.Column{AntOrderProductColumns[8]},
+				RefColumns: []*schema.Column{AntOrderColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "orderproduct_order_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntOrderProductColumns[8]},
+			},
+			{
+				Name:    "orderproduct_product_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntOrderProductColumns[3]},
 			},
 		},
 	}
@@ -40,6 +132,7 @@ var (
 		{Name: "app_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
 		{Name: "name", Type: field.TypeString},
+		{Name: "price", Type: field.TypeFloat64, Default: 0},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
 	}
 	// AntProductTable holds the schema information for the "ant_product" table.
@@ -55,18 +148,79 @@ var (
 			},
 		},
 	}
+	// AntProductAttributeColumns holds the columns for the "ant_product_attribute" table.
+	AntProductAttributeColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "is_mandatory", Type: field.TypeBool, Default: false},
+		{Name: "attribute_id", Type: field.TypeInt},
+		{Name: "product_id", Type: field.TypeInt},
+	}
+	// AntProductAttributeTable holds the schema information for the "ant_product_attribute" table.
+	AntProductAttributeTable = &schema.Table{
+		Name:       "ant_product_attribute",
+		Columns:    AntProductAttributeColumns,
+		PrimaryKey: []*schema.Column{AntProductAttributeColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ant_product_attribute_ant_attribute_product_attributes",
+				Columns:    []*schema.Column{AntProductAttributeColumns[4]},
+				RefColumns: []*schema.Column{AntAttributeColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "ant_product_attribute_ant_product_attributes",
+				Columns:    []*schema.Column{AntProductAttributeColumns[5]},
+				RefColumns: []*schema.Column{AntProductColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "productattribute_product_id_attribute_id",
+				Unique:  true,
+				Columns: []*schema.Column{AntProductAttributeColumns[5], AntProductAttributeColumns[4]},
+			},
+			{
+				Name:    "productattribute_attribute_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntProductAttributeColumns[4]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AntAttributeTable,
+		AntAttributeOptionTable,
 		AntOrderTable,
+		AntOrderProductTable,
 		AntProductTable,
+		AntProductAttributeTable,
 	}
 )
 
 func init() {
+	AntAttributeTable.Annotation = &entsql.Annotation{
+		Table: "ant_attribute",
+	}
+	AntAttributeOptionTable.ForeignKeys[0].RefTable = AntAttributeTable
+	AntAttributeOptionTable.Annotation = &entsql.Annotation{
+		Table: "ant_attribute_option",
+	}
 	AntOrderTable.Annotation = &entsql.Annotation{
 		Table: "ant_order",
 	}
+	AntOrderProductTable.ForeignKeys[0].RefTable = AntOrderTable
+	AntOrderProductTable.Annotation = &entsql.Annotation{
+		Table: "ant_order_product",
+	}
 	AntProductTable.Annotation = &entsql.Annotation{
 		Table: "ant_product",
+	}
+	AntProductAttributeTable.ForeignKeys[0].RefTable = AntAttributeTable
+	AntProductAttributeTable.ForeignKeys[1].RefTable = AntProductTable
+	AntProductAttributeTable.Annotation = &entsql.Annotation{
+		Table: "ant_product_attribute",
 	}
 }

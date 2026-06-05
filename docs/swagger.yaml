@@ -1,0 +1,1060 @@
+basePath: /
+definitions:
+  ant_internal_platform_render.Response:
+    properties:
+      data: {}
+      error:
+        type: string
+      status:
+        type: integer
+    type: object
+  internal_attribute.Attribute:
+    properties:
+      app_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/internal_attribute.Option'
+        type: array
+      status:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  internal_attribute.CreateAttributeRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/internal_attribute.CreateOptionRequest'
+        type: array
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    required:
+    - name
+    type: object
+  internal_attribute.CreateOptionRequest:
+    properties:
+      value:
+        maxLength: 100
+        type: string
+    required:
+    - value
+    type: object
+  internal_attribute.Option:
+    properties:
+      id:
+        type: integer
+      value:
+        type: string
+    type: object
+  internal_attribute.SyncOptionRequest:
+    properties:
+      id:
+        minimum: 1
+        type: integer
+      value:
+        maxLength: 100
+        type: string
+    required:
+    - value
+    type: object
+  internal_attribute.UpdateAttributeRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/internal_attribute.SyncOptionRequest'
+        type: array
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    required:
+    - name
+    - status
+    type: object
+  internal_order.CreateOrderRequest:
+    properties:
+      customer_contact:
+        maxLength: 20
+        minLength: 7
+        type: string
+      customer_name:
+        maxLength: 100
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/internal_order.OrderItemRequest'
+        minItems: 1
+        type: array
+      status:
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+    required:
+    - customer_contact
+    - customer_name
+    - products
+    type: object
+  internal_order.Order:
+    properties:
+      app_id:
+        type: integer
+      created_at:
+        type: string
+      customer_contact:
+        type: string
+      customer_name:
+        type: string
+      division_id:
+        type: integer
+      id:
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/internal_order.OrderItem'
+        type: array
+      products_count:
+        type: integer
+      status:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  internal_order.OrderItem:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/internal_order.OrderItemAttribute'
+        type: array
+      id:
+        type: integer
+      price:
+        type: number
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  internal_order.OrderItemAttribute:
+    properties:
+      attribute_id:
+        type: integer
+      attribute_name:
+        type: string
+      option_id:
+        type: integer
+      option_value:
+        type: string
+    type: object
+  internal_order.OrderItemAttributeRequest:
+    properties:
+      attribute_id:
+        type: integer
+      option_id:
+        type: integer
+    required:
+    - attribute_id
+    - option_id
+    type: object
+  internal_order.OrderItemRequest:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/internal_order.OrderItemAttributeRequest'
+        type: array
+      product_id:
+        type: integer
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - product_id
+    - quantity
+    type: object
+  internal_order.SyncOrderItemRequest:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/internal_order.OrderItemAttributeRequest'
+        type: array
+      id:
+        minimum: 1
+        type: integer
+      product_id:
+        minimum: 1
+        type: integer
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - quantity
+    type: object
+  internal_order.UpdateOrderRequest:
+    properties:
+      customer_contact:
+        maxLength: 20
+        minLength: 7
+        type: string
+      customer_name:
+        maxLength: 100
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/internal_order.SyncOrderItemRequest'
+        minItems: 1
+        type: array
+    required:
+    - customer_contact
+    - customer_name
+    - products
+    type: object
+  internal_order.UpdateOrderStatusRequest:
+    properties:
+      status:
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+    required:
+    - status
+    type: object
+  internal_product.AssignedAttribute:
+    properties:
+      attribute_id:
+        type: integer
+      is_mandatory:
+        type: boolean
+      name:
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/internal_product.AttributeOption'
+        type: array
+    type: object
+  internal_product.AttributeAssignmentRequest:
+    properties:
+      attribute_id:
+        type: integer
+      is_mandatory:
+        type: boolean
+    required:
+    - attribute_id
+    type: object
+  internal_product.AttributeOption:
+    properties:
+      id:
+        type: integer
+      value:
+        type: string
+    type: object
+  internal_product.CreateProductRequest:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/internal_product.AttributeAssignmentRequest'
+        type: array
+      name:
+        maxLength: 200
+        type: string
+      price:
+        minimum: 0
+        type: number
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    required:
+    - name
+    type: object
+  internal_product.Product:
+    properties:
+      app_id:
+        type: integer
+      attributes:
+        items:
+          $ref: '#/definitions/internal_product.AssignedAttribute'
+        type: array
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      status:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  internal_product.UpdateProductRequest:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/internal_product.AttributeAssignmentRequest'
+        type: array
+      name:
+        maxLength: 200
+        type: string
+      price:
+        minimum: 0
+        type: number
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    required:
+    - name
+    - status
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: This is the ant microservice.
+  title: Ant API
+  version: "1.0"
+paths:
+  /attributes:
+    get:
+      description: Get a list of all attributes for the authenticated app
+      parameters:
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status (0 or 1)
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_attribute.Attribute'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List all attributes
+      tags:
+      - attributes
+    post:
+      consumes:
+      - application/json
+      description: Create a new attribute with optional options
+      parameters:
+      - description: Attribute object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_attribute.CreateAttributeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_attribute.Attribute'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create a new attribute
+      tags:
+      - attributes
+  /attributes/{id}:
+    delete:
+      description: Delete an attribute and its options. Blocked if assigned to any
+        product.
+      parameters:
+      - description: Attribute ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Delete attribute by ID
+      tags:
+      - attributes
+    get:
+      description: Get a single attribute with its options
+      parameters:
+      - description: Attribute ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_attribute.Attribute'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get attribute by ID
+      tags:
+      - attributes
+    put:
+      consumes:
+      - application/json
+      description: 'Atomically update an attribute and sync its options in one call:
+        options with an id are updated, ones without are created, existing options
+        missing from the payload are deleted.'
+      parameters:
+      - description: Attribute ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Attribute object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_attribute.UpdateAttributeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_attribute.Attribute'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Update attribute by ID
+      tags:
+      - attributes
+  /health:
+    get:
+      description: Get the health status of the service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      summary: Check service health
+      tags:
+      - health
+  /orders:
+    get:
+      description: Get a summary list of orders (no items, products_count only) for
+        the authenticated app
+      parameters:
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_order.Order'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List all orders
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Create an order with one or more items. Items snapshot the product
+        name, price and chosen attribute values; only active products can be added.
+      parameters:
+      - description: Order object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_order.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_order.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create a new order
+      tags:
+      - orders
+  /orders/{id}:
+    delete:
+      description: Delete an order and all its items
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Delete order by ID
+      tags:
+      - orders
+    get:
+      description: Get a single order with its items
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_order.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get order by ID
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Atomically update customer details and sync items in one call.
+        Items with an id update quantity only (product/attributes immutable); items
+        without an id are added; existing items missing from the payload are deleted.
+        Status is managed via /orders/{id}/status.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_order.UpdateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_order.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Update order by ID
+      tags:
+      - orders
+  /orders/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_order.UpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_order.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Set order status
+      tags:
+      - orders
+  /products:
+    get:
+      description: Get a list of all products for the authenticated app
+      parameters:
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status (0 or 1)
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_product.Product'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List all products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: Create a new product with attribute assignments. Only active attributes
+        can be assigned.
+      parameters:
+      - description: Product object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_product.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_product.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create a new product
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      description: Delete a product and its attribute assignments. Blocked if the
+        product is used in any order.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Delete product by ID
+      tags:
+      - products
+    get:
+      description: Get a single product with its assigned attributes and their options
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_product.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get product by ID
+      tags:
+      - products
+    put:
+      consumes:
+      - application/json
+      description: Update an existing product. The attributes array replaces all assignments
+        (full sync).
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_product.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_product.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Update product by ID
+      tags:
+      - products
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

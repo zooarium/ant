@@ -6,8 +6,20 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Attribute is the predicate function for attribute builders.
+type Attribute func(*sql.Selector)
+
+// AttributeOption is the predicate function for attributeoption builders.
+type AttributeOption func(*sql.Selector)
+
 // Order is the predicate function for order builders.
 type Order func(*sql.Selector)
 
+// OrderProduct is the predicate function for orderproduct builders.
+type OrderProduct func(*sql.Selector)
+
 // Product is the predicate function for product builders.
 type Product func(*sql.Selector)
+
+// ProductAttribute is the predicate function for productattribute builders.
+type ProductAttribute func(*sql.Selector)

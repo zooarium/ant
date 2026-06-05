@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -28,20 +29,25 @@ func (Order) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("app_id"),
 		field.Int("user_id"),
-		field.String("name").
+		field.Int("division_id"),
+		field.String("customer_name").
 			NotEmpty(),
+		field.String("customer_contact").
+			NotEmpty(),
+		// 1=pending, 2=confirmed, 3=completed, 4=cancelled
 		field.Int8("status").
 			Default(1),
-		// Add domain-specific fields here
 	}
 }
 
 func (Order) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("products", OrderProduct.Type),
+	}
 }
 
 func (Order) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("app_id"),
+		index.Fields("app_id", "status"),
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -30,14 +31,17 @@ func (Product) Fields() []ent.Field {
 		field.Int("user_id"),
 		field.String("name").
 			NotEmpty(),
+		field.Float("price").
+			Default(0),
 		field.Int8("status").
 			Default(1),
-		// Add domain-specific fields here
 	}
 }
 
 func (Product) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("attributes", ProductAttribute.Type),
+	}
 }
 
 func (Product) Indexes() []ent.Index {

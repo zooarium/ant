@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ant/ent/order"
+	"ant/ent/orderproduct"
 	"context"
 	"errors"
 	"fmt"
@@ -60,9 +61,21 @@ func (_c *OrderCreate) SetUserID(v int) *OrderCreate {
 	return _c
 }
 
-// SetName sets the "name" field.
-func (_c *OrderCreate) SetName(v string) *OrderCreate {
-	_c.mutation.SetName(v)
+// SetDivisionID sets the "division_id" field.
+func (_c *OrderCreate) SetDivisionID(v int) *OrderCreate {
+	_c.mutation.SetDivisionID(v)
+	return _c
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (_c *OrderCreate) SetCustomerName(v string) *OrderCreate {
+	_c.mutation.SetCustomerName(v)
+	return _c
+}
+
+// SetCustomerContact sets the "customer_contact" field.
+func (_c *OrderCreate) SetCustomerContact(v string) *OrderCreate {
+	_c.mutation.SetCustomerContact(v)
 	return _c
 }
 
@@ -78,6 +91,21 @@ func (_c *OrderCreate) SetNillableStatus(v *int8) *OrderCreate {
 		_c.SetStatus(*v)
 	}
 	return _c
+}
+
+// AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
+func (_c *OrderCreate) AddProductIDs(ids ...int) *OrderCreate {
+	_c.mutation.AddProductIDs(ids...)
+	return _c
+}
+
+// AddProducts adds the "products" edges to the OrderProduct entity.
+func (_c *OrderCreate) AddProducts(v ...*OrderProduct) *OrderCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddProductIDs(ids...)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -143,12 +171,23 @@ func (_c *OrderCreate) check() error {
 	if _, ok := _c.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Order.user_id"`)}
 	}
-	if _, ok := _c.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Order.name"`)}
+	if _, ok := _c.mutation.DivisionID(); !ok {
+		return &ValidationError{Name: "division_id", err: errors.New(`ent: missing required field "Order.division_id"`)}
 	}
-	if v, ok := _c.mutation.Name(); ok {
-		if err := order.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Order.name": %w`, err)}
+	if _, ok := _c.mutation.CustomerName(); !ok {
+		return &ValidationError{Name: "customer_name", err: errors.New(`ent: missing required field "Order.customer_name"`)}
+	}
+	if v, ok := _c.mutation.CustomerName(); ok {
+		if err := order.CustomerNameValidator(v); err != nil {
+			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`ent: validator failed for field "Order.customer_name": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.CustomerContact(); !ok {
+		return &ValidationError{Name: "customer_contact", err: errors.New(`ent: missing required field "Order.customer_contact"`)}
+	}
+	if v, ok := _c.mutation.CustomerContact(); ok {
+		if err := order.CustomerContactValidator(v); err != nil {
+			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
@@ -196,13 +235,37 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		_spec.SetField(order.FieldUserID, field.TypeInt, value)
 		_node.UserID = value
 	}
-	if value, ok := _c.mutation.Name(); ok {
-		_spec.SetField(order.FieldName, field.TypeString, value)
-		_node.Name = value
+	if value, ok := _c.mutation.DivisionID(); ok {
+		_spec.SetField(order.FieldDivisionID, field.TypeInt, value)
+		_node.DivisionID = value
+	}
+	if value, ok := _c.mutation.CustomerName(); ok {
+		_spec.SetField(order.FieldCustomerName, field.TypeString, value)
+		_node.CustomerName = value
+	}
+	if value, ok := _c.mutation.CustomerContact(); ok {
+		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
+		_node.CustomerContact = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
+	}
+	if nodes := _c.mutation.ProductsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

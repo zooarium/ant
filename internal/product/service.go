@@ -9,19 +9,24 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var ErrProductNotFound = errors.New("product not found")
+var (
+	ErrProductNotFound    = errors.New("product not found")
+	ErrProductInUse       = errors.New("product is used in one or more orders")
+	ErrAttributeInvalid   = errors.New("attribute not found or not active")
+	ErrDuplicateAttribute = errors.New("duplicate attribute in request")
+)
 
 type Repository interface {
-	Create(ctx context.Context, item Product) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int) ([]Product, error)
+	Create(ctx context.Context, item Product, assignments []AttributeAssignmentRequest) (Product, error)
+	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
-	Update(ctx context.Context, appID, userID, id int, item Product) (Product, error)
+	Update(ctx context.Context, appID, userID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, id int) error
 }
 
 type Service interface {
 	Create(ctx context.Context, appID, userID int, req CreateProductRequest) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int) ([]Product, error)
+	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
 	Update(ctx context.Context, appID, userID, id int, req UpdateProductRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, id int) error
@@ -39,30 +44,48 @@ func NewService(repo Repository) Service {
 	}
 }
 
+func checkDuplicateAssignments(assignments []AttributeAssignmentRequest) error {
+	seen := make(map[int]struct{}, len(assignments))
+	for _, a := range assignments {
+		if _, ok := seen[a.AttributeID]; ok {
+			return ErrDuplicateAttribute
+		}
+		seen[a.AttributeID] = struct{}{}
+	}
+	return nil
+}
+
 func (s *service) Create(ctx context.Context, appID, userID int, req CreateProductRequest) (Product, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Product{}, fmt.Errorf("validate request: %w", err)
 	}
-	if req.Status == 0 {
-		req.Status = 1
+	if err := checkDuplicateAssignments(req.Attributes); err != nil {
+		return Product{}, err
+	}
+	status := int8(1)
+	if req.Status != nil {
+		status = *req.Status
 	}
 	item := Product{
 		AppID:  appID,
 		UserID: userID,
 		Name:   req.Name,
-		Status: req.Status,
+		Price:  req.Price,
+		Status: status,
 	}
-	created, err := s.repo.Create(ctx, item)
+	created, err := s.repo.Create(ctx, item, req.Attributes)
 	if err != nil {
-		slog.Error("failed to create product", "error", err, "app_id", appID, "user_id", userID)
+		if !errors.Is(err, ErrAttributeInvalid) {
+			slog.Error("failed to create product", "error", err, "app_id", appID, "user_id", userID)
+		}
 		return Product{}, err
 	}
 	slog.Info("product created", "id", created.ID, "app_id", appID, "user_id", userID)
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, limit, offset int) ([]Product, error) {
-	items, err := s.repo.List(ctx, appID, userID, limit, offset)
+func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error) {
+	items, err := s.repo.List(ctx, appID, userID, limit, offset, status)
 	if err != nil {
 		slog.Error("failed to list products", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -85,13 +108,17 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateP
 	if err := s.validate.Struct(req); err != nil {
 		return Product{}, fmt.Errorf("validate request: %w", err)
 	}
+	if err := checkDuplicateAssignments(req.Attributes); err != nil {
+		return Product{}, err
+	}
 	item := Product{
 		Name:   req.Name,
-		Status: req.Status,
+		Price:  req.Price,
+		Status: *req.Status,
 	}
-	updated, err := s.repo.Update(ctx, appID, userID, id, item)
+	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Attributes)
 	if err != nil {
-		if !errors.Is(err, ErrProductNotFound) {
+		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrAttributeInvalid) {
 			slog.Error("failed to update product", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}
 		return Product{}, err
@@ -102,7 +129,7 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateP
 
 func (s *service) Delete(ctx context.Context, appID, userID, id int) error {
 	if err := s.repo.Delete(ctx, appID, userID, id); err != nil {
-		if !errors.Is(err, ErrProductNotFound) {
+		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrProductInUse) {
 			slog.Error("failed to delete product", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}
 		return err

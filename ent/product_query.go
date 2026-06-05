@@ -5,7 +5,9 @@ package ent
 import (
 	"ant/ent/predicate"
 	"ant/ent/product"
+	"ant/ent/productattribute"
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -18,10 +20,11 @@ import (
 // ProductQuery is the builder for querying Product entities.
 type ProductQuery struct {
 	config
-	ctx        *QueryContext
-	order      []product.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Product
+	ctx            *QueryContext
+	order          []product.OrderOption
+	inters         []Interceptor
+	predicates     []predicate.Product
+	withAttributes *ProductAttributeQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -56,6 +59,28 @@ func (_q *ProductQuery) Unique(unique bool) *ProductQuery {
 func (_q *ProductQuery) Order(o ...product.OrderOption) *ProductQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryAttributes chains the current query on the "attributes" edge.
+func (_q *ProductQuery) QueryAttributes() *ProductAttributeQuery {
+	query := (&ProductAttributeClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.To(productattribute.Table, productattribute.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, product.AttributesTable, product.AttributesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Product entity from the query.
@@ -245,15 +270,27 @@ func (_q *ProductQuery) Clone() *ProductQuery {
 		return nil
 	}
 	return &ProductQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]product.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Product{}, _q.predicates...),
+		config:         _q.config,
+		ctx:            _q.ctx.Clone(),
+		order:          append([]product.OrderOption{}, _q.order...),
+		inters:         append([]Interceptor{}, _q.inters...),
+		predicates:     append([]predicate.Product{}, _q.predicates...),
+		withAttributes: _q.withAttributes.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithAttributes tells the query-builder to eager-load the nodes that are connected to
+// the "attributes" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ProductQuery) WithAttributes(opts ...func(*ProductAttributeQuery)) *ProductQuery {
+	query := (&ProductAttributeClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withAttributes = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -332,8 +369,11 @@ func (_q *ProductQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Product, error) {
 	var (
-		nodes = []*Product{}
-		_spec = _q.querySpec()
+		nodes       = []*Product{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withAttributes != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Product).scanValues(nil, columns)
@@ -341,6 +381,7 @@ func (_q *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Product{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -352,7 +393,45 @@ func (_q *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withAttributes; query != nil {
+		if err := _q.loadAttributes(ctx, query, nodes,
+			func(n *Product) { n.Edges.Attributes = []*ProductAttribute{} },
+			func(n *Product, e *ProductAttribute) { n.Edges.Attributes = append(n.Edges.Attributes, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *ProductQuery) loadAttributes(ctx context.Context, query *ProductAttributeQuery, nodes []*Product, init func(*Product), assign func(*Product, *ProductAttribute)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Product)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(productattribute.FieldProductID)
+	}
+	query.Where(predicate.ProductAttribute(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(product.AttributesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ProductID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "product_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *ProductQuery) sqlCount(ctx context.Context) (int, error) {

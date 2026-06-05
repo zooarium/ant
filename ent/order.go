@@ -25,11 +25,36 @@ type Order struct {
 	AppID int `json:"app_id,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID int `json:"user_id,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
+	// DivisionID holds the value of the "division_id" field.
+	DivisionID int `json:"division_id,omitempty"`
+	// CustomerName holds the value of the "customer_name" field.
+	CustomerName string `json:"customer_name,omitempty"`
+	// CustomerContact holds the value of the "customer_contact" field.
+	CustomerContact string `json:"customer_contact,omitempty"`
 	// Status holds the value of the "status" field.
-	Status       int8 `json:"status,omitempty"`
+	Status int8 `json:"status,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the OrderQuery when eager-loading is set.
+	Edges        OrderEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// OrderEdges holds the relations/edges for other nodes in the graph.
+type OrderEdges struct {
+	// Products holds the value of the products edge.
+	Products []*OrderProduct `json:"products,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// ProductsOrErr returns the Products value or an error if the edge
+// was not loaded in eager-loading.
+func (e OrderEdges) ProductsOrErr() ([]*OrderProduct, error) {
+	if e.loadedTypes[0] {
+		return e.Products, nil
+	}
+	return nil, &NotLoadedError{edge: "products"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -37,9 +62,9 @@ func (*Order) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case order.FieldID, order.FieldAppID, order.FieldUserID, order.FieldStatus:
+		case order.FieldID, order.FieldAppID, order.FieldUserID, order.FieldDivisionID, order.FieldStatus:
 			values[i] = new(sql.NullInt64)
-		case order.FieldName:
+		case order.FieldCustomerName, order.FieldCustomerContact:
 			values[i] = new(sql.NullString)
 		case order.FieldCreatedAt, order.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -88,11 +113,23 @@ func (_m *Order) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UserID = int(value.Int64)
 			}
-		case order.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
+		case order.FieldDivisionID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field division_id", values[i])
 			} else if value.Valid {
-				_m.Name = value.String
+				_m.DivisionID = int(value.Int64)
+			}
+		case order.FieldCustomerName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_name", values[i])
+			} else if value.Valid {
+				_m.CustomerName = value.String
+			}
+		case order.FieldCustomerContact:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field customer_contact", values[i])
+			} else if value.Valid {
+				_m.CustomerContact = value.String
 			}
 		case order.FieldStatus:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -111,6 +148,11 @@ func (_m *Order) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Order) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryProducts queries the "products" edge of the Order entity.
+func (_m *Order) QueryProducts() *OrderProductQuery {
+	return NewOrderClient(_m.config).QueryProducts(_m)
 }
 
 // Update returns a builder for updating this Order.
@@ -148,8 +190,14 @@ func (_m *Order) String() string {
 	builder.WriteString("user_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
 	builder.WriteString(", ")
-	builder.WriteString("name=")
-	builder.WriteString(_m.Name)
+	builder.WriteString("division_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DivisionID))
+	builder.WriteString(", ")
+	builder.WriteString("customer_name=")
+	builder.WriteString(_m.CustomerName)
+	builder.WriteString(", ")
+	builder.WriteString("customer_contact=")
+	builder.WriteString(_m.CustomerContact)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))

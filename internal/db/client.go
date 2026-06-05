@@ -51,7 +51,12 @@ func NewPostgresClient(dsn string) (*ent.Client, error) {
 
 func migrateClient(client *ent.Client) (*ent.Client, error) {
 	slog.Info("running auto migration")
-	if err := client.Schema.Create(context.Background(), migrate.WithGlobalUniqueID(true)); err != nil {
+	// Per-table autoincrement starting from 1 (no global unique ID ranges).
+	if err := client.Schema.Create(
+		context.Background(),
+		migrate.WithDropColumn(true),
+		migrate.WithDropIndex(true),
+	); err != nil {
 		slog.Error("failed to create schema resources", "error", err)
 		if cerr := client.Close(); cerr != nil {
 			slog.Error("failed to close client after schema creation failure", "error", cerr)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -21,12 +22,25 @@ const (
 	FieldAppID = "app_id"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
+	// FieldDivisionID holds the string denoting the division_id field in the database.
+	FieldDivisionID = "division_id"
+	// FieldCustomerName holds the string denoting the customer_name field in the database.
+	FieldCustomerName = "customer_name"
+	// FieldCustomerContact holds the string denoting the customer_contact field in the database.
+	FieldCustomerContact = "customer_contact"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// EdgeProducts holds the string denoting the products edge name in mutations.
+	EdgeProducts = "products"
 	// Table holds the table name of the order in the database.
 	Table = "ant_order"
+	// ProductsTable is the table that holds the products relation/edge.
+	ProductsTable = "ant_order_product"
+	// ProductsInverseTable is the table name for the OrderProduct entity.
+	// It exists in this package in order to avoid circular dependency with the "orderproduct" package.
+	ProductsInverseTable = "ant_order_product"
+	// ProductsColumn is the table column denoting the products relation/edge.
+	ProductsColumn = "order_id"
 )
 
 // Columns holds all SQL columns for order fields.
@@ -36,7 +50,9 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldAppID,
 	FieldUserID,
-	FieldName,
+	FieldDivisionID,
+	FieldCustomerName,
+	FieldCustomerContact,
 	FieldStatus,
 }
 
@@ -57,8 +73,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
+	// CustomerNameValidator is a validator for the "customer_name" field. It is called by the builders before save.
+	CustomerNameValidator func(string) error
+	// CustomerContactValidator is a validator for the "customer_contact" field. It is called by the builders before save.
+	CustomerContactValidator func(string) error
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
 )
@@ -91,12 +109,43 @@ func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
+// ByDivisionID orders the results by the division_id field.
+func ByDivisionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDivisionID, opts...).ToFunc()
+}
+
+// ByCustomerName orders the results by the customer_name field.
+func ByCustomerName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerName, opts...).ToFunc()
+}
+
+// ByCustomerContact orders the results by the customer_contact field.
+func ByCustomerContact(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCustomerContact, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByProductsCount orders the results by products count.
+func ByProductsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newProductsStep(), opts...)
+	}
+}
+
+// ByProducts orders the results by products terms.
+func ByProducts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newProductsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newProductsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ProductsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ProductsTable, ProductsColumn),
+	)
 }

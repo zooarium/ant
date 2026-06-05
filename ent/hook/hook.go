@@ -8,6 +8,30 @@ import (
 	"fmt"
 )
 
+// The AttributeFunc type is an adapter to allow the use of ordinary
+// function as Attribute mutator.
+type AttributeFunc func(context.Context, *ent.AttributeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AttributeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AttributeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AttributeMutation", m)
+}
+
+// The AttributeOptionFunc type is an adapter to allow the use of ordinary
+// function as AttributeOption mutator.
+type AttributeOptionFunc func(context.Context, *ent.AttributeOptionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AttributeOptionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AttributeOptionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AttributeOptionMutation", m)
+}
+
 // The OrderFunc type is an adapter to allow the use of ordinary
 // function as Order mutator.
 type OrderFunc func(context.Context, *ent.OrderMutation) (ent.Value, error)
@@ -20,6 +44,18 @@ func (f OrderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderMutation", m)
 }
 
+// The OrderProductFunc type is an adapter to allow the use of ordinary
+// function as OrderProduct mutator.
+type OrderProductFunc func(context.Context, *ent.OrderProductMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrderProductFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OrderProductMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderProductMutation", m)
+}
+
 // The ProductFunc type is an adapter to allow the use of ordinary
 // function as Product mutator.
 type ProductFunc func(context.Context, *ent.ProductMutation) (ent.Value, error)
@@ -30,6 +66,18 @@ func (f ProductFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProductMutation", m)
+}
+
+// The ProductAttributeFunc type is an adapter to allow the use of ordinary
+// function as ProductAttribute mutator.
+type ProductAttributeFunc func(context.Context, *ent.ProductAttributeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProductAttributeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProductAttributeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProductAttributeMutation", m)
 }
 
 // Condition is a hook condition function.

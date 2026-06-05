@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -23,10 +24,21 @@ const (
 	FieldUserID = "user_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
+	// FieldPrice holds the string denoting the price field in the database.
+	FieldPrice = "price"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// EdgeAttributes holds the string denoting the attributes edge name in mutations.
+	EdgeAttributes = "attributes"
 	// Table holds the table name of the product in the database.
 	Table = "ant_product"
+	// AttributesTable is the table that holds the attributes relation/edge.
+	AttributesTable = "ant_product_attribute"
+	// AttributesInverseTable is the table name for the ProductAttribute entity.
+	// It exists in this package in order to avoid circular dependency with the "productattribute" package.
+	AttributesInverseTable = "ant_product_attribute"
+	// AttributesColumn is the table column denoting the attributes relation/edge.
+	AttributesColumn = "product_id"
 )
 
 // Columns holds all SQL columns for product fields.
@@ -37,6 +49,7 @@ var Columns = []string{
 	FieldAppID,
 	FieldUserID,
 	FieldName,
+	FieldPrice,
 	FieldStatus,
 }
 
@@ -59,6 +72,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// DefaultPrice holds the default value on creation for the "price" field.
+	DefaultPrice float64
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
 )
@@ -96,7 +111,33 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldName, opts...).ToFunc()
 }
 
+// ByPrice orders the results by the price field.
+func ByPrice(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrice, opts...).ToFunc()
+}
+
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByAttributesCount orders the results by attributes count.
+func ByAttributesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newAttributesStep(), opts...)
+	}
+}
+
+// ByAttributes orders the results by attributes terms.
+func ByAttributes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newAttributesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newAttributesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(AttributesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, AttributesTable, AttributesColumn),
+	)
 }

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ant/ent/product"
+	"ant/ent/productattribute"
 	"context"
 	"errors"
 	"fmt"
@@ -66,6 +67,20 @@ func (_c *ProductCreate) SetName(v string) *ProductCreate {
 	return _c
 }
 
+// SetPrice sets the "price" field.
+func (_c *ProductCreate) SetPrice(v float64) *ProductCreate {
+	_c.mutation.SetPrice(v)
+	return _c
+}
+
+// SetNillablePrice sets the "price" field if the given value is not nil.
+func (_c *ProductCreate) SetNillablePrice(v *float64) *ProductCreate {
+	if v != nil {
+		_c.SetPrice(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *ProductCreate) SetStatus(v int8) *ProductCreate {
 	_c.mutation.SetStatus(v)
@@ -78,6 +93,21 @@ func (_c *ProductCreate) SetNillableStatus(v *int8) *ProductCreate {
 		_c.SetStatus(*v)
 	}
 	return _c
+}
+
+// AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
+func (_c *ProductCreate) AddAttributeIDs(ids ...int) *ProductCreate {
+	_c.mutation.AddAttributeIDs(ids...)
+	return _c
+}
+
+// AddAttributes adds the "attributes" edges to the ProductAttribute entity.
+func (_c *ProductCreate) AddAttributes(v ...*ProductAttribute) *ProductCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddAttributeIDs(ids...)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -123,6 +153,10 @@ func (_c *ProductCreate) defaults() {
 		v := product.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Price(); !ok {
+		v := product.DefaultPrice
+		_c.mutation.SetPrice(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := product.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -150,6 +184,9 @@ func (_c *ProductCreate) check() error {
 		if err := product.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.Price(); !ok {
+		return &ValidationError{Name: "price", err: errors.New(`ent: missing required field "Product.price"`)}
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Product.status"`)}
@@ -200,9 +237,29 @@ func (_c *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 		_spec.SetField(product.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
+	if value, ok := _c.mutation.Price(); ok {
+		_spec.SetField(product.FieldPrice, field.TypeFloat64, value)
+		_node.Price = value
+	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(product.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
+	}
+	if nodes := _c.mutation.AttributesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   product.AttributesTable,
+			Columns: []string{product.AttributesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

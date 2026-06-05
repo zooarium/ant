@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ant/ent/order"
+	"ant/ent/orderproduct"
 	"ant/ent/predicate"
 	"context"
 	"errors"
@@ -76,16 +77,51 @@ func (_u *OrderUpdate) AddUserID(v int) *OrderUpdate {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *OrderUpdate) SetName(v string) *OrderUpdate {
-	_u.mutation.SetName(v)
+// SetDivisionID sets the "division_id" field.
+func (_u *OrderUpdate) SetDivisionID(v int) *OrderUpdate {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *OrderUpdate) SetNillableName(v *string) *OrderUpdate {
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableDivisionID(v *int) *OrderUpdate {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *OrderUpdate) AddDivisionID(v int) *OrderUpdate {
+	_u.mutation.AddDivisionID(v)
+	return _u
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (_u *OrderUpdate) SetCustomerName(v string) *OrderUpdate {
+	_u.mutation.SetCustomerName(v)
+	return _u
+}
+
+// SetNillableCustomerName sets the "customer_name" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableCustomerName(v *string) *OrderUpdate {
+	if v != nil {
+		_u.SetCustomerName(*v)
+	}
+	return _u
+}
+
+// SetCustomerContact sets the "customer_contact" field.
+func (_u *OrderUpdate) SetCustomerContact(v string) *OrderUpdate {
+	_u.mutation.SetCustomerContact(v)
+	return _u
+}
+
+// SetNillableCustomerContact sets the "customer_contact" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableCustomerContact(v *string) *OrderUpdate {
+	if v != nil {
+		_u.SetCustomerContact(*v)
 	}
 	return _u
 }
@@ -111,9 +147,45 @@ func (_u *OrderUpdate) AddStatus(v int8) *OrderUpdate {
 	return _u
 }
 
+// AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
+func (_u *OrderUpdate) AddProductIDs(ids ...int) *OrderUpdate {
+	_u.mutation.AddProductIDs(ids...)
+	return _u
+}
+
+// AddProducts adds the "products" edges to the OrderProduct entity.
+func (_u *OrderUpdate) AddProducts(v ...*OrderProduct) *OrderUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddProductIDs(ids...)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdate) Mutation() *OrderMutation {
 	return _u.mutation
+}
+
+// ClearProducts clears all "products" edges to the OrderProduct entity.
+func (_u *OrderUpdate) ClearProducts() *OrderUpdate {
+	_u.mutation.ClearProducts()
+	return _u
+}
+
+// RemoveProductIDs removes the "products" edge to OrderProduct entities by IDs.
+func (_u *OrderUpdate) RemoveProductIDs(ids ...int) *OrderUpdate {
+	_u.mutation.RemoveProductIDs(ids...)
+	return _u
+}
+
+// RemoveProducts removes "products" edges to OrderProduct entities.
+func (_u *OrderUpdate) RemoveProducts(v ...*OrderProduct) *OrderUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveProductIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -154,9 +226,14 @@ func (_u *OrderUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *OrderUpdate) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := order.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Order.name": %w`, err)}
+	if v, ok := _u.mutation.CustomerName(); ok {
+		if err := order.CustomerNameValidator(v); err != nil {
+			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`ent: validator failed for field "Order.customer_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CustomerContact(); ok {
+		if err := order.CustomerContactValidator(v); err != nil {
+			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
 	return nil
@@ -189,14 +266,68 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(order.FieldUserID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(order.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(order.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(order.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CustomerName(); ok {
+		_spec.SetField(order.FieldCustomerName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CustomerContact(); ok {
+		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(order.FieldStatus, field.TypeInt8, value)
+	}
+	if _u.mutation.ProductsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedProductsIDs(); len(nodes) > 0 && !_u.mutation.ProductsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ProductsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -266,16 +397,51 @@ func (_u *OrderUpdateOne) AddUserID(v int) *OrderUpdateOne {
 	return _u
 }
 
-// SetName sets the "name" field.
-func (_u *OrderUpdateOne) SetName(v string) *OrderUpdateOne {
-	_u.mutation.SetName(v)
+// SetDivisionID sets the "division_id" field.
+func (_u *OrderUpdateOne) SetDivisionID(v int) *OrderUpdateOne {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
 	return _u
 }
 
-// SetNillableName sets the "name" field if the given value is not nil.
-func (_u *OrderUpdateOne) SetNillableName(v *string) *OrderUpdateOne {
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableDivisionID(v *int) *OrderUpdateOne {
 	if v != nil {
-		_u.SetName(*v)
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *OrderUpdateOne) AddDivisionID(v int) *OrderUpdateOne {
+	_u.mutation.AddDivisionID(v)
+	return _u
+}
+
+// SetCustomerName sets the "customer_name" field.
+func (_u *OrderUpdateOne) SetCustomerName(v string) *OrderUpdateOne {
+	_u.mutation.SetCustomerName(v)
+	return _u
+}
+
+// SetNillableCustomerName sets the "customer_name" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableCustomerName(v *string) *OrderUpdateOne {
+	if v != nil {
+		_u.SetCustomerName(*v)
+	}
+	return _u
+}
+
+// SetCustomerContact sets the "customer_contact" field.
+func (_u *OrderUpdateOne) SetCustomerContact(v string) *OrderUpdateOne {
+	_u.mutation.SetCustomerContact(v)
+	return _u
+}
+
+// SetNillableCustomerContact sets the "customer_contact" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableCustomerContact(v *string) *OrderUpdateOne {
+	if v != nil {
+		_u.SetCustomerContact(*v)
 	}
 	return _u
 }
@@ -301,9 +467,45 @@ func (_u *OrderUpdateOne) AddStatus(v int8) *OrderUpdateOne {
 	return _u
 }
 
+// AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
+func (_u *OrderUpdateOne) AddProductIDs(ids ...int) *OrderUpdateOne {
+	_u.mutation.AddProductIDs(ids...)
+	return _u
+}
+
+// AddProducts adds the "products" edges to the OrderProduct entity.
+func (_u *OrderUpdateOne) AddProducts(v ...*OrderProduct) *OrderUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddProductIDs(ids...)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdateOne) Mutation() *OrderMutation {
 	return _u.mutation
+}
+
+// ClearProducts clears all "products" edges to the OrderProduct entity.
+func (_u *OrderUpdateOne) ClearProducts() *OrderUpdateOne {
+	_u.mutation.ClearProducts()
+	return _u
+}
+
+// RemoveProductIDs removes the "products" edge to OrderProduct entities by IDs.
+func (_u *OrderUpdateOne) RemoveProductIDs(ids ...int) *OrderUpdateOne {
+	_u.mutation.RemoveProductIDs(ids...)
+	return _u
+}
+
+// RemoveProducts removes "products" edges to OrderProduct entities.
+func (_u *OrderUpdateOne) RemoveProducts(v ...*OrderProduct) *OrderUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveProductIDs(ids...)
 }
 
 // Where appends a list predicates to the OrderUpdate builder.
@@ -357,9 +559,14 @@ func (_u *OrderUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *OrderUpdateOne) check() error {
-	if v, ok := _u.mutation.Name(); ok {
-		if err := order.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Order.name": %w`, err)}
+	if v, ok := _u.mutation.CustomerName(); ok {
+		if err := order.CustomerNameValidator(v); err != nil {
+			return &ValidationError{Name: "customer_name", err: fmt.Errorf(`ent: validator failed for field "Order.customer_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CustomerContact(); ok {
+		if err := order.CustomerContactValidator(v); err != nil {
+			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
 	return nil
@@ -409,14 +616,68 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(order.FieldUserID, field.TypeInt, value)
 	}
-	if value, ok := _u.mutation.Name(); ok {
-		_spec.SetField(order.FieldName, field.TypeString, value)
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(order.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(order.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.CustomerName(); ok {
+		_spec.SetField(order.FieldCustomerName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CustomerContact(); ok {
+		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(order.FieldStatus, field.TypeInt8, value)
+	}
+	if _u.mutation.ProductsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedProductsIDs(); len(nodes) > 0 && !_u.mutation.ProductsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ProductsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   order.ProductsTable,
+			Columns: []string{order.ProductsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Order{config: _u.config}
 	_spec.Assign = _node.assignValues

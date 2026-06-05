@@ -16,14 +16,15 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
-// NewRouter creates a new chi router with middleware and routes.
-// Add entity handlers as parameters and mount them in the protected group below.
-func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager) *chi.Mux {
+// NewRouter creates a new chi router with middleware and routes. Entity
+// handlers are mounted inside the JWT-protected group via the mount hook
+// (wired in main to avoid an import cycle with the domain packages).
+func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager, mount func(r chi.Router)) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: cfg.CORS.AllowedOrigins,
-		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "DELETE"},
+		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders: []string{"Origin", "Content-Type", "Authorization"},
 	}))
 	r.Use(middleware.Logger)
@@ -42,8 +43,7 @@ func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager) *chi.Mux {
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.Middleware(jwtManager))
-		// Mount entity handlers here, e.g.:
-		// r.Mount("/things", thingHandler.Routes())
+		mount(r)
 	})
 
 	return r
