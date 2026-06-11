@@ -9,6 +9,17 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
+// ProductAttributeOption is one option a product allows for an assigned
+// attribute, with the price adjustment (positive or negative) applied to the
+// product's base price when a customer picks it. Stored as a JSON list on the
+// product-attribute row: the allowed subset is product-specific, the option
+// catalogue is shared. option_id is validated in-app against the attribute's
+// live options (no FK).
+type ProductAttributeOption struct {
+	OptionID   int     `json:"option_id"`
+	PriceDelta float64 `json:"price_delta"`
+}
+
 type ProductAttribute struct {
 	ent.Schema
 }
@@ -31,6 +42,10 @@ func (ProductAttribute) Fields() []ent.Field {
 		field.Int("attribute_id"),
 		field.Bool("is_mandatory").
 			Default(false),
+		// options is the product-specific allowed subset of the attribute's
+		// options plus the per-option price delta.
+		field.JSON("options", []ProductAttributeOption{}).
+			Default([]ProductAttributeOption{}),
 	}
 }
 

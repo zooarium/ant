@@ -6,6 +6,7 @@ import (
 	"ant/ent/attribute"
 	"ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/schema"
 	"context"
 	"errors"
 	"fmt"
@@ -76,6 +77,12 @@ func (_c *ProductAttributeCreate) SetNillableIsMandatory(v *bool) *ProductAttrib
 	return _c
 }
 
+// SetOptions sets the "options" field.
+func (_c *ProductAttributeCreate) SetOptions(v []schema.ProductAttributeOption) *ProductAttributeCreate {
+	_c.mutation.SetOptions(v)
+	return _c
+}
+
 // SetProduct sets the "product" edge to the Product entity.
 func (_c *ProductAttributeCreate) SetProduct(v *Product) *ProductAttributeCreate {
 	return _c.SetProductID(v.ID)
@@ -133,6 +140,10 @@ func (_c *ProductAttributeCreate) defaults() {
 		v := productattribute.DefaultIsMandatory
 		_c.mutation.SetIsMandatory(v)
 	}
+	if _, ok := _c.mutation.Options(); !ok {
+		v := productattribute.DefaultOptions
+		_c.mutation.SetOptions(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -151,6 +162,9 @@ func (_c *ProductAttributeCreate) check() error {
 	}
 	if _, ok := _c.mutation.IsMandatory(); !ok {
 		return &ValidationError{Name: "is_mandatory", err: errors.New(`ent: missing required field "ProductAttribute.is_mandatory"`)}
+	}
+	if _, ok := _c.mutation.Options(); !ok {
+		return &ValidationError{Name: "options", err: errors.New(`ent: missing required field "ProductAttribute.options"`)}
 	}
 	if len(_c.mutation.ProductIDs()) == 0 {
 		return &ValidationError{Name: "product", err: errors.New(`ent: missing required edge "ProductAttribute.product"`)}
@@ -195,6 +209,10 @@ func (_c *ProductAttributeCreate) createSpec() (*ProductAttribute, *sqlgraph.Cre
 	if value, ok := _c.mutation.IsMandatory(); ok {
 		_spec.SetField(productattribute.FieldIsMandatory, field.TypeBool, value)
 		_node.IsMandatory = value
+	}
+	if value, ok := _c.mutation.Options(); ok {
+		_spec.SetField(productattribute.FieldOptions, field.TypeJSON, value)
+		_node.Options = value
 	}
 	if nodes := _c.mutation.ProductIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

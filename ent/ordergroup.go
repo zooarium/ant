@@ -3,7 +3,6 @@
 package ent
 
 import (
-	"ant/ent/order"
 	"ant/ent/ordergroup"
 	"fmt"
 	"strings"
@@ -13,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// Order is the model entity for the Order schema.
-type Order struct {
+// OrderGroup is the model entity for the OrderGroup schema.
+type OrderGroup struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -28,63 +27,46 @@ type Order struct {
 	UserID int `json:"user_id,omitempty"`
 	// DivisionID holds the value of the "division_id" field.
 	DivisionID int `json:"division_id,omitempty"`
-	// GroupID holds the value of the "group_id" field.
-	GroupID int `json:"group_id,omitempty"`
-	// CustomerName holds the value of the "customer_name" field.
-	CustomerName string `json:"customer_name,omitempty"`
-	// CustomerContact holds the value of the "customer_contact" field.
-	CustomerContact string `json:"customer_contact,omitempty"`
-	// OrderedAt holds the value of the "ordered_at" field.
-	OrderedAt time.Time `json:"ordered_at,omitempty"`
+	// Token holds the value of the "token" field.
+	Token string `json:"token,omitempty"`
+	// Label holds the value of the "label" field.
+	Label string `json:"label,omitempty"`
 	// Status holds the value of the "status" field.
 	Status int8 `json:"status,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the OrderQuery when eager-loading is set.
-	Edges        OrderEdges `json:"edges"`
+	// The values are being populated by the OrderGroupQuery when eager-loading is set.
+	Edges        OrderGroupEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// OrderEdges holds the relations/edges for other nodes in the graph.
-type OrderEdges struct {
-	// Products holds the value of the products edge.
-	Products []*OrderProduct `json:"products,omitempty"`
-	// Group holds the value of the group edge.
-	Group *OrderGroup `json:"group,omitempty"`
+// OrderGroupEdges holds the relations/edges for other nodes in the graph.
+type OrderGroupEdges struct {
+	// Orders holds the value of the orders edge.
+	Orders []*Order `json:"orders,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [1]bool
 }
 
-// ProductsOrErr returns the Products value or an error if the edge
+// OrdersOrErr returns the Orders value or an error if the edge
 // was not loaded in eager-loading.
-func (e OrderEdges) ProductsOrErr() ([]*OrderProduct, error) {
+func (e OrderGroupEdges) OrdersOrErr() ([]*Order, error) {
 	if e.loadedTypes[0] {
-		return e.Products, nil
+		return e.Orders, nil
 	}
-	return nil, &NotLoadedError{edge: "products"}
-}
-
-// GroupOrErr returns the Group value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e OrderEdges) GroupOrErr() (*OrderGroup, error) {
-	if e.Group != nil {
-		return e.Group, nil
-	} else if e.loadedTypes[1] {
-		return nil, &NotFoundError{label: ordergroup.Label}
-	}
-	return nil, &NotLoadedError{edge: "group"}
+	return nil, &NotLoadedError{edge: "orders"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*Order) scanValues(columns []string) ([]any, error) {
+func (*OrderGroup) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case order.FieldID, order.FieldAppID, order.FieldUserID, order.FieldDivisionID, order.FieldGroupID, order.FieldStatus:
+		case ordergroup.FieldID, ordergroup.FieldAppID, ordergroup.FieldUserID, ordergroup.FieldDivisionID, ordergroup.FieldStatus:
 			values[i] = new(sql.NullInt64)
-		case order.FieldCustomerName, order.FieldCustomerContact:
+		case ordergroup.FieldToken, ordergroup.FieldLabel:
 			values[i] = new(sql.NullString)
-		case order.FieldCreatedAt, order.FieldUpdatedAt, order.FieldOrderedAt:
+		case ordergroup.FieldCreatedAt, ordergroup.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -94,74 +76,62 @@ func (*Order) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the Order fields.
-func (_m *Order) assignValues(columns []string, values []any) error {
+// to the OrderGroup fields.
+func (_m *OrderGroup) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case order.FieldID:
+		case ordergroup.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case order.FieldCreatedAt:
+		case ordergroup.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case order.FieldUpdatedAt:
+		case ordergroup.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case order.FieldAppID:
+		case ordergroup.FieldAppID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
 			} else if value.Valid {
 				_m.AppID = int(value.Int64)
 			}
-		case order.FieldUserID:
+		case ordergroup.FieldUserID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
 				_m.UserID = int(value.Int64)
 			}
-		case order.FieldDivisionID:
+		case ordergroup.FieldDivisionID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field division_id", values[i])
 			} else if value.Valid {
 				_m.DivisionID = int(value.Int64)
 			}
-		case order.FieldGroupID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field group_id", values[i])
-			} else if value.Valid {
-				_m.GroupID = int(value.Int64)
-			}
-		case order.FieldCustomerName:
+		case ordergroup.FieldToken:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field customer_name", values[i])
+				return fmt.Errorf("unexpected type %T for field token", values[i])
 			} else if value.Valid {
-				_m.CustomerName = value.String
+				_m.Token = value.String
 			}
-		case order.FieldCustomerContact:
+		case ordergroup.FieldLabel:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field customer_contact", values[i])
+				return fmt.Errorf("unexpected type %T for field label", values[i])
 			} else if value.Valid {
-				_m.CustomerContact = value.String
+				_m.Label = value.String
 			}
-		case order.FieldOrderedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field ordered_at", values[i])
-			} else if value.Valid {
-				_m.OrderedAt = value.Time
-			}
-		case order.FieldStatus:
+		case ordergroup.FieldStatus:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
@@ -174,44 +144,39 @@ func (_m *Order) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the Order.
+// Value returns the ent.Value that was dynamically selected and assigned to the OrderGroup.
 // This includes values selected through modifiers, order, etc.
-func (_m *Order) Value(name string) (ent.Value, error) {
+func (_m *OrderGroup) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QueryProducts queries the "products" edge of the Order entity.
-func (_m *Order) QueryProducts() *OrderProductQuery {
-	return NewOrderClient(_m.config).QueryProducts(_m)
+// QueryOrders queries the "orders" edge of the OrderGroup entity.
+func (_m *OrderGroup) QueryOrders() *OrderQuery {
+	return NewOrderGroupClient(_m.config).QueryOrders(_m)
 }
 
-// QueryGroup queries the "group" edge of the Order entity.
-func (_m *Order) QueryGroup() *OrderGroupQuery {
-	return NewOrderClient(_m.config).QueryGroup(_m)
-}
-
-// Update returns a builder for updating this Order.
-// Note that you need to call Order.Unwrap() before calling this method if this Order
+// Update returns a builder for updating this OrderGroup.
+// Note that you need to call OrderGroup.Unwrap() before calling this method if this OrderGroup
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *Order) Update() *OrderUpdateOne {
-	return NewOrderClient(_m.config).UpdateOne(_m)
+func (_m *OrderGroup) Update() *OrderGroupUpdateOne {
+	return NewOrderGroupClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the Order entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the OrderGroup entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *Order) Unwrap() *Order {
+func (_m *OrderGroup) Unwrap() *OrderGroup {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("ent: Order is not a transactional entity")
+		panic("ent: OrderGroup is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *Order) String() string {
+func (_m *OrderGroup) String() string {
 	var builder strings.Builder
-	builder.WriteString("Order(")
+	builder.WriteString("OrderGroup(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -228,17 +193,11 @@ func (_m *Order) String() string {
 	builder.WriteString("division_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DivisionID))
 	builder.WriteString(", ")
-	builder.WriteString("group_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.GroupID))
+	builder.WriteString("token=")
+	builder.WriteString(_m.Token)
 	builder.WriteString(", ")
-	builder.WriteString("customer_name=")
-	builder.WriteString(_m.CustomerName)
-	builder.WriteString(", ")
-	builder.WriteString("customer_contact=")
-	builder.WriteString(_m.CustomerContact)
-	builder.WriteString(", ")
-	builder.WriteString("ordered_at=")
-	builder.WriteString(_m.OrderedAt.Format(time.ANSIC))
+	builder.WriteString("label=")
+	builder.WriteString(_m.Label)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
@@ -246,5 +205,5 @@ func (_m *Order) String() string {
 	return builder.String()
 }
 
-// Orders is a parsable slice of Order.
-type Orders []*Order
+// OrderGroups is a parsable slice of OrderGroup.
+type OrderGroups []*OrderGroup

@@ -6,9 +6,12 @@ import (
 
 	"ant/ent"
 	entorder "ant/ent/order"
+	entordergroup "ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	entproduct "ant/ent/product"
 	"ant/ent/schema"
+
+	"github.com/google/uuid"
 )
 
 type orderRepository struct {
@@ -61,11 +64,13 @@ func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, productID int, attrib
 		}
 		attr := pa.Edges.Attribute
 
-		var value string
+		// The option must be in the product's allowed subset for this
+		// attribute; its price delta is read from there.
+		var delta float64
 		found := false
-		for _, o := range attr.Edges.Options {
-			if o.ID == ia.OptionID {
-				value = o.Value
+		for _, po := range pa.Options {
+			if po.OptionID == ia.OptionID {
+				delta = po.PriceDelta
 				found = true
 				break
 			}
@@ -74,11 +79,21 @@ func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, productID int, attrib
 			return nil, nil, ErrInvalidOption
 		}
 
+		// Resolve the display value from the live catalogue.
+		var value string
+		for _, o := range attr.Edges.Options {
+			if o.ID == ia.OptionID {
+				value = o.Value
+				break
+			}
+		}
+
 		snapshot = append(snapshot, schema.OrderItemAttribute{
 			AttributeID:   attr.ID,
 			AttributeName: attr.Name,
 			OptionID:      ia.OptionID,
 			OptionValue:   value,
+			PriceDelta:    delta,
 		})
 	}
 
@@ -112,12 +127,51 @@ func createItem(ctx context.Context, tx *ent.Tx, appID, orderID, productID, quan
 	return nil
 }
 
-func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderItemRequest) (Order, error) {
+// verifyGroup ensures the group exists and belongs to the app. App scoping is
+// not enforced by the FK, so it must be checked explicitly.
+func verifyGroup(ctx context.Context, tx *ent.Tx, appID, groupID int) error {
+	ok, err := tx.OrderGroup.
+		Query().
+		Where(entordergroup.ID(groupID), entordergroup.AppID(appID)).
+		Exist(ctx)
+	if err != nil {
+		return fmt.Errorf("verify order group: %w", err)
+	}
+	if !ok {
+		return ErrOrderGroupInvalid
+	}
+	return nil
+}
+
+func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (Order, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
 	}
-	e, err := tx.Order.
+	// Resolve the group: attach to the supplied one, or mint a fresh group in
+	// the same transaction so a single order-create call both places the order
+	// and opens its tab. Every order belongs to exactly one group.
+	if groupID != nil {
+		if err := verifyGroup(ctx, tx, item.AppID, *groupID); err != nil {
+			return Order{}, rollback(tx, err)
+		}
+		item.GroupID = *groupID
+	} else {
+		g, err := tx.OrderGroup.
+			Create().
+			SetAppID(item.AppID).
+			SetUserID(item.UserID).
+			SetDivisionID(item.DivisionID).
+			SetToken(uuid.NewString()).
+			SetLabel(groupLabel).
+			SetStatus(1).
+			Save(ctx)
+		if err != nil {
+			return Order{}, rollback(tx, fmt.Errorf("create order group: %w", err))
+		}
+		item.GroupID = g.ID
+	}
+	create := tx.Order.
 		Create().
 		SetAppID(item.AppID).
 		SetUserID(item.UserID).
@@ -125,7 +179,11 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 		SetCustomerName(item.CustomerName).
 		SetCustomerContact(item.CustomerContact).
 		SetStatus(item.Status).
-		Save(ctx)
+		SetGroupID(item.GroupID)
+	if !item.OrderedAt.IsZero() {
+		create.SetOrderedAt(item.OrderedAt)
+	}
+	e, err := create.Save(ctx)
 	if err != nil {
 		return Order{}, rollback(tx, fmt.Errorf("create order: %w", err))
 	}
@@ -197,6 +255,7 @@ func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (O
 		WithProducts(func(opq *ent.OrderProductQuery) {
 			opq.Order(ent.Asc(orderproduct.FieldID))
 		}).
+		WithGroup().
 		Only(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -205,11 +264,17 @@ func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (O
 		return Order{}, fmt.Errorf("get order by id: %w", err)
 	}
 	o := r.mapToModel(e)
+	if e.Edges.Group != nil {
+		o.GroupToken = e.Edges.Group.Token
+	}
 	o.Products = make([]OrderItem, len(e.Edges.Products))
+	var total float64
 	for i, op := range e.Edges.Products {
 		o.Products[i] = mapItem(op)
+		total += o.Products[i].LineTotal
 	}
 	o.ProductsCount = len(o.Products)
+	o.Total = total
 	return o, nil
 }
 
@@ -222,12 +287,15 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
 	}
-	count, err := tx.Order.
+	upd := tx.Order.
 		Update().
 		Where(entorder.ID(id), entorder.AppID(appID)).
 		SetCustomerName(item.CustomerName).
-		SetCustomerContact(item.CustomerContact).
-		Save(ctx)
+		SetCustomerContact(item.CustomerContact)
+	if !item.OrderedAt.IsZero() {
+		upd.SetOrderedAt(item.OrderedAt)
+	}
+	count, err := upd.Save(ctx)
 	if err != nil {
 		return Order{}, rollback(tx, fmt.Errorf("update order: %w", err))
 	}
@@ -290,6 +358,39 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 	return r.GetByID(ctx, appID, userID, id)
 }
 
+// SetGroup moves the order to a different group. The target group must belong
+// to the same app. Orders always belong to a group, so there is no detach.
+func (r *orderRepository) SetGroup(ctx context.Context, appID, userID, id, groupID int) (Order, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return Order{}, fmt.Errorf("begin tx: %w", err)
+	}
+	exists, err := tx.Order.
+		Query().
+		Where(entorder.ID(id), entorder.AppID(appID)).
+		Exist(ctx)
+	if err != nil {
+		return Order{}, rollback(tx, fmt.Errorf("check order exists: %w", err))
+	}
+	if !exists {
+		return Order{}, rollback(tx, ErrOrderNotFound)
+	}
+	if err := verifyGroup(ctx, tx, appID, groupID); err != nil {
+		return Order{}, rollback(tx, err)
+	}
+	if _, err := tx.Order.
+		Update().
+		Where(entorder.ID(id), entorder.AppID(appID)).
+		SetGroupID(groupID).
+		Save(ctx); err != nil {
+		return Order{}, rollback(tx, fmt.Errorf("set order group: %w", err))
+	}
+	if err := tx.Commit(); err != nil {
+		return Order{}, fmt.Errorf("commit tx: %w", err)
+	}
+	return r.GetByID(ctx, appID, userID, id)
+}
+
 func (r *orderRepository) UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error) {
 	count, err := r.client.Order.
 		Update().
@@ -340,13 +441,16 @@ func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) err
 
 func (r *orderRepository) mapToModel(e *ent.Order) Order {
 	return Order{
-		ID:              e.ID,
-		AppID:           e.AppID,
-		UserID:          e.UserID,
-		DivisionID:      e.DivisionID,
-		CustomerName:    e.CustomerName,
+		ID:           e.ID,
+		AppID:        e.AppID,
+		UserID:       e.UserID,
+		DivisionID:   e.DivisionID,
+		GroupID:      e.GroupID,
+		CustomerName: e.CustomerName,
+		// GroupID is non-null by schema; e.GroupID is int.
 		CustomerContact: e.CustomerContact,
 		Status:          e.Status,
+		OrderedAt:       e.OrderedAt,
 		CreatedAt:       e.CreatedAt,
 		UpdatedAt:       e.UpdatedAt,
 	}
@@ -354,13 +458,16 @@ func (r *orderRepository) mapToModel(e *ent.Order) Order {
 
 func mapItem(e *ent.OrderProduct) OrderItem {
 	attrs := make([]OrderItemAttribute, len(e.Attributes))
+	unit := e.Price
 	for i, a := range e.Attributes {
 		attrs[i] = OrderItemAttribute{
 			AttributeID:   a.AttributeID,
 			AttributeName: a.AttributeName,
 			OptionID:      a.OptionID,
 			OptionValue:   a.OptionValue,
+			PriceDelta:    a.PriceDelta,
 		}
+		unit += a.PriceDelta
 	}
 	return OrderItem{
 		ID:          e.ID,
@@ -369,6 +476,7 @@ func mapItem(e *ent.OrderProduct) OrderItem {
 		Price:       e.Price,
 		Quantity:    e.Quantity,
 		Attributes:  attrs,
+		LineTotal:   unit * float64(e.Quantity),
 	}
 }
 

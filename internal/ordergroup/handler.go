@@ -1,4 +1,4 @@
-package product
+package ordergroup
 
 import (
 	"encoding/json"
@@ -35,6 +35,7 @@ func (h *Handler) Routes() chi.Router {
 		r.Get("/", h.GetByID)
 		r.Put("/", h.Update)
 		r.Delete("/", h.Delete)
+		r.Patch("/status", h.UpdateStatus)
 	})
 	return r
 }
@@ -52,33 +53,28 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.As(err, &validationErrs):
 		render.Error(w, http.StatusBadRequest, err.Error())
-	case errors.Is(err, ErrProductNotFound):
-		render.Error(w, http.StatusNotFound, ErrProductNotFound.Error())
-	case errors.Is(err, ErrProductInUse):
-		render.Error(w, http.StatusConflict, ErrProductInUse.Error())
-	case errors.Is(err, ErrAttributeInvalid),
-		errors.Is(err, ErrDuplicateAttribute),
-		errors.Is(err, ErrOptionInvalid),
-		errors.Is(err, ErrDuplicateOption):
-		render.Error(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, ErrOrderGroupNotFound):
+		render.Error(w, http.StatusNotFound, ErrOrderGroupNotFound.Error())
+	case errors.Is(err, ErrOrderGroupInUse):
+		render.Error(w, http.StatusConflict, ErrOrderGroupInUse.Error())
 	default:
 		render.Error(w, http.StatusInternalServerError, err.Error())
 	}
 }
 
-// Create handles product creation.
-// @Summary Create a new product
-// @Description Create a new product with attribute assignments. Only active attributes can be assigned.
-// @Tags products
+// Create handles order group creation.
+// @Summary Create a new order group
+// @Description Create an order group (tab) under which multiple orders can be clubbed and settled together. A unique token is generated for the group.
+// @Tags order-groups
 // @Accept json
 // @Produce json
-// @Param body body CreateProductRequest true "Product object"
-// @Success 201 {object} render.Response{data=Product}
+// @Param body body CreateOrderGroupRequest true "Order group object"
+// @Success 201 {object} render.Response{data=OrderGroup}
 // @Failure 400 {object} render.Response
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /products [post]
+// @Router /order-groups [post]
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
@@ -86,13 +82,13 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req CreateProductRequest
+	var req CreateOrderGroupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		render.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, req)
+	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -101,19 +97,19 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusCreated, item)
 }
 
-// List handles listing all products.
-// @Summary List all products
-// @Description Get a list of all products for the authenticated app
-// @Tags products
+// List handles listing all order groups.
+// @Summary List all order groups
+// @Description Get a summary list of order groups (orders_count only) for the authenticated app
+// @Tags order-groups
 // @Produce json
 // @Param limit query int false "Max items to return (default 50, max 500)"
 // @Param offset query int false "Items to skip (default 0)"
-// @Param status query int false "Filter by status (0 or 1)"
-// @Success 200 {object} render.Response{data=[]Product}
+// @Param status query int false "Filter by status (1=open, 2=closed, 3=paid, 4=cancelled)"
+// @Success 200 {object} render.Response{data=[]OrderGroup}
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /products [get]
+// @Router /order-groups [get]
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
@@ -123,7 +119,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	p := platformhttp.ParsePagination(r)
 	status := platformhttp.ParseStatusFilter(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, p.Limit, p.Offset, status)
+	items, err := h.svc.List(r.Context(), claims.AppID, p.Limit, p.Offset, status)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -132,19 +128,19 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, items)
 }
 
-// GetByID handles getting a product by ID.
-// @Summary Get product by ID
-// @Description Get a single product with its assigned attributes and their options
-// @Tags products
+// GetByID handles getting an order group by ID.
+// @Summary Get order group by ID
+// @Description Get a single order group with its member orders and the combined total
+// @Tags order-groups
 // @Produce json
-// @Param id path int true "Product ID"
-// @Success 200 {object} render.Response{data=Product}
+// @Param id path int true "Order Group ID"
+// @Success 200 {object} render.Response{data=OrderGroup}
 // @Failure 400 {object} render.Response
 // @Failure 401 {object} render.Response
 // @Failure 404 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /products/{id} [get]
+// @Router /order-groups/{id} [get]
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
@@ -154,11 +150,11 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.getIDParam(r)
 	if err != nil {
-		render.Error(w, http.StatusBadRequest, "invalid product ID")
+		render.Error(w, http.StatusBadRequest, "invalid order group ID")
 		return
 	}
 
-	item, err := h.svc.GetByID(r.Context(), claims.AppID, claims.UserID, id)
+	item, err := h.svc.GetByID(r.Context(), claims.AppID, id)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -167,21 +163,21 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, item)
 }
 
-// Update handles updating a product.
-// @Summary Update product by ID
-// @Description Update an existing product. The attributes array replaces all assignments (full sync).
-// @Tags products
+// Update handles updating an order group's label.
+// @Summary Update order group by ID
+// @Description Update the order group's label. Status is managed via /order-groups/{id}/status.
+// @Tags order-groups
 // @Accept json
 // @Produce json
-// @Param id path int true "Product ID"
-// @Param body body UpdateProductRequest true "Product object"
-// @Success 200 {object} render.Response{data=Product}
+// @Param id path int true "Order Group ID"
+// @Param body body UpdateOrderGroupRequest true "Order group object"
+// @Success 200 {object} render.Response{data=OrderGroup}
 // @Failure 400 {object} render.Response
 // @Failure 401 {object} render.Response
 // @Failure 404 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /products/{id} [put]
+// @Router /order-groups/{id} [put]
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
@@ -191,17 +187,17 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.getIDParam(r)
 	if err != nil {
-		render.Error(w, http.StatusBadRequest, "invalid product ID")
+		render.Error(w, http.StatusBadRequest, "invalid order group ID")
 		return
 	}
 
-	var req UpdateProductRequest
+	var req UpdateOrderGroupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		render.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	item, err := h.svc.Update(r.Context(), claims.AppID, claims.UserID, id, req)
+	item, err := h.svc.Update(r.Context(), claims.AppID, id, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -210,20 +206,62 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusOK, item)
 }
 
-// Delete handles deleting a product.
-// @Summary Delete product by ID
-// @Description Delete a product and its attribute assignments. Blocked if the product is used in any order.
-// @Tags products
+// UpdateStatus handles setting an order group's status.
+// @Summary Set order group status
+// @Description Set the group status (1=open, 2=closed, 3=paid, 4=cancelled)
+// @Tags order-groups
+// @Accept json
 // @Produce json
-// @Param id path int true "Product ID"
+// @Param id path int true "Order Group ID"
+// @Param body body UpdateOrderGroupStatusRequest true "Status object"
+// @Success 200 {object} render.Response{data=OrderGroup}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 404 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /order-groups/{id}/status [patch]
+func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	id, err := h.getIDParam(r)
+	if err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid order group ID")
+		return
+	}
+
+	var req UpdateOrderGroupStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	item, err := h.svc.UpdateStatus(r.Context(), claims.AppID, id, req)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, item)
+}
+
+// Delete handles deleting an order group.
+// @Summary Delete order group by ID
+// @Description Delete an order group. Member orders are detached (kept as standalone orders), not deleted.
+// @Tags order-groups
+// @Produce json
+// @Param id path int true "Order Group ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} render.Response
 // @Failure 401 {object} render.Response
 // @Failure 404 {object} render.Response
-// @Failure 409 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /products/{id} [delete]
+// @Router /order-groups/{id} [delete]
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
@@ -233,11 +271,11 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.getIDParam(r)
 	if err != nil {
-		render.Error(w, http.StatusBadRequest, "invalid product ID")
+		render.Error(w, http.StatusBadRequest, "invalid order group ID")
 		return
 	}
 
-	if err := h.svc.Delete(r.Context(), claims.AppID, claims.UserID, id); err != nil {
+	if err := h.svc.Delete(r.Context(), claims.AppID, id); err != nil {
 		h.renderError(w, err)
 		return
 	}

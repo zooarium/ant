@@ -23,17 +23,19 @@ var (
 	ErrMandatoryAttributeMissing = errors.New("mandatory attribute is missing")
 	ErrDuplicateItemAttribute    = errors.New("duplicate attribute in order item")
 	ErrInvalidCustomerContact    = errors.New("invalid customer contact number")
+	ErrOrderGroupInvalid         = errors.New("order group not found")
 )
 
 // customer contact: digits with optional leading +, spaces and dashes allowed.
 var contactPattern = regexp.MustCompile(`^\+?[0-9][0-9 -]{5,18}$`)
 
 type Repository interface {
-	Create(ctx context.Context, item Order, items []OrderItemRequest) (Order, error)
+	Create(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (Order, error)
 	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
 	Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error)
+	SetGroup(ctx context.Context, appID, userID, id, groupID int) (Order, error)
 	Delete(ctx context.Context, appID, userID, id int) error
 }
 
@@ -43,6 +45,7 @@ type Service interface {
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
 	Update(ctx context.Context, appID, userID, id int, req UpdateOrderRequest) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, req UpdateOrderStatusRequest) (Order, error)
+	SetGroup(ctx context.Context, appID, userID, id int, req SetOrderGroupRequest) (Order, error)
 	Delete(ctx context.Context, appID, userID, id int) error
 }
 
@@ -70,7 +73,8 @@ func isItemError(err error) bool {
 		errors.Is(err, ErrOrderItemNotFound) ||
 		errors.Is(err, ErrOrderItemImmutable) ||
 		errors.Is(err, ErrInvalidOrderItem) ||
-		errors.Is(err, ErrDuplicateOrderItem)
+		errors.Is(err, ErrDuplicateOrderItem) ||
+		errors.Is(err, ErrOrderGroupInvalid)
 }
 
 func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req CreateOrderRequest) (Order, error) {
@@ -92,7 +96,10 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req
 		CustomerContact: req.CustomerContact,
 		Status:          status,
 	}
-	created, err := s.repo.Create(ctx, item, req.Products)
+	if req.OrderedAt != nil {
+		item.OrderedAt = *req.OrderedAt
+	}
+	created, err := s.repo.Create(ctx, item, req.Products, req.GroupID, req.GroupLabel)
 	if err != nil {
 		if !isItemError(err) {
 			slog.Error("failed to create order", "error", err, "app_id", appID, "user_id", userID)
@@ -150,6 +157,9 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateO
 		CustomerName:    req.CustomerName,
 		CustomerContact: req.CustomerContact,
 	}
+	if req.OrderedAt != nil {
+		item.OrderedAt = *req.OrderedAt
+	}
 	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Products)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) && !isItemError(err) {
@@ -173,6 +183,21 @@ func (s *service) UpdateStatus(ctx context.Context, appID, userID, id int, req U
 		return Order{}, err
 	}
 	slog.Info("order status updated", "id", updated.ID, "status", req.Status, "app_id", appID, "user_id", userID)
+	return updated, nil
+}
+
+func (s *service) SetGroup(ctx context.Context, appID, userID, id int, req SetOrderGroupRequest) (Order, error) {
+	if err := s.validate.Struct(req); err != nil {
+		return Order{}, fmt.Errorf("validate request: %w", err)
+	}
+	updated, err := s.repo.SetGroup(ctx, appID, userID, id, *req.GroupID)
+	if err != nil {
+		if !errors.Is(err, ErrOrderNotFound) && !errors.Is(err, ErrOrderGroupInvalid) {
+			slog.Error("failed to set order group", "error", err, "id", id, "app_id", appID, "user_id", userID)
+		}
+		return Order{}, err
+	}
+	slog.Info("order group set", "id", updated.ID, "group_id", req.GroupID, "app_id", appID, "user_id", userID)
 	return updated, nil
 }
 

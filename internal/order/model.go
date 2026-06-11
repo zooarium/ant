@@ -13,17 +13,23 @@ const (
 )
 
 type Order struct {
-	ID              int         `json:"id"`
-	AppID           int         `json:"app_id"`
-	UserID          int         `json:"user_id"`
-	DivisionID      int         `json:"division_id"`
-	CustomerName    string      `json:"customer_name"`
-	CustomerContact string      `json:"customer_contact"`
-	Status          int8        `json:"status"`
-	ProductsCount   int         `json:"products_count"`
-	Products        []OrderItem `json:"products,omitempty"`
-	CreatedAt       time.Time   `json:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at"`
+	ID              int       `json:"id"`
+	AppID           int       `json:"app_id"`
+	UserID          int       `json:"user_id"`
+	DivisionID      int       `json:"division_id"`
+	GroupID         int       `json:"group_id"`
+	GroupToken      string    `json:"group_token,omitempty"`
+	CustomerName    string    `json:"customer_name"`
+	CustomerContact string    `json:"customer_contact"`
+	Status          int8      `json:"status"`
+	OrderedAt       time.Time `json:"ordered_at"`
+	ProductsCount   int       `json:"products_count"`
+	// Total is the order amount: sum over items of (base price + chosen
+	// option deltas) * quantity. Populated on detail reads only.
+	Total     float64     `json:"total"`
+	Products  []OrderItem `json:"products,omitempty"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
 }
 
 // OrderItem is a denormalized snapshot of a product at the moment it was
@@ -35,13 +41,16 @@ type OrderItem struct {
 	Price       float64              `json:"price"`
 	Quantity    int                  `json:"quantity"`
 	Attributes  []OrderItemAttribute `json:"attributes"`
+	// LineTotal is (Price + sum of attribute PriceDelta) * Quantity.
+	LineTotal float64 `json:"line_total"`
 }
 
 type OrderItemAttribute struct {
-	AttributeID   int    `json:"attribute_id"`
-	AttributeName string `json:"attribute_name"`
-	OptionID      int    `json:"option_id"`
-	OptionValue   string `json:"option_value"`
+	AttributeID   int     `json:"attribute_id"`
+	AttributeName string  `json:"attribute_name"`
+	OptionID      int     `json:"option_id"`
+	OptionValue   string  `json:"option_value"`
+	PriceDelta    float64 `json:"price_delta"`
 }
 
 type OrderItemAttributeRequest struct {
@@ -56,10 +65,20 @@ type OrderItemRequest struct {
 }
 
 type CreateOrderRequest struct {
-	CustomerName    string             `json:"customer_name" validate:"required,max=100"`
-	CustomerContact string             `json:"customer_contact" validate:"required,min=7,max=20"`
-	Status          *int8              `json:"status" validate:"omitempty,oneof=1 2 3 4"`
-	Products        []OrderItemRequest `json:"products" validate:"required,min=1,dive"`
+	CustomerName    string `json:"customer_name" validate:"required,max=100"`
+	CustomerContact string `json:"customer_contact" validate:"required,min=7,max=20"`
+	Status          *int8  `json:"status" validate:"omitempty,oneof=1 2 3 4"`
+	// OrderedAt sets the business order date; defaults to now when omitted.
+	OrderedAt *time.Time `json:"ordered_at" validate:"omitempty"`
+	// GroupID attaches the order to an existing group (tab). When omitted, a
+	// new group is minted in the same transaction and attached automatically;
+	// its token is returned in the order's group_token so the UI can reuse it
+	// to attach later orders to the same tab.
+	GroupID *int `json:"group_id" validate:"omitempty,min=1"`
+	// GroupLabel optionally names the tab when a new group is auto-created
+	// (ignored when group_id is supplied).
+	GroupLabel string             `json:"group_label" validate:"omitempty,max=100"`
+	Products   []OrderItemRequest `json:"products" validate:"required,min=1,dive"`
 }
 
 // UpdateOrderRequest atomically replaces the order's customer details and
@@ -71,7 +90,14 @@ type CreateOrderRequest struct {
 type UpdateOrderRequest struct {
 	CustomerName    string                 `json:"customer_name" validate:"required,max=100"`
 	CustomerContact string                 `json:"customer_contact" validate:"required,min=7,max=20"`
+	OrderedAt       *time.Time             `json:"ordered_at" validate:"omitempty"`
 	Products        []SyncOrderItemRequest `json:"products" validate:"required,min=1,dive"`
+}
+
+// SetOrderGroupRequest moves the order to a different group. Every order must
+// belong to a group, so group_id is required (no detach).
+type SetOrderGroupRequest struct {
+	GroupID *int `json:"group_id" validate:"required,min=1"`
 }
 
 // SyncOrderItemRequest is one item in an order update. Exactly one of id

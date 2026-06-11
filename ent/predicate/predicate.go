@@ -15,6 +15,9 @@ type AttributeOption func(*sql.Selector)
 // Order is the predicate function for order builders.
 type Order func(*sql.Selector)
 
+// OrderGroup is the predicate function for ordergroup builders.
+type OrderGroup func(*sql.Selector)
+
 // OrderProduct is the predicate function for orderproduct builders.
 type OrderProduct func(*sql.Selector)
 

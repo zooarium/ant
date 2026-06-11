@@ -12,10 +12,11 @@ import (
 // OrderItemAttribute is the denormalized snapshot of a chosen attribute
 // value stored with an order item. It survives later catalogue changes.
 type OrderItemAttribute struct {
-	AttributeID   int    `json:"attribute_id"`
-	AttributeName string `json:"attribute_name"`
-	OptionID      int    `json:"option_id"`
-	OptionValue   string `json:"option_value"`
+	AttributeID   int     `json:"attribute_id"`
+	AttributeName string  `json:"attribute_name"`
+	OptionID      int     `json:"option_id"`
+	OptionValue   string  `json:"option_value"`
+	PriceDelta    float64 `json:"price_delta"`
 }
 
 type OrderProduct struct {

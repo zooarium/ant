@@ -24,14 +24,20 @@ const (
 	FieldUserID = "user_id"
 	// FieldDivisionID holds the string denoting the division_id field in the database.
 	FieldDivisionID = "division_id"
+	// FieldGroupID holds the string denoting the group_id field in the database.
+	FieldGroupID = "group_id"
 	// FieldCustomerName holds the string denoting the customer_name field in the database.
 	FieldCustomerName = "customer_name"
 	// FieldCustomerContact holds the string denoting the customer_contact field in the database.
 	FieldCustomerContact = "customer_contact"
+	// FieldOrderedAt holds the string denoting the ordered_at field in the database.
+	FieldOrderedAt = "ordered_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// EdgeProducts holds the string denoting the products edge name in mutations.
 	EdgeProducts = "products"
+	// EdgeGroup holds the string denoting the group edge name in mutations.
+	EdgeGroup = "group"
 	// Table holds the table name of the order in the database.
 	Table = "ant_order"
 	// ProductsTable is the table that holds the products relation/edge.
@@ -41,6 +47,13 @@ const (
 	ProductsInverseTable = "ant_order_product"
 	// ProductsColumn is the table column denoting the products relation/edge.
 	ProductsColumn = "order_id"
+	// GroupTable is the table that holds the group relation/edge.
+	GroupTable = "ant_order"
+	// GroupInverseTable is the table name for the OrderGroup entity.
+	// It exists in this package in order to avoid circular dependency with the "ordergroup" package.
+	GroupInverseTable = "ant_order_group"
+	// GroupColumn is the table column denoting the group relation/edge.
+	GroupColumn = "group_id"
 )
 
 // Columns holds all SQL columns for order fields.
@@ -51,8 +64,10 @@ var Columns = []string{
 	FieldAppID,
 	FieldUserID,
 	FieldDivisionID,
+	FieldGroupID,
 	FieldCustomerName,
 	FieldCustomerContact,
+	FieldOrderedAt,
 	FieldStatus,
 }
 
@@ -77,6 +92,8 @@ var (
 	CustomerNameValidator func(string) error
 	// CustomerContactValidator is a validator for the "customer_contact" field. It is called by the builders before save.
 	CustomerContactValidator func(string) error
+	// DefaultOrderedAt holds the default value on creation for the "ordered_at" field.
+	DefaultOrderedAt func() time.Time
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
 )
@@ -114,6 +131,11 @@ func ByDivisionID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDivisionID, opts...).ToFunc()
 }
 
+// ByGroupID orders the results by the group_id field.
+func ByGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGroupID, opts...).ToFunc()
+}
+
 // ByCustomerName orders the results by the customer_name field.
 func ByCustomerName(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCustomerName, opts...).ToFunc()
@@ -122,6 +144,11 @@ func ByCustomerName(opts ...sql.OrderTermOption) OrderOption {
 // ByCustomerContact orders the results by the customer_contact field.
 func ByCustomerContact(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCustomerContact, opts...).ToFunc()
+}
+
+// ByOrderedAt orders the results by the ordered_at field.
+func ByOrderedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrderedAt, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.
@@ -142,10 +169,24 @@ func ByProducts(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newProductsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByGroupField orders the results by group field.
+func ByGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGroupStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newProductsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ProductsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, ProductsTable, ProductsColumn),
+	)
+}
+func newGroupStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GroupInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, GroupTable, GroupColumn),
 	)
 }

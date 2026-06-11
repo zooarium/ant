@@ -18,6 +18,8 @@ type Tx struct {
 	AttributeOption *AttributeOptionClient
 	// Order is the client for interacting with the Order builders.
 	Order *OrderClient
+	// OrderGroup is the client for interacting with the OrderGroup builders.
+	OrderGroup *OrderGroupClient
 	// OrderProduct is the client for interacting with the OrderProduct builders.
 	OrderProduct *OrderProductClient
 	// Product is the client for interacting with the Product builders.
@@ -158,6 +160,7 @@ func (tx *Tx) init() {
 	tx.Attribute = NewAttributeClient(tx.config)
 	tx.AttributeOption = NewAttributeOptionClient(tx.config)
 	tx.Order = NewOrderClient(tx.config)
+	tx.OrderGroup = NewOrderGroupClient(tx.config)
 	tx.OrderProduct = NewOrderProductClient(tx.config)
 	tx.Product = NewProductClient(tx.config)
 	tx.ProductAttribute = NewProductAttributeClient(tx.config)

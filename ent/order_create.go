@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ant/ent/order"
+	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	"context"
 	"errors"
@@ -67,6 +68,12 @@ func (_c *OrderCreate) SetDivisionID(v int) *OrderCreate {
 	return _c
 }
 
+// SetGroupID sets the "group_id" field.
+func (_c *OrderCreate) SetGroupID(v int) *OrderCreate {
+	_c.mutation.SetGroupID(v)
+	return _c
+}
+
 // SetCustomerName sets the "customer_name" field.
 func (_c *OrderCreate) SetCustomerName(v string) *OrderCreate {
 	_c.mutation.SetCustomerName(v)
@@ -76,6 +83,20 @@ func (_c *OrderCreate) SetCustomerName(v string) *OrderCreate {
 // SetCustomerContact sets the "customer_contact" field.
 func (_c *OrderCreate) SetCustomerContact(v string) *OrderCreate {
 	_c.mutation.SetCustomerContact(v)
+	return _c
+}
+
+// SetOrderedAt sets the "ordered_at" field.
+func (_c *OrderCreate) SetOrderedAt(v time.Time) *OrderCreate {
+	_c.mutation.SetOrderedAt(v)
+	return _c
+}
+
+// SetNillableOrderedAt sets the "ordered_at" field if the given value is not nil.
+func (_c *OrderCreate) SetNillableOrderedAt(v *time.Time) *OrderCreate {
+	if v != nil {
+		_c.SetOrderedAt(*v)
+	}
 	return _c
 }
 
@@ -106,6 +127,11 @@ func (_c *OrderCreate) AddProducts(v ...*OrderProduct) *OrderCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddProductIDs(ids...)
+}
+
+// SetGroup sets the "group" edge to the OrderGroup entity.
+func (_c *OrderCreate) SetGroup(v *OrderGroup) *OrderCreate {
+	return _c.SetGroupID(v.ID)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -151,6 +177,10 @@ func (_c *OrderCreate) defaults() {
 		v := order.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.OrderedAt(); !ok {
+		v := order.DefaultOrderedAt()
+		_c.mutation.SetOrderedAt(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := order.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -174,6 +204,9 @@ func (_c *OrderCreate) check() error {
 	if _, ok := _c.mutation.DivisionID(); !ok {
 		return &ValidationError{Name: "division_id", err: errors.New(`ent: missing required field "Order.division_id"`)}
 	}
+	if _, ok := _c.mutation.GroupID(); !ok {
+		return &ValidationError{Name: "group_id", err: errors.New(`ent: missing required field "Order.group_id"`)}
+	}
 	if _, ok := _c.mutation.CustomerName(); !ok {
 		return &ValidationError{Name: "customer_name", err: errors.New(`ent: missing required field "Order.customer_name"`)}
 	}
@@ -190,8 +223,14 @@ func (_c *OrderCreate) check() error {
 			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
+	if _, ok := _c.mutation.OrderedAt(); !ok {
+		return &ValidationError{Name: "ordered_at", err: errors.New(`ent: missing required field "Order.ordered_at"`)}
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Order.status"`)}
+	}
+	if len(_c.mutation.GroupIDs()) == 0 {
+		return &ValidationError{Name: "group", err: errors.New(`ent: missing required edge "Order.group"`)}
 	}
 	return nil
 }
@@ -247,6 +286,10 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
 		_node.CustomerContact = value
 	}
+	if value, ok := _c.mutation.OrderedAt(); ok {
+		_spec.SetField(order.FieldOrderedAt, field.TypeTime, value)
+		_node.OrderedAt = value
+	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
@@ -265,6 +308,23 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.GroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   order.GroupTable,
+			Columns: []string{order.GroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.GroupID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

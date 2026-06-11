@@ -6,6 +6,7 @@ import (
 	"ant/ent/attribute"
 	"ant/ent/attributeoption"
 	"ant/ent/order"
+	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	"ant/ent/product"
 	"ant/ent/productattribute"
@@ -75,17 +76,44 @@ func init() {
 	// order.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	order.UpdateDefaultUpdatedAt = orderDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// orderDescCustomerName is the schema descriptor for customer_name field.
-	orderDescCustomerName := orderFields[3].Descriptor()
+	orderDescCustomerName := orderFields[4].Descriptor()
 	// order.CustomerNameValidator is a validator for the "customer_name" field. It is called by the builders before save.
 	order.CustomerNameValidator = orderDescCustomerName.Validators[0].(func(string) error)
 	// orderDescCustomerContact is the schema descriptor for customer_contact field.
-	orderDescCustomerContact := orderFields[4].Descriptor()
+	orderDescCustomerContact := orderFields[5].Descriptor()
 	// order.CustomerContactValidator is a validator for the "customer_contact" field. It is called by the builders before save.
 	order.CustomerContactValidator = orderDescCustomerContact.Validators[0].(func(string) error)
+	// orderDescOrderedAt is the schema descriptor for ordered_at field.
+	orderDescOrderedAt := orderFields[6].Descriptor()
+	// order.DefaultOrderedAt holds the default value on creation for the ordered_at field.
+	order.DefaultOrderedAt = orderDescOrderedAt.Default.(func() time.Time)
 	// orderDescStatus is the schema descriptor for status field.
-	orderDescStatus := orderFields[5].Descriptor()
+	orderDescStatus := orderFields[7].Descriptor()
 	// order.DefaultStatus holds the default value on creation for the status field.
 	order.DefaultStatus = orderDescStatus.Default.(int8)
+	ordergroupMixin := schema.OrderGroup{}.Mixin()
+	ordergroupMixinFields0 := ordergroupMixin[0].Fields()
+	_ = ordergroupMixinFields0
+	ordergroupFields := schema.OrderGroup{}.Fields()
+	_ = ordergroupFields
+	// ordergroupDescCreatedAt is the schema descriptor for created_at field.
+	ordergroupDescCreatedAt := ordergroupMixinFields0[0].Descriptor()
+	// ordergroup.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ordergroup.DefaultCreatedAt = ordergroupDescCreatedAt.Default.(func() time.Time)
+	// ordergroupDescUpdatedAt is the schema descriptor for updated_at field.
+	ordergroupDescUpdatedAt := ordergroupMixinFields0[1].Descriptor()
+	// ordergroup.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ordergroup.DefaultUpdatedAt = ordergroupDescUpdatedAt.Default.(func() time.Time)
+	// ordergroup.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ordergroup.UpdateDefaultUpdatedAt = ordergroupDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ordergroupDescToken is the schema descriptor for token field.
+	ordergroupDescToken := ordergroupFields[3].Descriptor()
+	// ordergroup.TokenValidator is a validator for the "token" field. It is called by the builders before save.
+	ordergroup.TokenValidator = ordergroupDescToken.Validators[0].(func(string) error)
+	// ordergroupDescStatus is the schema descriptor for status field.
+	ordergroupDescStatus := ordergroupFields[5].Descriptor()
+	// ordergroup.DefaultStatus holds the default value on creation for the status field.
+	ordergroup.DefaultStatus = ordergroupDescStatus.Default.(int8)
 	orderproductMixin := schema.OrderProduct{}.Mixin()
 	orderproductMixinFields0 := orderproductMixin[0].Fields()
 	_ = orderproductMixinFields0
@@ -159,4 +187,8 @@ func init() {
 	productattributeDescIsMandatory := productattributeFields[2].Descriptor()
 	// productattribute.DefaultIsMandatory holds the default value on creation for the is_mandatory field.
 	productattribute.DefaultIsMandatory = productattributeDescIsMandatory.Default.(bool)
+	// productattributeDescOptions is the schema descriptor for options field.
+	productattributeDescOptions := productattributeFields[3].Descriptor()
+	// productattribute.DefaultOptions holds the default value on creation for the options field.
+	productattribute.DefaultOptions = productattributeDescOptions.Default.([]schema.ProductAttributeOption)
 }

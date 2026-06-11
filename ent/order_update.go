@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ant/ent/order"
+	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	"ant/ent/predicate"
 	"context"
@@ -98,6 +99,20 @@ func (_u *OrderUpdate) AddDivisionID(v int) *OrderUpdate {
 	return _u
 }
 
+// SetGroupID sets the "group_id" field.
+func (_u *OrderUpdate) SetGroupID(v int) *OrderUpdate {
+	_u.mutation.SetGroupID(v)
+	return _u
+}
+
+// SetNillableGroupID sets the "group_id" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableGroupID(v *int) *OrderUpdate {
+	if v != nil {
+		_u.SetGroupID(*v)
+	}
+	return _u
+}
+
 // SetCustomerName sets the "customer_name" field.
 func (_u *OrderUpdate) SetCustomerName(v string) *OrderUpdate {
 	_u.mutation.SetCustomerName(v)
@@ -122,6 +137,20 @@ func (_u *OrderUpdate) SetCustomerContact(v string) *OrderUpdate {
 func (_u *OrderUpdate) SetNillableCustomerContact(v *string) *OrderUpdate {
 	if v != nil {
 		_u.SetCustomerContact(*v)
+	}
+	return _u
+}
+
+// SetOrderedAt sets the "ordered_at" field.
+func (_u *OrderUpdate) SetOrderedAt(v time.Time) *OrderUpdate {
+	_u.mutation.SetOrderedAt(v)
+	return _u
+}
+
+// SetNillableOrderedAt sets the "ordered_at" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableOrderedAt(v *time.Time) *OrderUpdate {
+	if v != nil {
+		_u.SetOrderedAt(*v)
 	}
 	return _u
 }
@@ -162,6 +191,11 @@ func (_u *OrderUpdate) AddProducts(v ...*OrderProduct) *OrderUpdate {
 	return _u.AddProductIDs(ids...)
 }
 
+// SetGroup sets the "group" edge to the OrderGroup entity.
+func (_u *OrderUpdate) SetGroup(v *OrderGroup) *OrderUpdate {
+	return _u.SetGroupID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdate) Mutation() *OrderMutation {
 	return _u.mutation
@@ -186,6 +220,12 @@ func (_u *OrderUpdate) RemoveProducts(v ...*OrderProduct) *OrderUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveProductIDs(ids...)
+}
+
+// ClearGroup clears the "group" edge to the OrderGroup entity.
+func (_u *OrderUpdate) ClearGroup() *OrderUpdate {
+	_u.mutation.ClearGroup()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -236,6 +276,9 @@ func (_u *OrderUpdate) check() error {
 			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
+	if _u.mutation.GroupCleared() && len(_u.mutation.GroupIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Order.group"`)
+	}
 	return nil
 }
 
@@ -277,6 +320,9 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.CustomerContact(); ok {
 		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OrderedAt(); ok {
+		_spec.SetField(order.FieldOrderedAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
@@ -322,6 +368,35 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   order.GroupTable,
+			Columns: []string{order.GroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   order.GroupTable,
+			Columns: []string{order.GroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -418,6 +493,20 @@ func (_u *OrderUpdateOne) AddDivisionID(v int) *OrderUpdateOne {
 	return _u
 }
 
+// SetGroupID sets the "group_id" field.
+func (_u *OrderUpdateOne) SetGroupID(v int) *OrderUpdateOne {
+	_u.mutation.SetGroupID(v)
+	return _u
+}
+
+// SetNillableGroupID sets the "group_id" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableGroupID(v *int) *OrderUpdateOne {
+	if v != nil {
+		_u.SetGroupID(*v)
+	}
+	return _u
+}
+
 // SetCustomerName sets the "customer_name" field.
 func (_u *OrderUpdateOne) SetCustomerName(v string) *OrderUpdateOne {
 	_u.mutation.SetCustomerName(v)
@@ -442,6 +531,20 @@ func (_u *OrderUpdateOne) SetCustomerContact(v string) *OrderUpdateOne {
 func (_u *OrderUpdateOne) SetNillableCustomerContact(v *string) *OrderUpdateOne {
 	if v != nil {
 		_u.SetCustomerContact(*v)
+	}
+	return _u
+}
+
+// SetOrderedAt sets the "ordered_at" field.
+func (_u *OrderUpdateOne) SetOrderedAt(v time.Time) *OrderUpdateOne {
+	_u.mutation.SetOrderedAt(v)
+	return _u
+}
+
+// SetNillableOrderedAt sets the "ordered_at" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableOrderedAt(v *time.Time) *OrderUpdateOne {
+	if v != nil {
+		_u.SetOrderedAt(*v)
 	}
 	return _u
 }
@@ -482,6 +585,11 @@ func (_u *OrderUpdateOne) AddProducts(v ...*OrderProduct) *OrderUpdateOne {
 	return _u.AddProductIDs(ids...)
 }
 
+// SetGroup sets the "group" edge to the OrderGroup entity.
+func (_u *OrderUpdateOne) SetGroup(v *OrderGroup) *OrderUpdateOne {
+	return _u.SetGroupID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdateOne) Mutation() *OrderMutation {
 	return _u.mutation
@@ -506,6 +614,12 @@ func (_u *OrderUpdateOne) RemoveProducts(v ...*OrderProduct) *OrderUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveProductIDs(ids...)
+}
+
+// ClearGroup clears the "group" edge to the OrderGroup entity.
+func (_u *OrderUpdateOne) ClearGroup() *OrderUpdateOne {
+	_u.mutation.ClearGroup()
+	return _u
 }
 
 // Where appends a list predicates to the OrderUpdate builder.
@@ -569,6 +683,9 @@ func (_u *OrderUpdateOne) check() error {
 			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
+	if _u.mutation.GroupCleared() && len(_u.mutation.GroupIDs()) > 0 {
+		return errors.New(`ent: clearing a required unique edge "Order.group"`)
+	}
 	return nil
 }
 
@@ -628,6 +745,9 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 	if value, ok := _u.mutation.CustomerContact(); ok {
 		_spec.SetField(order.FieldCustomerContact, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.OrderedAt(); ok {
+		_spec.SetField(order.FieldOrderedAt, field.TypeTime, value)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 	}
@@ -672,6 +792,35 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderproduct.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GroupCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   order.GroupTable,
+			Columns: []string{order.GroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GroupIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   order.GroupTable,
+			Columns: []string{order.GroupColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

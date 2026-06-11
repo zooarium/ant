@@ -36,6 +36,7 @@ func (h *Handler) Routes() chi.Router {
 		r.Put("/", h.Update)
 		r.Delete("/", h.Delete)
 		r.Patch("/status", h.UpdateStatus)
+		r.Patch("/group", h.SetGroup)
 	})
 	return r
 }
@@ -66,6 +67,7 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 		errors.Is(err, ErrOrderItemImmutable),
 		errors.Is(err, ErrInvalidOrderItem),
 		errors.Is(err, ErrDuplicateOrderItem),
+		errors.Is(err, ErrOrderGroupInvalid),
 		errors.Is(err, ErrInvalidCustomerContact):
 		render.Error(w, http.StatusBadRequest, err.Error())
 	default:
@@ -292,6 +294,49 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// SetGroup attaches an order to a group or detaches it.
+// @Summary Attach/detach order to a group
+// @Description Set group_id to attach the order to an order group (tab), or omit/null to detach it.
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path int true "Order ID"
+// @Param body body SetOrderGroupRequest true "Group assignment"
+// @Success 200 {object} render.Response{data=Order}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 404 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /orders/{id}/group [patch]
+func (h *Handler) SetGroup(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	id, err := h.getIDParam(r, "id")
+	if err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid order ID")
+		return
+	}
+
+	var req SetOrderGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	item, err := h.svc.SetGroup(r.Context(), claims.AppID, claims.UserID, id, req)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, item)
 }
 
 func (h *Handler) getIDParam(r *http.Request, name string) (int, error) {

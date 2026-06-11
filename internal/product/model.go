@@ -16,8 +16,9 @@ type Product struct {
 	UpdatedAt  time.Time           `json:"updated_at"`
 }
 
-// AssignedAttribute is an attribute glued to a product, with the options a
-// caller can choose from when adding the product to an order.
+// AssignedAttribute is an attribute glued to a product, with the product's
+// allowed subset of options (each carrying its price delta) a caller can
+// choose from when adding the product to an order.
 type AssignedAttribute struct {
 	AttributeID int               `json:"attribute_id"`
 	Name        string            `json:"name"`
@@ -26,13 +27,23 @@ type AssignedAttribute struct {
 }
 
 type AttributeOption struct {
-	ID    int    `json:"id"`
-	Value string `json:"value"`
+	ID         int     `json:"id"`
+	Value      string  `json:"value"`
+	PriceDelta float64 `json:"price_delta"`
 }
 
 type AttributeAssignmentRequest struct {
-	AttributeID int  `json:"attribute_id" validate:"required"`
-	IsMandatory bool `json:"is_mandatory"`
+	AttributeID int                      `json:"attribute_id" validate:"required"`
+	IsMandatory bool                     `json:"is_mandatory"`
+	Options     []AttributeOptionRequest `json:"options" validate:"omitempty,dive"`
+}
+
+// AttributeOptionRequest is one option the product allows for an assigned
+// attribute, with the price added to (or subtracted from) the base price when
+// chosen.
+type AttributeOptionRequest struct {
+	OptionID   int     `json:"option_id" validate:"required"`
+	PriceDelta float64 `json:"price_delta"`
 }
 
 type CreateProductRequest struct {

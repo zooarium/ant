@@ -99,6 +99,24 @@ definitions:
       customer_name:
         maxLength: 100
         type: string
+      group_id:
+        description: |-
+          GroupID attaches the order to an existing group (tab). When omitted, a
+          new group is minted in the same transaction and attached automatically;
+          its token is returned in the order's group_token so the UI can reuse it
+          to attach later orders to the same tab.
+        minimum: 1
+        type: integer
+      group_label:
+        description: |-
+          GroupLabel optionally names the tab when a new group is auto-created
+          (ignored when group_id is supplied).
+        maxLength: 100
+        type: string
+      ordered_at:
+        description: OrderedAt sets the business order date; defaults to now when
+          omitted.
+        type: string
       products:
         items:
           $ref: '#/definitions/internal_order.OrderItemRequest'
@@ -128,8 +146,14 @@ definitions:
         type: string
       division_id:
         type: integer
+      group_id:
+        type: integer
+      group_token:
+        type: string
       id:
         type: integer
+      ordered_at:
+        type: string
       products:
         items:
           $ref: '#/definitions/internal_order.OrderItem'
@@ -138,6 +162,11 @@ definitions:
         type: integer
       status:
         type: integer
+      total:
+        description: |-
+          Total is the order amount: sum over items of (base price + chosen
+          option deltas) * quantity. Populated on detail reads only.
+        type: number
       updated_at:
         type: string
       user_id:
@@ -151,6 +180,9 @@ definitions:
         type: array
       id:
         type: integer
+      line_total:
+        description: LineTotal is (Price + sum of attribute PriceDelta) * Quantity.
+        type: number
       price:
         type: number
       product_id:
@@ -170,6 +202,8 @@ definitions:
         type: integer
       option_value:
         type: string
+      price_delta:
+        type: number
     type: object
   internal_order.OrderItemAttributeRequest:
     properties:
@@ -195,6 +229,14 @@ definitions:
     required:
     - product_id
     - quantity
+    type: object
+  internal_order.SetOrderGroupRequest:
+    properties:
+      group_id:
+        minimum: 1
+        type: integer
+    required:
+    - group_id
     type: object
   internal_order.SyncOrderItemRequest:
     properties:
@@ -223,6 +265,8 @@ definitions:
       customer_name:
         maxLength: 100
         type: string
+      ordered_at:
+        type: string
       products:
         items:
           $ref: '#/definitions/internal_order.SyncOrderItemRequest'
@@ -234,6 +278,77 @@ definitions:
     - products
     type: object
   internal_order.UpdateOrderStatusRequest:
+    properties:
+      status:
+        enum:
+        - 1
+        - 2
+        - 3
+        - 4
+        type: integer
+    required:
+    - status
+    type: object
+  internal_ordergroup.CreateOrderGroupRequest:
+    properties:
+      label:
+        maxLength: 100
+        type: string
+    type: object
+  internal_ordergroup.OrderGroup:
+    properties:
+      app_id:
+        type: integer
+      created_at:
+        type: string
+      division_id:
+        type: integer
+      id:
+        type: integer
+      label:
+        type: string
+      orders:
+        description: Orders is the member order summary list. Populated on detail
+          reads.
+        items:
+          $ref: '#/definitions/internal_ordergroup.OrderSummary'
+        type: array
+      orders_count:
+        description: OrdersCount is the number of orders in the group.
+        type: integer
+      status:
+        type: integer
+      token:
+        type: string
+      total:
+        description: Total is the sum of all member orders' totals. Populated on detail
+          reads.
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  internal_ordergroup.OrderSummary:
+    properties:
+      customer_name:
+        type: string
+      id:
+        type: integer
+      ordered_at:
+        type: string
+      status:
+        type: integer
+      total:
+        type: number
+    type: object
+  internal_ordergroup.UpdateOrderGroupRequest:
+    properties:
+      label:
+        maxLength: 100
+        type: string
+    type: object
+  internal_ordergroup.UpdateOrderGroupStatusRequest:
     properties:
       status:
         enum:
@@ -264,6 +379,10 @@ definitions:
         type: integer
       is_mandatory:
         type: boolean
+      options:
+        items:
+          $ref: '#/definitions/internal_product.AttributeOptionRequest'
+        type: array
     required:
     - attribute_id
     type: object
@@ -271,8 +390,19 @@ definitions:
     properties:
       id:
         type: integer
+      price_delta:
+        type: number
       value:
         type: string
+    type: object
+  internal_product.AttributeOptionRequest:
+    properties:
+      option_id:
+        type: integer
+      price_delta:
+        type: number
+    required:
+    - option_id
     type: object
   internal_product.CreateProductRequest:
     properties:
@@ -573,6 +703,268 @@ paths:
       summary: Check service health
       tags:
       - health
+  /order-groups:
+    get:
+      description: Get a summary list of order groups (orders_count only) for the
+        authenticated app
+      parameters:
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status (1=open, 2=closed, 3=paid, 4=cancelled)
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_ordergroup.OrderGroup'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List all order groups
+      tags:
+      - order-groups
+    post:
+      consumes:
+      - application/json
+      description: Create an order group (tab) under which multiple orders can be
+        clubbed and settled together. A unique token is generated for the group.
+      parameters:
+      - description: Order group object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_ordergroup.CreateOrderGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_ordergroup.OrderGroup'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create a new order group
+      tags:
+      - order-groups
+  /order-groups/{id}:
+    delete:
+      description: Delete an order group. Member orders are detached (kept as standalone
+        orders), not deleted.
+      parameters:
+      - description: Order Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Delete order group by ID
+      tags:
+      - order-groups
+    get:
+      description: Get a single order group with its member orders and the combined
+        total
+      parameters:
+      - description: Order Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_ordergroup.OrderGroup'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get order group by ID
+      tags:
+      - order-groups
+    put:
+      consumes:
+      - application/json
+      description: Update the order group's label. Status is managed via /order-groups/{id}/status.
+      parameters:
+      - description: Order Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order group object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_ordergroup.UpdateOrderGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_ordergroup.OrderGroup'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Update order group by ID
+      tags:
+      - order-groups
+  /order-groups/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Set the group status (1=open, 2=closed, 3=paid, 4=cancelled)
+      parameters:
+      - description: Order Group ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_ordergroup.UpdateOrderGroupStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_ordergroup.OrderGroup'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Set order group status
+      tags:
+      - order-groups
   /orders:
     get:
       description: Get a summary list of orders (no items, products_count only) for
@@ -784,6 +1176,57 @@ paths:
       security:
       - Bearer: []
       summary: Update order by ID
+      tags:
+      - orders
+  /orders/{id}/group:
+    patch:
+      consumes:
+      - application/json
+      description: Set group_id to attach the order to an order group (tab), or omit/null
+        to detach it.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Group assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_order.SetOrderGroupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_order.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Attach/detach order to a group
       tags:
       - orders
   /orders/{id}/status:

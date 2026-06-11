@@ -383,6 +383,430 @@ const docTemplate = `{
                 }
             }
         },
+        "/order-groups": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get a summary list of order groups (orders_count only) for the authenticated app",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "List all order groups",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items to return (default 50, max 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items to skip (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by status (1=open, 2=closed, 3=paid, 4=cancelled)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Create an order group (tab) under which multiple orders can be clubbed and settled together. A unique token is generated for the group.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "Create a new order group",
+                "parameters": [
+                    {
+                        "description": "Order group object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_ordergroup.CreateOrderGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/order-groups/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get a single order group with its member orders and the combined total",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "Get order group by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Update the order group's label. Status is managed via /order-groups/{id}/status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "Update order group by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Order group object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_ordergroup.UpdateOrderGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Delete an order group. Member orders are detached (kept as standalone orders), not deleted.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "Delete order group by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/order-groups/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Set the group status (1=open, 2=closed, 3=paid, 4=cancelled)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "order-groups"
+                ],
+                "summary": "Set order group status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order Group ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_ordergroup.UpdateOrderGroupStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/orders": {
             "get": {
                 "security": [
@@ -697,6 +1121,88 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/group": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Set group_id to attach the order to an order group (tab), or omit/null to detach it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Attach/detach order to a group",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Group assignment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_order.SetOrderGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_order.Order"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -1308,6 +1814,20 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100
                 },
+                "group_id": {
+                    "description": "GroupID attaches the order to an existing group (tab). When omitted, a\nnew group is minted in the same transaction and attached automatically;\nits token is returned in the order's group_token so the UI can reuse it\nto attach later orders to the same tab.",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "group_label": {
+                    "description": "GroupLabel optionally names the tab when a new group is auto-created\n(ignored when group_id is supplied).",
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "ordered_at": {
+                    "description": "OrderedAt sets the business order date; defaults to now when omitted.",
+                    "type": "string"
+                },
                 "products": {
                     "type": "array",
                     "minItems": 1,
@@ -1344,8 +1864,17 @@ const docTemplate = `{
                 "division_id": {
                     "type": "integer"
                 },
+                "group_id": {
+                    "type": "integer"
+                },
+                "group_token": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "ordered_at": {
+                    "type": "string"
                 },
                 "products": {
                     "type": "array",
@@ -1358,6 +1887,10 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "integer"
+                },
+                "total": {
+                    "description": "Total is the order amount: sum over items of (base price + chosen\noption deltas) * quantity. Populated on detail reads only.",
+                    "type": "number"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1378,6 +1911,10 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "line_total": {
+                    "description": "LineTotal is (Price + sum of attribute PriceDelta) * Quantity.",
+                    "type": "number"
                 },
                 "price": {
                     "type": "number"
@@ -1407,6 +1944,9 @@ const docTemplate = `{
                 },
                 "option_value": {
                     "type": "string"
+                },
+                "price_delta": {
+                    "type": "number"
                 }
             }
         },
@@ -1442,6 +1982,18 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "internal_order.SetOrderGroupRequest": {
+            "type": "object",
+            "required": [
+                "group_id"
+            ],
+            "properties": {
+                "group_id": {
                     "type": "integer",
                     "minimum": 1
                 }
@@ -1490,6 +2042,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100
                 },
+                "ordered_at": {
+                    "type": "string"
+                },
                 "products": {
                     "type": "array",
                     "minItems": 1,
@@ -1500,6 +2055,108 @@ const docTemplate = `{
             }
         },
         "internal_order.UpdateOrderStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        1,
+                        2,
+                        3,
+                        4
+                    ]
+                }
+            }
+        },
+        "internal_ordergroup.CreateOrderGroupRequest": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "internal_ordergroup.OrderGroup": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "orders": {
+                    "description": "Orders is the member order summary list. Populated on detail reads.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_ordergroup.OrderSummary"
+                    }
+                },
+                "orders_count": {
+                    "description": "OrdersCount is the number of orders in the group.",
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "total": {
+                    "description": "Total is the sum of all member orders' totals. Populated on detail reads.",
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_ordergroup.OrderSummary": {
+            "type": "object",
+            "properties": {
+                "customer_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ordered_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "number"
+                }
+            }
+        },
+        "internal_ordergroup.UpdateOrderGroupRequest": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "internal_ordergroup.UpdateOrderGroupStatusRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -1547,6 +2204,12 @@ const docTemplate = `{
                 },
                 "is_mandatory": {
                     "type": "boolean"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_product.AttributeOptionRequest"
+                    }
                 }
             }
         },
@@ -1556,8 +2219,25 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "price_delta": {
+                    "type": "number"
+                },
                 "value": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_product.AttributeOptionRequest": {
+            "type": "object",
+            "required": [
+                "option_id"
+            ],
+            "properties": {
+                "option_id": {
+                    "type": "integer"
+                },
+                "price_delta": {
+                    "type": "number"
                 }
             }
         },

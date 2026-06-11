@@ -14,6 +14,8 @@ var (
 	ErrProductInUse       = errors.New("product is used in one or more orders")
 	ErrAttributeInvalid   = errors.New("attribute not found or not active")
 	ErrDuplicateAttribute = errors.New("duplicate attribute in request")
+	ErrOptionInvalid      = errors.New("option does not belong to the attribute")
+	ErrDuplicateOption    = errors.New("duplicate option in attribute assignment")
 )
 
 type Repository interface {
@@ -51,6 +53,14 @@ func checkDuplicateAssignments(assignments []AttributeAssignmentRequest) error {
 			return ErrDuplicateAttribute
 		}
 		seen[a.AttributeID] = struct{}{}
+
+		opts := make(map[int]struct{}, len(a.Options))
+		for _, o := range a.Options {
+			if _, ok := opts[o.OptionID]; ok {
+				return ErrDuplicateOption
+			}
+			opts[o.OptionID] = struct{}{}
+		}
 	}
 	return nil
 }

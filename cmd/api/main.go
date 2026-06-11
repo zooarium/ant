@@ -17,6 +17,7 @@ import (
 	"ant/internal/attribute"
 	"ant/internal/db"
 	"ant/internal/order"
+	"ant/internal/ordergroup"
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/product"
 	"ant/pkg/config"
@@ -123,12 +124,17 @@ func main() {
 	orderSvc := order.NewService(orderRepo)
 	orderHandler := order.NewHandler(orderSvc)
 
+	orderGroupRepo := ordergroup.NewRepository(client)
+	orderGroupSvc := ordergroup.NewService(orderGroupRepo)
+	orderGroupHandler := ordergroup.NewHandler(orderGroupSvc)
+
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)
 
 	mount := func(r chi.Router) {
 		r.Mount("/attributes", attributeHandler.Routes())
 		r.Mount("/products", productHandler.Routes())
 		r.Mount("/orders", orderHandler.Routes())
+		r.Mount("/order-groups", orderGroupHandler.Routes())
 	}
 
 	router := platformhttp.NewRouter(cfg, jwtManager, mount)

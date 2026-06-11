@@ -10,6 +10,7 @@ import (
 	"ant/ent/orderproduct"
 	entproduct "ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/schema"
 )
 
 type productRepository struct {
@@ -21,7 +22,8 @@ func NewRepository(client *ent.Client) *productRepository {
 }
 
 // verifyAttributes ensures every assigned attribute exists, belongs to the
-// app and is active. Only active attributes can be glued to a product.
+// app and is active, and that every option chosen for it belongs to that
+// attribute. Only active attributes can be glued to a product.
 func verifyAttributes(ctx context.Context, tx *ent.Tx, appID int, assignments []AttributeAssignmentRequest) error {
 	if len(assignments) == 0 {
 		return nil
@@ -30,19 +32,39 @@ func verifyAttributes(ctx context.Context, tx *ent.Tx, appID int, assignments []
 	for i, a := range assignments {
 		ids[i] = a.AttributeID
 	}
-	count, err := tx.Attribute.
+	attrs, err := tx.Attribute.
 		Query().
 		Where(
 			entattribute.IDIn(ids...),
 			entattribute.AppID(appID),
 			entattribute.Status(1),
 		).
-		Count(ctx)
+		WithOptions().
+		All(ctx)
 	if err != nil {
 		return fmt.Errorf("verify attributes: %w", err)
 	}
-	if count != len(ids) {
+	if len(attrs) != len(ids) {
 		return ErrAttributeInvalid
+	}
+
+	// Map each attribute to the set of option ids it owns, so every chosen
+	// option can be validated against its attribute's live catalogue.
+	validOptions := make(map[int]map[int]struct{}, len(attrs))
+	for _, a := range attrs {
+		set := make(map[int]struct{}, len(a.Edges.Options))
+		for _, o := range a.Edges.Options {
+			set[o.ID] = struct{}{}
+		}
+		validOptions[a.ID] = set
+	}
+	for _, asg := range assignments {
+		set := validOptions[asg.AttributeID]
+		for _, o := range asg.Options {
+			if _, ok := set[o.OptionID]; !ok {
+				return ErrOptionInvalid
+			}
+		}
 	}
 	return nil
 }
@@ -53,11 +75,19 @@ func createAssignments(ctx context.Context, tx *ent.Tx, productID int, assignmen
 	}
 	bulk := make([]*ent.ProductAttributeCreate, len(assignments))
 	for i, a := range assignments {
+		opts := make([]schema.ProductAttributeOption, len(a.Options))
+		for j, o := range a.Options {
+			opts[j] = schema.ProductAttributeOption{
+				OptionID:   o.OptionID,
+				PriceDelta: o.PriceDelta,
+			}
+		}
 		bulk[i] = tx.ProductAttribute.
 			Create().
 			SetProductID(productID).
 			SetAttributeID(a.AttributeID).
-			SetIsMandatory(a.IsMandatory)
+			SetIsMandatory(a.IsMandatory).
+			SetOptions(opts)
 	}
 	if _, err := tx.ProductAttribute.CreateBulk(bulk...).Save(ctx); err != nil {
 		return fmt.Errorf("create product attributes: %w", err)
@@ -243,8 +273,18 @@ func mapAssignments(pas []*ent.ProductAttribute) []AssignedAttribute {
 		}
 		if attr := pa.Edges.Attribute; attr != nil {
 			a.Name = attr.Name
+			// Resolve the option value from the live catalogue; the allowed
+			// subset and its price deltas come from the product-attribute row.
+			valueByID := make(map[int]string, len(attr.Edges.Options))
 			for _, o := range attr.Edges.Options {
-				a.Options = append(a.Options, AttributeOption{ID: o.ID, Value: o.Value})
+				valueByID[o.ID] = o.Value
+			}
+			for _, po := range pa.Options {
+				a.Options = append(a.Options, AttributeOption{
+					ID:         po.OptionID,
+					Value:      valueByID[po.OptionID],
+					PriceDelta: po.PriceDelta,
+				})
 			}
 		}
 		assigned = append(assigned, a)

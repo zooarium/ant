@@ -14,6 +14,7 @@ import (
 	"ant/ent/attribute"
 	"ant/ent/attributeoption"
 	"ant/ent/order"
+	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	"ant/ent/product"
 	"ant/ent/productattribute"
@@ -35,6 +36,8 @@ type Client struct {
 	AttributeOption *AttributeOptionClient
 	// Order is the client for interacting with the Order builders.
 	Order *OrderClient
+	// OrderGroup is the client for interacting with the OrderGroup builders.
+	OrderGroup *OrderGroupClient
 	// OrderProduct is the client for interacting with the OrderProduct builders.
 	OrderProduct *OrderProductClient
 	// Product is the client for interacting with the Product builders.
@@ -55,6 +58,7 @@ func (c *Client) init() {
 	c.Attribute = NewAttributeClient(c.config)
 	c.AttributeOption = NewAttributeOptionClient(c.config)
 	c.Order = NewOrderClient(c.config)
+	c.OrderGroup = NewOrderGroupClient(c.config)
 	c.OrderProduct = NewOrderProductClient(c.config)
 	c.Product = NewProductClient(c.config)
 	c.ProductAttribute = NewProductAttributeClient(c.config)
@@ -153,6 +157,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Attribute:        NewAttributeClient(cfg),
 		AttributeOption:  NewAttributeOptionClient(cfg),
 		Order:            NewOrderClient(cfg),
+		OrderGroup:       NewOrderGroupClient(cfg),
 		OrderProduct:     NewOrderProductClient(cfg),
 		Product:          NewProductClient(cfg),
 		ProductAttribute: NewProductAttributeClient(cfg),
@@ -178,6 +183,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Attribute:        NewAttributeClient(cfg),
 		AttributeOption:  NewAttributeOptionClient(cfg),
 		Order:            NewOrderClient(cfg),
+		OrderGroup:       NewOrderGroupClient(cfg),
 		OrderProduct:     NewOrderProductClient(cfg),
 		Product:          NewProductClient(cfg),
 		ProductAttribute: NewProductAttributeClient(cfg),
@@ -210,8 +216,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Attribute, c.AttributeOption, c.Order, c.OrderProduct, c.Product,
-		c.ProductAttribute,
+		c.Attribute, c.AttributeOption, c.Order, c.OrderGroup, c.OrderProduct,
+		c.Product, c.ProductAttribute,
 	} {
 		n.Use(hooks...)
 	}
@@ -221,8 +227,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Attribute, c.AttributeOption, c.Order, c.OrderProduct, c.Product,
-		c.ProductAttribute,
+		c.Attribute, c.AttributeOption, c.Order, c.OrderGroup, c.OrderProduct,
+		c.Product, c.ProductAttribute,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -237,6 +243,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AttributeOption.mutate(ctx, m)
 	case *OrderMutation:
 		return c.Order.mutate(ctx, m)
+	case *OrderGroupMutation:
+		return c.OrderGroup.mutate(ctx, m)
 	case *OrderProductMutation:
 		return c.OrderProduct.mutate(ctx, m)
 	case *ProductMutation:
@@ -686,6 +694,22 @@ func (c *OrderClient) QueryProducts(_m *Order) *OrderProductQuery {
 	return query
 }
 
+// QueryGroup queries the group edge of a Order.
+func (c *OrderClient) QueryGroup(_m *Order) *OrderGroupQuery {
+	query := (&OrderGroupClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(ordergroup.Table, ordergroup.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, order.GroupTable, order.GroupColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *OrderClient) Hooks() []Hook {
 	return c.hooks.Order
@@ -708,6 +732,155 @@ func (c *OrderClient) mutate(ctx context.Context, m *OrderMutation) (Value, erro
 		return (&OrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Order mutation op: %q", m.Op())
+	}
+}
+
+// OrderGroupClient is a client for the OrderGroup schema.
+type OrderGroupClient struct {
+	config
+}
+
+// NewOrderGroupClient returns a client for the OrderGroup from the given config.
+func NewOrderGroupClient(c config) *OrderGroupClient {
+	return &OrderGroupClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ordergroup.Hooks(f(g(h())))`.
+func (c *OrderGroupClient) Use(hooks ...Hook) {
+	c.hooks.OrderGroup = append(c.hooks.OrderGroup, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ordergroup.Intercept(f(g(h())))`.
+func (c *OrderGroupClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OrderGroup = append(c.inters.OrderGroup, interceptors...)
+}
+
+// Create returns a builder for creating a OrderGroup entity.
+func (c *OrderGroupClient) Create() *OrderGroupCreate {
+	mutation := newOrderGroupMutation(c.config, OpCreate)
+	return &OrderGroupCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OrderGroup entities.
+func (c *OrderGroupClient) CreateBulk(builders ...*OrderGroupCreate) *OrderGroupCreateBulk {
+	return &OrderGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OrderGroupClient) MapCreateBulk(slice any, setFunc func(*OrderGroupCreate, int)) *OrderGroupCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OrderGroupCreateBulk{err: fmt.Errorf("calling to OrderGroupClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OrderGroupCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OrderGroupCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OrderGroup.
+func (c *OrderGroupClient) Update() *OrderGroupUpdate {
+	mutation := newOrderGroupMutation(c.config, OpUpdate)
+	return &OrderGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrderGroupClient) UpdateOne(_m *OrderGroup) *OrderGroupUpdateOne {
+	mutation := newOrderGroupMutation(c.config, OpUpdateOne, withOrderGroup(_m))
+	return &OrderGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrderGroupClient) UpdateOneID(id int) *OrderGroupUpdateOne {
+	mutation := newOrderGroupMutation(c.config, OpUpdateOne, withOrderGroupID(id))
+	return &OrderGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OrderGroup.
+func (c *OrderGroupClient) Delete() *OrderGroupDelete {
+	mutation := newOrderGroupMutation(c.config, OpDelete)
+	return &OrderGroupDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrderGroupClient) DeleteOne(_m *OrderGroup) *OrderGroupDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrderGroupClient) DeleteOneID(id int) *OrderGroupDeleteOne {
+	builder := c.Delete().Where(ordergroup.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrderGroupDeleteOne{builder}
+}
+
+// Query returns a query builder for OrderGroup.
+func (c *OrderGroupClient) Query() *OrderGroupQuery {
+	return &OrderGroupQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrderGroup},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OrderGroup entity by its id.
+func (c *OrderGroupClient) Get(ctx context.Context, id int) (*OrderGroup, error) {
+	return c.Query().Where(ordergroup.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrderGroupClient) GetX(ctx context.Context, id int) *OrderGroup {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOrders queries the orders edge of a OrderGroup.
+func (c *OrderGroupClient) QueryOrders(_m *OrderGroup) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ordergroup.Table, ordergroup.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ordergroup.OrdersTable, ordergroup.OrdersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrderGroupClient) Hooks() []Hook {
+	return c.hooks.OrderGroup
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrderGroupClient) Interceptors() []Interceptor {
+	return c.inters.OrderGroup
+}
+
+func (c *OrderGroupClient) mutate(ctx context.Context, m *OrderGroupMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrderGroupCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrderGroupUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrderGroupUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrderGroupDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OrderGroup mutation op: %q", m.Op())
 	}
 }
 
@@ -1177,11 +1350,11 @@ func (c *ProductAttributeClient) mutate(ctx context.Context, m *ProductAttribute
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Attribute, AttributeOption, Order, OrderProduct, Product,
+		Attribute, AttributeOption, Order, OrderGroup, OrderProduct, Product,
 		ProductAttribute []ent.Hook
 	}
 	inters struct {
-		Attribute, AttributeOption, Order, OrderProduct, Product,
+		Attribute, AttributeOption, Order, OrderGroup, OrderProduct, Product,
 		ProductAttribute []ent.Interceptor
 	}
 )

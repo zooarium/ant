@@ -44,6 +44,18 @@ func (f OrderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderMutation", m)
 }
 
+// The OrderGroupFunc type is an adapter to allow the use of ordinary
+// function as OrderGroup mutator.
+type OrderGroupFunc func(context.Context, *ent.OrderGroupMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrderGroupFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OrderGroupMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderGroupMutation", m)
+}
+
 // The OrderProductFunc type is an adapter to allow the use of ordinary
 // function as OrderProduct mutator.
 type OrderProductFunc func(context.Context, *ent.OrderProductMutation) (ent.Value, error)

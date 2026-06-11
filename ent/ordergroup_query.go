@@ -5,7 +5,6 @@ package ent
 import (
 	"ant/ent/order"
 	"ant/ent/ordergroup"
-	"ant/ent/orderproduct"
 	"ant/ent/predicate"
 	"context"
 	"database/sql/driver"
@@ -18,54 +17,53 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// OrderQuery is the builder for querying Order entities.
-type OrderQuery struct {
+// OrderGroupQuery is the builder for querying OrderGroup entities.
+type OrderGroupQuery struct {
 	config
-	ctx          *QueryContext
-	order        []order.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Order
-	withProducts *OrderProductQuery
-	withGroup    *OrderGroupQuery
+	ctx        *QueryContext
+	order      []ordergroup.OrderOption
+	inters     []Interceptor
+	predicates []predicate.OrderGroup
+	withOrders *OrderQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the OrderQuery builder.
-func (_q *OrderQuery) Where(ps ...predicate.Order) *OrderQuery {
+// Where adds a new predicate for the OrderGroupQuery builder.
+func (_q *OrderGroupQuery) Where(ps ...predicate.OrderGroup) *OrderGroupQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *OrderQuery) Limit(limit int) *OrderQuery {
+func (_q *OrderGroupQuery) Limit(limit int) *OrderGroupQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *OrderQuery) Offset(offset int) *OrderQuery {
+func (_q *OrderGroupQuery) Offset(offset int) *OrderGroupQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *OrderQuery) Unique(unique bool) *OrderQuery {
+func (_q *OrderGroupQuery) Unique(unique bool) *OrderGroupQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *OrderQuery) Order(o ...order.OrderOption) *OrderQuery {
+func (_q *OrderGroupQuery) Order(o ...ordergroup.OrderOption) *OrderGroupQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryProducts chains the current query on the "products" edge.
-func (_q *OrderQuery) QueryProducts() *OrderProductQuery {
-	query := (&OrderProductClient{config: _q.config}).Query()
+// QueryOrders chains the current query on the "orders" edge.
+func (_q *OrderGroupQuery) QueryOrders() *OrderQuery {
+	query := (&OrderClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,9 +73,9 @@ func (_q *OrderQuery) QueryProducts() *OrderProductQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(order.Table, order.FieldID, selector),
-			sqlgraph.To(orderproduct.Table, orderproduct.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, order.ProductsTable, order.ProductsColumn),
+			sqlgraph.From(ordergroup.Table, ordergroup.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ordergroup.OrdersTable, ordergroup.OrdersColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -85,43 +83,21 @@ func (_q *OrderQuery) QueryProducts() *OrderProductQuery {
 	return query
 }
 
-// QueryGroup chains the current query on the "group" edge.
-func (_q *OrderQuery) QueryGroup() *OrderGroupQuery {
-	query := (&OrderGroupClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(order.Table, order.FieldID, selector),
-			sqlgraph.To(ordergroup.Table, ordergroup.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, order.GroupTable, order.GroupColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// First returns the first Order entity from the query.
-// Returns a *NotFoundError when no Order was found.
-func (_q *OrderQuery) First(ctx context.Context) (*Order, error) {
+// First returns the first OrderGroup entity from the query.
+// Returns a *NotFoundError when no OrderGroup was found.
+func (_q *OrderGroupQuery) First(ctx context.Context) (*OrderGroup, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{order.Label}
+		return nil, &NotFoundError{ordergroup.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *OrderQuery) FirstX(ctx context.Context) *Order {
+func (_q *OrderGroupQuery) FirstX(ctx context.Context) *OrderGroup {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,22 +105,22 @@ func (_q *OrderQuery) FirstX(ctx context.Context) *Order {
 	return node
 }
 
-// FirstID returns the first Order ID from the query.
-// Returns a *NotFoundError when no Order ID was found.
-func (_q *OrderQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first OrderGroup ID from the query.
+// Returns a *NotFoundError when no OrderGroup ID was found.
+func (_q *OrderGroupQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{order.Label}
+		err = &NotFoundError{ordergroup.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *OrderQuery) FirstIDX(ctx context.Context) int {
+func (_q *OrderGroupQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -152,10 +128,10 @@ func (_q *OrderQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Order entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Order entity is found.
-// Returns a *NotFoundError when no Order entities are found.
-func (_q *OrderQuery) Only(ctx context.Context) (*Order, error) {
+// Only returns a single OrderGroup entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one OrderGroup entity is found.
+// Returns a *NotFoundError when no OrderGroup entities are found.
+func (_q *OrderGroupQuery) Only(ctx context.Context) (*OrderGroup, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -164,14 +140,14 @@ func (_q *OrderQuery) Only(ctx context.Context) (*Order, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{order.Label}
+		return nil, &NotFoundError{ordergroup.Label}
 	default:
-		return nil, &NotSingularError{order.Label}
+		return nil, &NotSingularError{ordergroup.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *OrderQuery) OnlyX(ctx context.Context) *Order {
+func (_q *OrderGroupQuery) OnlyX(ctx context.Context) *OrderGroup {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -179,10 +155,10 @@ func (_q *OrderQuery) OnlyX(ctx context.Context) *Order {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Order ID in the query.
-// Returns a *NotSingularError when more than one Order ID is found.
+// OnlyID is like Only, but returns the only OrderGroup ID in the query.
+// Returns a *NotSingularError when more than one OrderGroup ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *OrderQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *OrderGroupQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -191,15 +167,15 @@ func (_q *OrderQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{order.Label}
+		err = &NotFoundError{ordergroup.Label}
 	default:
-		err = &NotSingularError{order.Label}
+		err = &NotSingularError{ordergroup.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *OrderQuery) OnlyIDX(ctx context.Context) int {
+func (_q *OrderGroupQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -207,18 +183,18 @@ func (_q *OrderQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Orders.
-func (_q *OrderQuery) All(ctx context.Context) ([]*Order, error) {
+// All executes the query and returns a list of OrderGroups.
+func (_q *OrderGroupQuery) All(ctx context.Context) ([]*OrderGroup, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Order, *OrderQuery]()
-	return withInterceptors[[]*Order](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*OrderGroup, *OrderGroupQuery]()
+	return withInterceptors[[]*OrderGroup](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *OrderQuery) AllX(ctx context.Context) []*Order {
+func (_q *OrderGroupQuery) AllX(ctx context.Context) []*OrderGroup {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -226,20 +202,20 @@ func (_q *OrderQuery) AllX(ctx context.Context) []*Order {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Order IDs.
-func (_q *OrderQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of OrderGroup IDs.
+func (_q *OrderGroupQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(order.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(ordergroup.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *OrderQuery) IDsX(ctx context.Context) []int {
+func (_q *OrderGroupQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -248,16 +224,16 @@ func (_q *OrderQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *OrderQuery) Count(ctx context.Context) (int, error) {
+func (_q *OrderGroupQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*OrderQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*OrderGroupQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *OrderQuery) CountX(ctx context.Context) int {
+func (_q *OrderGroupQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -266,7 +242,7 @@ func (_q *OrderQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *OrderQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *OrderGroupQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -279,7 +255,7 @@ func (_q *OrderQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *OrderQuery) ExistX(ctx context.Context) bool {
+func (_q *OrderGroupQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -287,45 +263,33 @@ func (_q *OrderQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the OrderQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the OrderGroupQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *OrderQuery) Clone() *OrderQuery {
+func (_q *OrderGroupQuery) Clone() *OrderGroupQuery {
 	if _q == nil {
 		return nil
 	}
-	return &OrderQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]order.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.Order{}, _q.predicates...),
-		withProducts: _q.withProducts.Clone(),
-		withGroup:    _q.withGroup.Clone(),
+	return &OrderGroupQuery{
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]ordergroup.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.OrderGroup{}, _q.predicates...),
+		withOrders: _q.withOrders.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithProducts tells the query-builder to eager-load the nodes that are connected to
-// the "products" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *OrderQuery) WithProducts(opts ...func(*OrderProductQuery)) *OrderQuery {
-	query := (&OrderProductClient{config: _q.config}).Query()
+// WithOrders tells the query-builder to eager-load the nodes that are connected to
+// the "orders" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *OrderGroupQuery) WithOrders(opts ...func(*OrderQuery)) *OrderGroupQuery {
+	query := (&OrderClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withProducts = query
-	return _q
-}
-
-// WithGroup tells the query-builder to eager-load the nodes that are connected to
-// the "group" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *OrderQuery) WithGroup(opts ...func(*OrderGroupQuery)) *OrderQuery {
-	query := (&OrderGroupClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withGroup = query
+	_q.withOrders = query
 	return _q
 }
 
@@ -339,15 +303,15 @@ func (_q *OrderQuery) WithGroup(opts ...func(*OrderGroupQuery)) *OrderQuery {
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Order.Query().
-//		GroupBy(order.FieldCreatedAt).
+//	client.OrderGroup.Query().
+//		GroupBy(ordergroup.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
+func (_q *OrderGroupQuery) GroupBy(field string, fields ...string) *OrderGroupGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &OrderGroupBy{build: _q}
+	grbuild := &OrderGroupGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = order.Label
+	grbuild.label = ordergroup.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -361,23 +325,23 @@ func (_q *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
 //		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
-//	client.Order.Query().
-//		Select(order.FieldCreatedAt).
+//	client.OrderGroup.Query().
+//		Select(ordergroup.FieldCreatedAt).
 //		Scan(ctx, &v)
-func (_q *OrderQuery) Select(fields ...string) *OrderSelect {
+func (_q *OrderGroupQuery) Select(fields ...string) *OrderGroupSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &OrderSelect{OrderQuery: _q}
-	sbuild.label = order.Label
+	sbuild := &OrderGroupSelect{OrderGroupQuery: _q}
+	sbuild.label = ordergroup.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a OrderSelect configured with the given aggregations.
-func (_q *OrderQuery) Aggregate(fns ...AggregateFunc) *OrderSelect {
+// Aggregate returns a OrderGroupSelect configured with the given aggregations.
+func (_q *OrderGroupQuery) Aggregate(fns ...AggregateFunc) *OrderGroupSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
+func (_q *OrderGroupQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -389,7 +353,7 @@ func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !order.ValidColumn(f) {
+		if !ordergroup.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -403,20 +367,19 @@ func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order, error) {
+func (_q *OrderGroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*OrderGroup, error) {
 	var (
-		nodes       = []*Order{}
+		nodes       = []*OrderGroup{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
-			_q.withProducts != nil,
-			_q.withGroup != nil,
+		loadedTypes = [1]bool{
+			_q.withOrders != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Order).scanValues(nil, columns)
+		return (*OrderGroup).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Order{config: _q.config}
+		node := &OrderGroup{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -430,25 +393,19 @@ func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withProducts; query != nil {
-		if err := _q.loadProducts(ctx, query, nodes,
-			func(n *Order) { n.Edges.Products = []*OrderProduct{} },
-			func(n *Order, e *OrderProduct) { n.Edges.Products = append(n.Edges.Products, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withGroup; query != nil {
-		if err := _q.loadGroup(ctx, query, nodes, nil,
-			func(n *Order, e *OrderGroup) { n.Edges.Group = e }); err != nil {
+	if query := _q.withOrders; query != nil {
+		if err := _q.loadOrders(ctx, query, nodes,
+			func(n *OrderGroup) { n.Edges.Orders = []*Order{} },
+			func(n *OrderGroup, e *Order) { n.Edges.Orders = append(n.Edges.Orders, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *OrderQuery) loadProducts(ctx context.Context, query *OrderProductQuery, nodes []*Order, init func(*Order), assign func(*Order, *OrderProduct)) error {
+func (_q *OrderGroupQuery) loadOrders(ctx context.Context, query *OrderQuery, nodes []*OrderGroup, init func(*OrderGroup), assign func(*OrderGroup, *Order)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Order)
+	nodeids := make(map[int]*OrderGroup)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -457,56 +414,27 @@ func (_q *OrderQuery) loadProducts(ctx context.Context, query *OrderProductQuery
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(orderproduct.FieldOrderID)
+		query.ctx.AppendFieldOnce(order.FieldGroupID)
 	}
-	query.Where(predicate.OrderProduct(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(order.ProductsColumn), fks...))
+	query.Where(predicate.Order(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ordergroup.OrdersColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.OrderID
+		fk := n.GroupID
 		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "order_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "group_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
-func (_q *OrderQuery) loadGroup(ctx context.Context, query *OrderGroupQuery, nodes []*Order, init func(*Order), assign func(*Order, *OrderGroup)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Order)
-	for i := range nodes {
-		fk := nodes[i].GroupID
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
-	}
-	if len(ids) == 0 {
-		return nil
-	}
-	query.Where(ordergroup.IDIn(ids...))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
-		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "group_id" returned %v`, n.ID)
-		}
-		for i := range nodes {
-			assign(nodes[i], n)
-		}
-	}
-	return nil
-}
 
-func (_q *OrderQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *OrderGroupQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -515,8 +443,8 @@ func (_q *OrderQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(order.Table, order.Columns, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
+func (_q *OrderGroupQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(ordergroup.Table, ordergroup.Columns, sqlgraph.NewFieldSpec(ordergroup.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -525,14 +453,11 @@ func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, order.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, ordergroup.FieldID)
 		for i := range fields {
-			if fields[i] != order.FieldID {
+			if fields[i] != ordergroup.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
-		}
-		if _q.withGroup != nil {
-			_spec.Node.AddColumnOnce(order.FieldGroupID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -558,12 +483,12 @@ func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *OrderQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *OrderGroupQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(order.Table)
+	t1 := builder.Table(ordergroup.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = order.Columns
+		columns = ordergroup.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -590,28 +515,28 @@ func (_q *OrderQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// OrderGroupBy is the group-by builder for Order entities.
-type OrderGroupBy struct {
+// OrderGroupGroupBy is the group-by builder for OrderGroup entities.
+type OrderGroupGroupBy struct {
 	selector
-	build *OrderQuery
+	build *OrderGroupQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *OrderGroupBy) Aggregate(fns ...AggregateFunc) *OrderGroupBy {
+func (_g *OrderGroupGroupBy) Aggregate(fns ...AggregateFunc) *OrderGroupGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *OrderGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *OrderGroupGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*OrderQuery, *OrderGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*OrderGroupQuery, *OrderGroupGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *OrderGroupBy) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
+func (_g *OrderGroupGroupBy) sqlScan(ctx context.Context, root *OrderGroupQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -638,28 +563,28 @@ func (_g *OrderGroupBy) sqlScan(ctx context.Context, root *OrderQuery, v any) er
 	return sql.ScanSlice(rows, v)
 }
 
-// OrderSelect is the builder for selecting fields of Order entities.
-type OrderSelect struct {
-	*OrderQuery
+// OrderGroupSelect is the builder for selecting fields of OrderGroup entities.
+type OrderGroupSelect struct {
+	*OrderGroupQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *OrderSelect) Aggregate(fns ...AggregateFunc) *OrderSelect {
+func (_s *OrderGroupSelect) Aggregate(fns ...AggregateFunc) *OrderGroupSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *OrderSelect) Scan(ctx context.Context, v any) error {
+func (_s *OrderGroupSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*OrderQuery, *OrderSelect](ctx, _s.OrderQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*OrderGroupQuery, *OrderGroupSelect](ctx, _s.OrderGroupQuery, _s, _s.inters, v)
 }
 
-func (_s *OrderSelect) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
+func (_s *OrderGroupSelect) sqlScan(ctx context.Context, root *OrderGroupQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

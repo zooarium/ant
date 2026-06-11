@@ -7,6 +7,7 @@ import (
 	"ant/ent/predicate"
 	"ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/schema"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -75,6 +77,18 @@ func (_u *ProductAttributeUpdate) SetNillableIsMandatory(v *bool) *ProductAttrib
 	if v != nil {
 		_u.SetIsMandatory(*v)
 	}
+	return _u
+}
+
+// SetOptions sets the "options" field.
+func (_u *ProductAttributeUpdate) SetOptions(v []schema.ProductAttributeOption) *ProductAttributeUpdate {
+	_u.mutation.SetOptions(v)
+	return _u
+}
+
+// AppendOptions appends value to the "options" field.
+func (_u *ProductAttributeUpdate) AppendOptions(v []schema.ProductAttributeOption) *ProductAttributeUpdate {
+	_u.mutation.AppendOptions(v)
 	return _u
 }
 
@@ -169,6 +183,14 @@ func (_u *ProductAttributeUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.IsMandatory(); ok {
 		_spec.SetField(productattribute.FieldIsMandatory, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Options(); ok {
+		_spec.SetField(productattribute.FieldOptions, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedOptions(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, productattribute.FieldOptions, value)
+		})
 	}
 	if _u.mutation.ProductCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -296,6 +318,18 @@ func (_u *ProductAttributeUpdateOne) SetNillableIsMandatory(v *bool) *ProductAtt
 	return _u
 }
 
+// SetOptions sets the "options" field.
+func (_u *ProductAttributeUpdateOne) SetOptions(v []schema.ProductAttributeOption) *ProductAttributeUpdateOne {
+	_u.mutation.SetOptions(v)
+	return _u
+}
+
+// AppendOptions appends value to the "options" field.
+func (_u *ProductAttributeUpdateOne) AppendOptions(v []schema.ProductAttributeOption) *ProductAttributeUpdateOne {
+	_u.mutation.AppendOptions(v)
+	return _u
+}
+
 // SetProduct sets the "product" edge to the Product entity.
 func (_u *ProductAttributeUpdateOne) SetProduct(v *Product) *ProductAttributeUpdateOne {
 	return _u.SetProductID(v.ID)
@@ -417,6 +451,14 @@ func (_u *ProductAttributeUpdateOne) sqlSave(ctx context.Context) (_node *Produc
 	}
 	if value, ok := _u.mutation.IsMandatory(); ok {
 		_spec.SetField(productattribute.FieldIsMandatory, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Options(); ok {
+		_spec.SetField(productattribute.FieldOptions, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedOptions(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, productattribute.FieldOptions, value)
+		})
 	}
 	if _u.mutation.ProductCleared() {
 		edge := &sqlgraph.EdgeSpec{

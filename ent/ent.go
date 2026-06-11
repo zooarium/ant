@@ -6,6 +6,7 @@ import (
 	"ant/ent/attribute"
 	"ant/ent/attributeoption"
 	"ant/ent/order"
+	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
 	"ant/ent/product"
 	"ant/ent/productattribute"
@@ -81,6 +82,7 @@ func checkColumn(t, c string) error {
 			attribute.Table:        attribute.ValidColumn,
 			attributeoption.Table:  attributeoption.ValidColumn,
 			order.Table:            order.ValidColumn,
+			ordergroup.Table:       ordergroup.ValidColumn,
 			orderproduct.Table:     orderproduct.ValidColumn,
 			product.Table:          product.ValidColumn,
 			productattribute.Table: productattribute.ValidColumn,

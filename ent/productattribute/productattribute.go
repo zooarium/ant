@@ -3,6 +3,7 @@
 package productattribute
 
 import (
+	"ant/ent/schema"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -24,6 +25,8 @@ const (
 	FieldAttributeID = "attribute_id"
 	// FieldIsMandatory holds the string denoting the is_mandatory field in the database.
 	FieldIsMandatory = "is_mandatory"
+	// FieldOptions holds the string denoting the options field in the database.
+	FieldOptions = "options"
 	// EdgeProduct holds the string denoting the product edge name in mutations.
 	EdgeProduct = "product"
 	// EdgeAttribute holds the string denoting the attribute edge name in mutations.
@@ -54,6 +57,7 @@ var Columns = []string{
 	FieldProductID,
 	FieldAttributeID,
 	FieldIsMandatory,
+	FieldOptions,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -75,6 +79,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// DefaultIsMandatory holds the default value on creation for the "is_mandatory" field.
 	DefaultIsMandatory bool
+	// DefaultOptions holds the default value on creation for the "options" field.
+	DefaultOptions []schema.ProductAttributeOption
 )
 
 // OrderOption defines the ordering options for the ProductAttribute queries.

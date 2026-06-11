@@ -1,0 +1,11 @@
+# Dev/CI toolchain image: build deps + pinned Go tools, baked once.
+# Rebuilt by `make dev-image` only when this file or GO_VERSION changes (Docker layer cache).
+# Avoids per-command `apk add build-base` and `go install ...@latest`.
+ARG GO_VERSION=1.26.3
+FROM golang:${GO_VERSION}-alpine
+
+RUN apk add --no-cache build-base git
+
+# Pinned tools (versions tracked against go.mod where shared).
+RUN go install golang.org/x/tools/cmd/goimports@v0.42.0 \
+ && go install github.com/swaggo/swag/cmd/swag@v1.16.6

@@ -6,6 +6,8 @@ import (
 	"ant/ent/attribute"
 	"ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/schema"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -29,6 +31,8 @@ type ProductAttribute struct {
 	AttributeID int `json:"attribute_id,omitempty"`
 	// IsMandatory holds the value of the "is_mandatory" field.
 	IsMandatory bool `json:"is_mandatory,omitempty"`
+	// Options holds the value of the "options" field.
+	Options []schema.ProductAttributeOption `json:"options,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProductAttributeQuery when eager-loading is set.
 	Edges        ProductAttributeEdges `json:"edges"`
@@ -73,6 +77,8 @@ func (*ProductAttribute) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case productattribute.FieldOptions:
+			values[i] = new([]byte)
 		case productattribute.FieldIsMandatory:
 			values[i] = new(sql.NullBool)
 		case productattribute.FieldID, productattribute.FieldProductID, productattribute.FieldAttributeID:
@@ -129,6 +135,14 @@ func (_m *ProductAttribute) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field is_mandatory", values[i])
 			} else if value.Valid {
 				_m.IsMandatory = value.Bool
+			}
+		case productattribute.FieldOptions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field options", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.Options); err != nil {
+					return fmt.Errorf("unmarshal field options: %w", err)
+				}
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -190,6 +204,9 @@ func (_m *ProductAttribute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_mandatory=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsMandatory))
+	builder.WriteString(", ")
+	builder.WriteString("options=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Options))
 	builder.WriteByte(')')
 	return builder.String()
 }
