@@ -6,6 +6,7 @@ services:
         GO_VERSION: ${GO_VERSION:-1.26.3}
     ports:
       - "8082:8082"
+      - "8083:8083"   # order-intake secondary listener
     volumes:
       - ./data:/app/data
       - ./log:/app/log

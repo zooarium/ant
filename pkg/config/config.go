@@ -15,6 +15,27 @@ type Config struct {
 	Log         LogConfig  `mapstructure:"LOG"`
 	Auth        AuthConfig `mapstructure:"AUTH"`
 	CORS        CORSConfig
+	Secondary   []SecondaryConfig `mapstructure:"SECONDARY"`
+}
+
+// SecondaryConfig drives one optional secondary listener: an additional HTTP
+// server in the same process exposing only the allow-listed routes, with
+// rate limiting configured independently of the primary server. Any number
+// of listeners can be declared under SECONDARY. Identity always comes from
+// JWT; JWT_SECRET (optional) makes the listener verify with a different
+// signing key (e.g. keeper's guest secret) instead of AUTH.JWT_SECRET.
+type SecondaryConfig struct {
+	Name      string          `mapstructure:"NAME"`
+	Enabled   bool            `mapstructure:"ENABLED"`
+	Addr      string          `mapstructure:"ADDR"`
+	JWTSecret string          `mapstructure:"JWT_SECRET"`
+	RateLimit RateLimitConfig `mapstructure:"RATE_LIMIT"`
+	Routes    []string        `mapstructure:"ROUTES"`
+}
+
+type RateLimitConfig struct {
+	Requests int           `mapstructure:"REQUESTS"`
+	Window   time.Duration `mapstructure:"WINDOW"`
 }
 
 type CORSConfig struct {
@@ -93,5 +114,38 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	if err := normalizeSecondary(&cfg); err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
+}
+
+// normalizeSecondary validates the secondary listener entries and applies
+// per-entry defaults (viper defaults cannot reach into list elements).
+func normalizeSecondary(cfg *Config) error {
+	seen := map[string]bool{cfg.Server.Addr: true}
+	for i := range cfg.Secondary {
+		s := &cfg.Secondary[i]
+		if !s.Enabled {
+			continue
+		}
+		if s.Name == "" {
+			s.Name = fmt.Sprintf("secondary-%d", i)
+		}
+		if s.Addr == "" {
+			return fmt.Errorf("SECONDARY[%d] (%s): ADDR is required", i, s.Name)
+		}
+		if seen[s.Addr] {
+			return fmt.Errorf("SECONDARY[%d] (%s): ADDR %q already in use by another listener", i, s.Name, s.Addr)
+		}
+		seen[s.Addr] = true
+		if s.RateLimit.Requests <= 0 {
+			s.RateLimit.Requests = 100
+		}
+		if s.RateLimit.Window <= 0 {
+			s.RateLimit.Window = 1 * time.Minute
+		}
+	}
+	return nil
 }

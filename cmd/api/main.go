@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -37,10 +38,30 @@ import (
 // @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
+	checkConfig := flag.Bool("check-config", false, "validate configuration (including secondary listeners) and exit")
+	flag.Parse()
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("failed to load config: %v\n", err)
 		os.Exit(1)
+	}
+
+	if *checkConfig {
+		enabled := 0
+		for i := range cfg.Secondary {
+			sec := &cfg.Secondary[i]
+			if !sec.Enabled {
+				continue
+			}
+			enabled++
+			if err := platformhttp.ValidateRoutes(sec.Routes); err != nil {
+				fmt.Printf("config invalid: %s: %v\n", sec.Name, err)
+				os.Exit(1)
+			}
+		}
+		fmt.Printf("config OK: primary %s, %d secondary listener(s) enabled\n", cfg.Server.Addr, enabled)
+		os.Exit(0)
 	}
 
 	if err := os.MkdirAll(cfg.Log.Dir, 0755); err != nil {
@@ -104,11 +125,13 @@ func main() {
 
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)
 
-	router := platformhttp.NewRouter(cfg, jwtManager, func(r chi.Router) {
+	mount := func(r chi.Router) {
 		r.Mount("/attributes", attributeHandler.Routes())
 		r.Mount("/products", productHandler.Routes())
 		r.Mount("/orders", orderHandler.Routes())
-	})
+	}
+
+	router := platformhttp.NewRouter(cfg, jwtManager, mount)
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Addr,
@@ -126,6 +149,37 @@ func main() {
 		}
 	}()
 
+	var secondarySrvs []*http.Server
+	for i := range cfg.Secondary {
+		sec := &cfg.Secondary[i]
+		if !sec.Enabled {
+			continue
+		}
+
+		secondaryRouter, err := platformhttp.NewSecondaryRouter(cfg, sec, jwtManager, mount)
+		if err != nil {
+			slog.Error("failed to build secondary router", "name", sec.Name, "error", err)
+			os.Exit(1)
+		}
+
+		secondarySrv := &http.Server{
+			Addr:         sec.Addr,
+			Handler:      secondaryRouter,
+			ReadTimeout:  cfg.Server.ReadTimeout,
+			WriteTimeout: cfg.Server.WriteTimeout,
+			IdleTimeout:  cfg.Server.IdleTimeout,
+		}
+		secondarySrvs = append(secondarySrvs, secondarySrv)
+
+		go func() {
+			slog.Info("starting secondary server", "name", sec.Name, "addr", secondarySrv.Addr, "routes", sec.Routes)
+			if err := secondarySrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				slog.Error("failed to listen and serve on secondary", "name", sec.Name, "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -137,6 +191,13 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("server forced to shutdown", "error", err)
 		os.Exit(1)
+	}
+
+	for _, secondarySrv := range secondarySrvs {
+		if err := secondarySrv.Shutdown(ctx); err != nil {
+			slog.Error("secondary server forced to shutdown", "addr", secondarySrv.Addr, "error", err)
+			os.Exit(1)
+		}
 	}
 
 	slog.Info("server exited gracefully")

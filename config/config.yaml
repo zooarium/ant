@@ -18,3 +18,23 @@ AUTH:
 CORS:
   ALLOWED_ORIGINS:
     - "*"
+# Optional secondary listeners: extra ports in the same process, each
+# exposing only its allow-listed routes. Identity always comes from JWT;
+# JWT_SECRET (optional) makes the listener verify with a different signing
+# key instead of AUTH.JWT_SECRET. Per-entry defaults: RATE_LIMIT 100 req /
+# 1m, NAME secondary-<i>.
+SECONDARY:
+  # Public order intake. Clients exchange a publishable site key for a
+  # short-lived guest JWT at keeper POST /guest-keys/auth, then call this
+  # port with it. JWT_SECRET must match keeper AUTH.GUEST_JWT_SECRET —
+  # guest tokens verify only here, never on the primary port.
+  # ROUTES is empty until the public APIs are decided: every request except
+  # /health and /metrics returns 404. Add e.g. "POST /orders" when ready.
+  - NAME: "order-intake"
+    ENABLED: true
+    ADDR: ":8083"
+    JWT_SECRET: "a-separate-guest-token-secret-key"
+    RATE_LIMIT:
+      REQUESTS: 60
+      WINDOW: 1m
+    ROUTES: []
