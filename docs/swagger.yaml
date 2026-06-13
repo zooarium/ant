@@ -99,6 +99,12 @@ definitions:
       customer_name:
         maxLength: 100
         type: string
+      device_id:
+        description: |-
+          DeviceID identifies the client device for returning-customer recognition
+          on the public order-intake page. Optional; the IP is captured server-side.
+        maxLength: 64
+        type: string
       group_id:
         description: |-
           GroupID attaches the order to an existing group (tab). When omitted, a
@@ -128,7 +134,15 @@ definitions:
         - 2
         - 3
         - 4
+        - 5
         type: integer
+      tax_percent:
+        description: |-
+          TaxPercent is the order tax rate as a percentage (0–100). Defaults to 0
+          when omitted.
+        maximum: 100
+        minimum: 0
+        type: number
     required:
     - customer_contact
     - customer_name
@@ -144,6 +158,11 @@ definitions:
         type: string
       customer_name:
         type: string
+      device_id:
+        description: |-
+          DeviceID is the client-supplied device identifier used for returning-
+          customer recognition on the public order-intake page.
+        type: string
       division_id:
         type: integer
       group_id:
@@ -152,6 +171,10 @@ definitions:
         type: string
       id:
         type: integer
+      ip_address:
+        description: IPAddress is the client IP captured server-side at creation.
+          Read-only.
+        type: string
       ordered_at:
         type: string
       products:
@@ -162,6 +185,11 @@ definitions:
         type: integer
       status:
         type: integer
+      tax_percent:
+        description: |-
+          TaxPercent is the tax rate applied to the order as a percentage
+          (e.g. 18.5 = 18.5%). Range 0–100.
+        type: number
       total:
         description: |-
           Total is the order amount: sum over items of (base price + chosen
@@ -272,6 +300,13 @@ definitions:
           $ref: '#/definitions/internal_order.SyncOrderItemRequest'
         minItems: 1
         type: array
+      tax_percent:
+        description: |-
+          TaxPercent is the order tax rate as a percentage (0–100). When omitted the
+          existing value is preserved.
+        maximum: 100
+        minimum: 0
+        type: number
     required:
     - customer_contact
     - customer_name
@@ -285,6 +320,7 @@ definitions:
         - 2
         - 3
         - 4
+        - 5
         type: integer
     required:
     - status
@@ -978,7 +1014,8 @@ paths:
         in: query
         name: offset
         type: integer
-      - description: Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+      - description: Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled,
+          5=paid)
         in: query
         name: status
         type: integer
@@ -1233,7 +1270,8 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+      description: Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled,
+        5=paid)
       parameters:
       - description: Order ID
         in: path
@@ -1277,6 +1315,57 @@ paths:
       security:
       - Bearer: []
       summary: Set order status
+      tags:
+      - orders
+  /orders/history:
+    get:
+      description: 'Returns past orders for the authenticated tenant (app + division
+        from the token) matching the given device_id, newest first. Intended for the
+        public order-intake page to recognise a returning customer. Recognition is
+        best-effort: device_id is a soft, client-supplied signal, not proof of identity.'
+      parameters:
+      - description: Client device identifier
+        in: query
+        name: device_id
+        required: true
+        type: string
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_order.Order'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List order history for a device
       tags:
       - orders
   /products:

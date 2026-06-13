@@ -1478,6 +1478,10 @@ type OrderMutation struct {
 	ordered_at       *time.Time
 	status           *int8
 	addstatus        *int8
+	tax_percent      *float64
+	addtax_percent   *float64
+	ip_address       *string
+	device_id        *string
 	clearedFields    map[string]struct{}
 	products         map[int]struct{}
 	removedproducts  map[int]struct{}
@@ -2027,6 +2031,160 @@ func (m *OrderMutation) ResetStatus() {
 	m.addstatus = nil
 }
 
+// SetTaxPercent sets the "tax_percent" field.
+func (m *OrderMutation) SetTaxPercent(f float64) {
+	m.tax_percent = &f
+	m.addtax_percent = nil
+}
+
+// TaxPercent returns the value of the "tax_percent" field in the mutation.
+func (m *OrderMutation) TaxPercent() (r float64, exists bool) {
+	v := m.tax_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaxPercent returns the old "tax_percent" field's value of the Order entity.
+// If the Order object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrderMutation) OldTaxPercent(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaxPercent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaxPercent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaxPercent: %w", err)
+	}
+	return oldValue.TaxPercent, nil
+}
+
+// AddTaxPercent adds f to the "tax_percent" field.
+func (m *OrderMutation) AddTaxPercent(f float64) {
+	if m.addtax_percent != nil {
+		*m.addtax_percent += f
+	} else {
+		m.addtax_percent = &f
+	}
+}
+
+// AddedTaxPercent returns the value that was added to the "tax_percent" field in this mutation.
+func (m *OrderMutation) AddedTaxPercent() (r float64, exists bool) {
+	v := m.addtax_percent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTaxPercent resets all changes to the "tax_percent" field.
+func (m *OrderMutation) ResetTaxPercent() {
+	m.tax_percent = nil
+	m.addtax_percent = nil
+}
+
+// SetIPAddress sets the "ip_address" field.
+func (m *OrderMutation) SetIPAddress(s string) {
+	m.ip_address = &s
+}
+
+// IPAddress returns the value of the "ip_address" field in the mutation.
+func (m *OrderMutation) IPAddress() (r string, exists bool) {
+	v := m.ip_address
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIPAddress returns the old "ip_address" field's value of the Order entity.
+// If the Order object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrderMutation) OldIPAddress(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIPAddress is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIPAddress requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIPAddress: %w", err)
+	}
+	return oldValue.IPAddress, nil
+}
+
+// ClearIPAddress clears the value of the "ip_address" field.
+func (m *OrderMutation) ClearIPAddress() {
+	m.ip_address = nil
+	m.clearedFields[order.FieldIPAddress] = struct{}{}
+}
+
+// IPAddressCleared returns if the "ip_address" field was cleared in this mutation.
+func (m *OrderMutation) IPAddressCleared() bool {
+	_, ok := m.clearedFields[order.FieldIPAddress]
+	return ok
+}
+
+// ResetIPAddress resets all changes to the "ip_address" field.
+func (m *OrderMutation) ResetIPAddress() {
+	m.ip_address = nil
+	delete(m.clearedFields, order.FieldIPAddress)
+}
+
+// SetDeviceID sets the "device_id" field.
+func (m *OrderMutation) SetDeviceID(s string) {
+	m.device_id = &s
+}
+
+// DeviceID returns the value of the "device_id" field in the mutation.
+func (m *OrderMutation) DeviceID() (r string, exists bool) {
+	v := m.device_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeviceID returns the old "device_id" field's value of the Order entity.
+// If the Order object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrderMutation) OldDeviceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeviceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeviceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeviceID: %w", err)
+	}
+	return oldValue.DeviceID, nil
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (m *OrderMutation) ClearDeviceID() {
+	m.device_id = nil
+	m.clearedFields[order.FieldDeviceID] = struct{}{}
+}
+
+// DeviceIDCleared returns if the "device_id" field was cleared in this mutation.
+func (m *OrderMutation) DeviceIDCleared() bool {
+	_, ok := m.clearedFields[order.FieldDeviceID]
+	return ok
+}
+
+// ResetDeviceID resets all changes to the "device_id" field.
+func (m *OrderMutation) ResetDeviceID() {
+	m.device_id = nil
+	delete(m.clearedFields, order.FieldDeviceID)
+}
+
 // AddProductIDs adds the "products" edge to the OrderProduct entity by ids.
 func (m *OrderMutation) AddProductIDs(ids ...int) {
 	if m.products == nil {
@@ -2142,7 +2300,7 @@ func (m *OrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrderMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 13)
 	if m.created_at != nil {
 		fields = append(fields, order.FieldCreatedAt)
 	}
@@ -2173,6 +2331,15 @@ func (m *OrderMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, order.FieldStatus)
 	}
+	if m.tax_percent != nil {
+		fields = append(fields, order.FieldTaxPercent)
+	}
+	if m.ip_address != nil {
+		fields = append(fields, order.FieldIPAddress)
+	}
+	if m.device_id != nil {
+		fields = append(fields, order.FieldDeviceID)
+	}
 	return fields
 }
 
@@ -2201,6 +2368,12 @@ func (m *OrderMutation) Field(name string) (ent.Value, bool) {
 		return m.OrderedAt()
 	case order.FieldStatus:
 		return m.Status()
+	case order.FieldTaxPercent:
+		return m.TaxPercent()
+	case order.FieldIPAddress:
+		return m.IPAddress()
+	case order.FieldDeviceID:
+		return m.DeviceID()
 	}
 	return nil, false
 }
@@ -2230,6 +2403,12 @@ func (m *OrderMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldOrderedAt(ctx)
 	case order.FieldStatus:
 		return m.OldStatus(ctx)
+	case order.FieldTaxPercent:
+		return m.OldTaxPercent(ctx)
+	case order.FieldIPAddress:
+		return m.OldIPAddress(ctx)
+	case order.FieldDeviceID:
+		return m.OldDeviceID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Order field %s", name)
 }
@@ -2309,6 +2488,27 @@ func (m *OrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case order.FieldTaxPercent:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaxPercent(v)
+		return nil
+	case order.FieldIPAddress:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIPAddress(v)
+		return nil
+	case order.FieldDeviceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeviceID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Order field %s", name)
 }
@@ -2329,6 +2529,9 @@ func (m *OrderMutation) AddedFields() []string {
 	if m.addstatus != nil {
 		fields = append(fields, order.FieldStatus)
 	}
+	if m.addtax_percent != nil {
+		fields = append(fields, order.FieldTaxPercent)
+	}
 	return fields
 }
 
@@ -2345,6 +2548,8 @@ func (m *OrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedDivisionID()
 	case order.FieldStatus:
 		return m.AddedStatus()
+	case order.FieldTaxPercent:
+		return m.AddedTaxPercent()
 	}
 	return nil, false
 }
@@ -2382,6 +2587,13 @@ func (m *OrderMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddStatus(v)
 		return nil
+	case order.FieldTaxPercent:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTaxPercent(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Order numeric field %s", name)
 }
@@ -2389,7 +2601,14 @@ func (m *OrderMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *OrderMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(order.FieldIPAddress) {
+		fields = append(fields, order.FieldIPAddress)
+	}
+	if m.FieldCleared(order.FieldDeviceID) {
+		fields = append(fields, order.FieldDeviceID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -2402,6 +2621,14 @@ func (m *OrderMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *OrderMutation) ClearField(name string) error {
+	switch name {
+	case order.FieldIPAddress:
+		m.ClearIPAddress()
+		return nil
+	case order.FieldDeviceID:
+		m.ClearDeviceID()
+		return nil
+	}
 	return fmt.Errorf("unknown Order nullable field %s", name)
 }
 
@@ -2438,6 +2665,15 @@ func (m *OrderMutation) ResetField(name string) error {
 		return nil
 	case order.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case order.FieldTaxPercent:
+		m.ResetTaxPercent()
+		return nil
+	case order.FieldIPAddress:
+		m.ResetIPAddress()
+		return nil
+	case order.FieldDeviceID:
+		m.ResetDeviceID()
 		return nil
 	}
 	return fmt.Errorf("unknown Order field %s", name)

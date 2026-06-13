@@ -32,16 +32,18 @@ var contactPattern = regexp.MustCompile(`^\+?[0-9][0-9 -]{5,18}$`)
 type Repository interface {
 	Create(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (Order, error)
 	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
+	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
-	Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest) (Order, error)
+	Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error)
 	SetGroup(ctx context.Context, appID, userID, id, groupID int) (Order, error)
 	Delete(ctx context.Context, appID, userID, id int) error
 }
 
 type Service interface {
-	Create(ctx context.Context, appID, userID, divisionID int, req CreateOrderRequest) (Order, error)
+	Create(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreateOrderRequest) (Order, error)
 	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
+	History(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
 	Update(ctx context.Context, appID, userID, id int, req UpdateOrderRequest) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, req UpdateOrderStatusRequest) (Order, error)
@@ -77,7 +79,7 @@ func isItemError(err error) bool {
 		errors.Is(err, ErrOrderGroupInvalid)
 }
 
-func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req CreateOrderRequest) (Order, error) {
+func (s *service) Create(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreateOrderRequest) (Order, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -95,6 +97,11 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req
 		CustomerName:    req.CustomerName,
 		CustomerContact: req.CustomerContact,
 		Status:          status,
+		IPAddress:       ipAddress,
+		DeviceID:        req.DeviceID,
+	}
+	if req.TaxPercent != nil {
+		item.TaxPercent = *req.TaxPercent
 	}
 	if req.OrderedAt != nil {
 		item.OrderedAt = *req.OrderedAt
@@ -114,6 +121,17 @@ func (s *service) List(ctx context.Context, appID, userID, limit, offset int, st
 	items, err := s.repo.List(ctx, appID, userID, limit, offset, status)
 	if err != nil {
 		slog.Error("failed to list orders", "error", err, "app_id", appID, "user_id", userID)
+		return nil, err
+	}
+	return items, nil
+}
+
+// History returns a returning customer's past orders for the order-intake page,
+// scoped to the tenant (app_id + division_id) and the supplied device_id.
+func (s *service) History(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error) {
+	items, err := s.repo.ListByDevice(ctx, appID, divisionID, deviceID, limit, offset)
+	if err != nil {
+		slog.Error("failed to list order history", "error", err, "app_id", appID, "division_id", divisionID)
 		return nil, err
 	}
 	return items, nil
@@ -160,7 +178,7 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateO
 	if req.OrderedAt != nil {
 		item.OrderedAt = *req.OrderedAt
 	}
-	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Products)
+	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Products, req.TaxPercent)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) && !isItemError(err) {
 			slog.Error("failed to update order", "error", err, "id", id, "app_id", appID, "user_id", userID)

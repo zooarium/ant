@@ -114,6 +114,48 @@ func (_c *OrderCreate) SetNillableStatus(v *int8) *OrderCreate {
 	return _c
 }
 
+// SetTaxPercent sets the "tax_percent" field.
+func (_c *OrderCreate) SetTaxPercent(v float64) *OrderCreate {
+	_c.mutation.SetTaxPercent(v)
+	return _c
+}
+
+// SetNillableTaxPercent sets the "tax_percent" field if the given value is not nil.
+func (_c *OrderCreate) SetNillableTaxPercent(v *float64) *OrderCreate {
+	if v != nil {
+		_c.SetTaxPercent(*v)
+	}
+	return _c
+}
+
+// SetIPAddress sets the "ip_address" field.
+func (_c *OrderCreate) SetIPAddress(v string) *OrderCreate {
+	_c.mutation.SetIPAddress(v)
+	return _c
+}
+
+// SetNillableIPAddress sets the "ip_address" field if the given value is not nil.
+func (_c *OrderCreate) SetNillableIPAddress(v *string) *OrderCreate {
+	if v != nil {
+		_c.SetIPAddress(*v)
+	}
+	return _c
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_c *OrderCreate) SetDeviceID(v string) *OrderCreate {
+	_c.mutation.SetDeviceID(v)
+	return _c
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_c *OrderCreate) SetNillableDeviceID(v *string) *OrderCreate {
+	if v != nil {
+		_c.SetDeviceID(*v)
+	}
+	return _c
+}
+
 // AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
 func (_c *OrderCreate) AddProductIDs(ids ...int) *OrderCreate {
 	_c.mutation.AddProductIDs(ids...)
@@ -185,6 +227,10 @@ func (_c *OrderCreate) defaults() {
 		v := order.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.TaxPercent(); !ok {
+		v := order.DefaultTaxPercent
+		_c.mutation.SetTaxPercent(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -228,6 +274,24 @@ func (_c *OrderCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Order.status"`)}
+	}
+	if _, ok := _c.mutation.TaxPercent(); !ok {
+		return &ValidationError{Name: "tax_percent", err: errors.New(`ent: missing required field "Order.tax_percent"`)}
+	}
+	if v, ok := _c.mutation.TaxPercent(); ok {
+		if err := order.TaxPercentValidator(v); err != nil {
+			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.IPAddress(); ok {
+		if err := order.IPAddressValidator(v); err != nil {
+			return &ValidationError{Name: "ip_address", err: fmt.Errorf(`ent: validator failed for field "Order.ip_address": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.DeviceID(); ok {
+		if err := order.DeviceIDValidator(v); err != nil {
+			return &ValidationError{Name: "device_id", err: fmt.Errorf(`ent: validator failed for field "Order.device_id": %w`, err)}
+		}
 	}
 	if len(_c.mutation.GroupIDs()) == 0 {
 		return &ValidationError{Name: "group", err: errors.New(`ent: missing required edge "Order.group"`)}
@@ -293,6 +357,18 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(order.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.TaxPercent(); ok {
+		_spec.SetField(order.FieldTaxPercent, field.TypeFloat64, value)
+		_node.TaxPercent = value
+	}
+	if value, ok := _c.mutation.IPAddress(); ok {
+		_spec.SetField(order.FieldIPAddress, field.TypeString, value)
+		_node.IPAddress = value
+	}
+	if value, ok := _c.mutation.DeviceID(); ok {
+		_spec.SetField(order.FieldDeviceID, field.TypeString, value)
+		_node.DeviceID = value
 	}
 	if nodes := _c.mutation.ProductsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

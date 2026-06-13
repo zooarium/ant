@@ -38,6 +38,12 @@ type Order struct {
 	OrderedAt time.Time `json:"ordered_at,omitempty"`
 	// Status holds the value of the "status" field.
 	Status int8 `json:"status,omitempty"`
+	// TaxPercent holds the value of the "tax_percent" field.
+	TaxPercent float64 `json:"tax_percent,omitempty"`
+	// IPAddress holds the value of the "ip_address" field.
+	IPAddress string `json:"ip_address,omitempty"`
+	// DeviceID holds the value of the "device_id" field.
+	DeviceID string `json:"device_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OrderQuery when eager-loading is set.
 	Edges        OrderEdges `json:"edges"`
@@ -80,9 +86,11 @@ func (*Order) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case order.FieldTaxPercent:
+			values[i] = new(sql.NullFloat64)
 		case order.FieldID, order.FieldAppID, order.FieldUserID, order.FieldDivisionID, order.FieldGroupID, order.FieldStatus:
 			values[i] = new(sql.NullInt64)
-		case order.FieldCustomerName, order.FieldCustomerContact:
+		case order.FieldCustomerName, order.FieldCustomerContact, order.FieldIPAddress, order.FieldDeviceID:
 			values[i] = new(sql.NullString)
 		case order.FieldCreatedAt, order.FieldUpdatedAt, order.FieldOrderedAt:
 			values[i] = new(sql.NullTime)
@@ -167,6 +175,24 @@ func (_m *Order) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = int8(value.Int64)
 			}
+		case order.FieldTaxPercent:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field tax_percent", values[i])
+			} else if value.Valid {
+				_m.TaxPercent = value.Float64
+			}
+		case order.FieldIPAddress:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ip_address", values[i])
+			} else if value.Valid {
+				_m.IPAddress = value.String
+			}
+		case order.FieldDeviceID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field device_id", values[i])
+			} else if value.Valid {
+				_m.DeviceID = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -242,6 +268,15 @@ func (_m *Order) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("tax_percent=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TaxPercent))
+	builder.WriteString(", ")
+	builder.WriteString("ip_address=")
+	builder.WriteString(_m.IPAddress)
+	builder.WriteString(", ")
+	builder.WriteString("device_id=")
+	builder.WriteString(_m.DeviceID)
 	builder.WriteByte(')')
 	return builder.String()
 }

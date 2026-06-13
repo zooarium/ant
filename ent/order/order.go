@@ -34,6 +34,12 @@ const (
 	FieldOrderedAt = "ordered_at"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldTaxPercent holds the string denoting the tax_percent field in the database.
+	FieldTaxPercent = "tax_percent"
+	// FieldIPAddress holds the string denoting the ip_address field in the database.
+	FieldIPAddress = "ip_address"
+	// FieldDeviceID holds the string denoting the device_id field in the database.
+	FieldDeviceID = "device_id"
 	// EdgeProducts holds the string denoting the products edge name in mutations.
 	EdgeProducts = "products"
 	// EdgeGroup holds the string denoting the group edge name in mutations.
@@ -69,6 +75,9 @@ var Columns = []string{
 	FieldCustomerContact,
 	FieldOrderedAt,
 	FieldStatus,
+	FieldTaxPercent,
+	FieldIPAddress,
+	FieldDeviceID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -96,6 +105,14 @@ var (
 	DefaultOrderedAt func() time.Time
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
+	// DefaultTaxPercent holds the default value on creation for the "tax_percent" field.
+	DefaultTaxPercent float64
+	// TaxPercentValidator is a validator for the "tax_percent" field. It is called by the builders before save.
+	TaxPercentValidator func(float64) error
+	// IPAddressValidator is a validator for the "ip_address" field. It is called by the builders before save.
+	IPAddressValidator func(string) error
+	// DeviceIDValidator is a validator for the "device_id" field. It is called by the builders before save.
+	DeviceIDValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the Order queries.
@@ -154,6 +171,21 @@ func ByOrderedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByTaxPercent orders the results by the tax_percent field.
+func ByTaxPercent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxPercent, opts...).ToFunc()
+}
+
+// ByIPAddress orders the results by the ip_address field.
+func ByIPAddress(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIPAddress, opts...).ToFunc()
+}
+
+// ByDeviceID orders the results by the device_id field.
+func ByDeviceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeviceID, opts...).ToFunc()
 }
 
 // ByProductsCount orders the results by products count.

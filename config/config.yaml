@@ -28,8 +28,9 @@ SECONDARY:
   # short-lived guest JWT at keeper POST /guest-keys/auth, then call this
   # port with it. JWT_SECRET must match keeper AUTH.GUEST_JWT_SECRET —
   # guest tokens verify only here, never on the primary port.
-  # ROUTES is empty until the public APIs are decided: every request except
-  # /health and /metrics returns 404. Add e.g. "POST /orders" when ready.
+  # Allow-list: only listed routes are served; every other request (except
+  # /health and /metrics) returns 404. Order history for returning-customer
+  # recognition only — order creation stays on the primary port for now.
   - NAME: "order-intake"
     ENABLED: true
     ADDR: ":8083"
@@ -37,4 +38,5 @@ SECONDARY:
     RATE_LIMIT:
       REQUESTS: 60
       WINDOW: 1m
-    ROUTES: []
+    ROUTES:
+      - "GET /orders/history"

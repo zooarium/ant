@@ -179,7 +179,14 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 		SetCustomerName(item.CustomerName).
 		SetCustomerContact(item.CustomerContact).
 		SetStatus(item.Status).
+		SetTaxPercent(item.TaxPercent).
 		SetGroupID(item.GroupID)
+	if item.IPAddress != "" {
+		create.SetIPAddress(item.IPAddress)
+	}
+	if item.DeviceID != "" {
+		create.SetDeviceID(item.DeviceID)
+	}
 	if !item.OrderedAt.IsZero() {
 		create.SetOrderedAt(item.OrderedAt)
 	}
@@ -248,6 +255,59 @@ func (r *orderRepository) List(ctx context.Context, appID, userID, limit, offset
 	return items, nil
 }
 
+// ListByDevice returns a summary page of orders for a device within a tenant
+// scope (app_id + division_id), newest first. Used by the public order-intake
+// page to surface a returning customer's history. Recognition only: the
+// device_id is a soft, client-supplied signal, not an identity guarantee.
+func (r *orderRepository) ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error) {
+	es, err := r.client.Order.
+		Query().
+		Where(
+			entorder.AppID(appID),
+			entorder.DivisionID(divisionID),
+			entorder.DeviceID(deviceID),
+		).
+		Order(ent.Desc(entorder.FieldID)).
+		Limit(limit).
+		Offset(offset).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list orders by device: %w", err)
+	}
+	if len(es) == 0 {
+		return []Order{}, nil
+	}
+
+	ids := make([]int, len(es))
+	for i, e := range es {
+		ids[i] = e.ID
+	}
+	var rows []struct {
+		OrderID int `json:"order_id"`
+		Count   int `json:"count"`
+	}
+	if err := r.client.OrderProduct.
+		Query().
+		Where(orderproduct.OrderIDIn(ids...)).
+		GroupBy(orderproduct.FieldOrderID).
+		Aggregate(ent.Count()).
+		Scan(ctx, &rows); err != nil {
+		return nil, fmt.Errorf("count order items: %w", err)
+	}
+	counts := make(map[int]int, len(rows))
+	for _, row := range rows {
+		counts[row.OrderID] = row.Count
+	}
+
+	items := make([]Order, len(es))
+	for i, e := range es {
+		o := r.mapToModel(e)
+		o.ProductsCount = counts[e.ID]
+		items[i] = o
+	}
+	return items, nil
+}
+
 func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (Order, error) {
 	e, err := r.client.Order.
 		Query().
@@ -282,7 +342,7 @@ func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (O
 // in one transaction: payload items with an id update the existing item's
 // quantity (the snapshot is immutable), ones without an id are added from the
 // live catalogue, and existing items absent from the payload are deleted.
-func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest) (Order, error) {
+func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
@@ -292,6 +352,10 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 		Where(entorder.ID(id), entorder.AppID(appID)).
 		SetCustomerName(item.CustomerName).
 		SetCustomerContact(item.CustomerContact)
+	// tax_percent is preserved when the payload omits it.
+	if taxPercent != nil {
+		upd.SetTaxPercent(*taxPercent)
+	}
 	if !item.OrderedAt.IsZero() {
 		upd.SetOrderedAt(item.OrderedAt)
 	}
@@ -411,15 +475,16 @@ func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) err
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	exists, err := tx.Order.
+	groupID, err := tx.Order.
 		Query().
 		Where(entorder.ID(id), entorder.AppID(appID)).
-		Exist(ctx)
+		Select(entorder.FieldGroupID).
+		Int(ctx)
 	if err != nil {
-		return rollback(tx, fmt.Errorf("check order exists: %w", err))
-	}
-	if !exists {
-		return rollback(tx, ErrOrderNotFound)
+		if ent.IsNotFound(err) {
+			return rollback(tx, ErrOrderNotFound)
+		}
+		return rollback(tx, fmt.Errorf("get order group: %w", err))
 	}
 	if _, err := tx.OrderProduct.
 		Delete().
@@ -432,6 +497,24 @@ func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) err
 		Where(entorder.ID(id), entorder.AppID(appID)).
 		Exec(ctx); err != nil {
 		return rollback(tx, fmt.Errorf("delete order: %w", err))
+	}
+	// An order group only has meaning as a tab over its orders. Once the last
+	// order leaves the group, delete the now-empty group in the same tx. The
+	// re-check inside the tx keeps this race-free against concurrent inserts.
+	remaining, err := tx.Order.
+		Query().
+		Where(entorder.GroupID(groupID)).
+		Count(ctx)
+	if err != nil {
+		return rollback(tx, fmt.Errorf("count remaining group orders: %w", err))
+	}
+	if remaining == 0 {
+		if _, err := tx.OrderGroup.
+			Delete().
+			Where(entordergroup.ID(groupID), entordergroup.AppID(appID)).
+			Exec(ctx); err != nil {
+			return rollback(tx, fmt.Errorf("delete empty order group: %w", err))
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit tx: %w", err)
@@ -450,6 +533,9 @@ func (r *orderRepository) mapToModel(e *ent.Order) Order {
 		// GroupID is non-null by schema; e.GroupID is int.
 		CustomerContact: e.CustomerContact,
 		Status:          e.Status,
+		TaxPercent:      e.TaxPercent,
+		IPAddress:       e.IPAddress,
+		DeviceID:        e.DeviceID,
 		OrderedAt:       e.OrderedAt,
 		CreatedAt:       e.CreatedAt,
 		UpdatedAt:       e.UpdatedAt,

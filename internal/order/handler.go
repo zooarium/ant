@@ -3,8 +3,10 @@ package order
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/platform/render"
@@ -31,6 +33,7 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/", h.Create)
 	r.Get("/", h.List)
+	r.Get("/history", h.History)
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", h.GetByID)
 		r.Put("/", h.Update)
@@ -101,13 +104,50 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, req)
+	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, clientIP(r), req)
 	if err != nil {
 		h.renderError(w, err)
 		return
 	}
 
 	render.JSON(w, http.StatusCreated, item)
+}
+
+// History handles listing a returning customer's past orders by device.
+// @Summary List order history for a device
+// @Description Returns past orders for the authenticated tenant (app + division from the token) matching the given device_id, newest first. Intended for the public order-intake page to recognise a returning customer. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.
+// @Tags orders
+// @Produce json
+// @Param device_id query string true "Client device identifier"
+// @Param limit query int false "Max items to return (default 50, max 500)"
+// @Param offset query int false "Items to skip (default 0)"
+// @Success 200 {object} render.Response{data=[]Order}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /orders/history [get]
+func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	deviceID := r.URL.Query().Get("device_id")
+	if deviceID == "" {
+		render.Error(w, http.StatusBadRequest, "device_id is required")
+		return
+	}
+
+	p := platformhttp.ParsePagination(r)
+	items, err := h.svc.History(r.Context(), claims.AppID, claims.DivisionID, deviceID, p.Limit, p.Offset)
+	if err != nil {
+		render.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	render.JSON(w, http.StatusOK, items)
 }
 
 // List handles listing all orders.
@@ -117,7 +157,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param limit query int false "Max items to return (default 50, max 500)"
 // @Param offset query int false "Items to skip (default 0)"
-// @Param status query int false "Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled)"
+// @Param status query int false "Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled, 5=paid)"
 // @Success 200 {object} render.Response{data=[]Order}
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
@@ -221,7 +261,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 // UpdateStatus handles setting an order's status.
 // @Summary Set order status
-// @Description Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled)
+// @Description Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled, 5=paid)
 // @Tags orders
 // @Accept json
 // @Produce json
@@ -341,4 +381,24 @@ func (h *Handler) SetGroup(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getIDParam(r *http.Request, name string) (int, error) {
 	return strconv.Atoi(chi.URLParam(r, name))
+}
+
+// clientIP extracts the originating client IP, preferring proxy headers
+// (X-Forwarded-For first hop, then X-Real-IP) and falling back to the raw
+// connection address. Behind a trusted proxy the headers are authoritative;
+// the value is stored as a best-effort audit signal, not for access control.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.IndexByte(xff, ','); i >= 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
+		return strings.TrimSpace(xrip)
+	}
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
 }

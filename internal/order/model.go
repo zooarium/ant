@@ -10,6 +10,7 @@ const (
 	StatusConfirmed int8 = 2
 	StatusCompleted int8 = 3
 	StatusCancelled int8 = 4
+	StatusPaid      int8 = 5
 )
 
 type Order struct {
@@ -23,7 +24,15 @@ type Order struct {
 	CustomerContact string    `json:"customer_contact"`
 	Status          int8      `json:"status"`
 	OrderedAt       time.Time `json:"ordered_at"`
-	ProductsCount   int       `json:"products_count"`
+	// TaxPercent is the tax rate applied to the order as a percentage
+	// (e.g. 18.5 = 18.5%). Range 0–100.
+	TaxPercent float64 `json:"tax_percent"`
+	// IPAddress is the client IP captured server-side at creation. Read-only.
+	IPAddress string `json:"ip_address,omitempty"`
+	// DeviceID is the client-supplied device identifier used for returning-
+	// customer recognition on the public order-intake page.
+	DeviceID      string `json:"device_id,omitempty"`
+	ProductsCount int    `json:"products_count"`
 	// Total is the order amount: sum over items of (base price + chosen
 	// option deltas) * quantity. Populated on detail reads only.
 	Total     float64     `json:"total"`
@@ -67,7 +76,10 @@ type OrderItemRequest struct {
 type CreateOrderRequest struct {
 	CustomerName    string `json:"customer_name" validate:"required,max=100"`
 	CustomerContact string `json:"customer_contact" validate:"required,min=7,max=20"`
-	Status          *int8  `json:"status" validate:"omitempty,oneof=1 2 3 4"`
+	Status          *int8  `json:"status" validate:"omitempty,oneof=1 2 3 4 5"`
+	// TaxPercent is the order tax rate as a percentage (0–100). Defaults to 0
+	// when omitted.
+	TaxPercent *float64 `json:"tax_percent" validate:"omitempty,min=0,max=100"`
 	// OrderedAt sets the business order date; defaults to now when omitted.
 	OrderedAt *time.Time `json:"ordered_at" validate:"omitempty"`
 	// GroupID attaches the order to an existing group (tab). When omitted, a
@@ -77,8 +89,11 @@ type CreateOrderRequest struct {
 	GroupID *int `json:"group_id" validate:"omitempty,min=1"`
 	// GroupLabel optionally names the tab when a new group is auto-created
 	// (ignored when group_id is supplied).
-	GroupLabel string             `json:"group_label" validate:"omitempty,max=100"`
-	Products   []OrderItemRequest `json:"products" validate:"required,min=1,dive"`
+	GroupLabel string `json:"group_label" validate:"omitempty,max=100"`
+	// DeviceID identifies the client device for returning-customer recognition
+	// on the public order-intake page. Optional; the IP is captured server-side.
+	DeviceID string             `json:"device_id" validate:"omitempty,max=64"`
+	Products []OrderItemRequest `json:"products" validate:"required,min=1,dive"`
 }
 
 // UpdateOrderRequest atomically replaces the order's customer details and
@@ -88,10 +103,13 @@ type CreateOrderRequest struct {
 // items missing from the payload are deleted. Status is managed separately
 // via /orders/{id}/status.
 type UpdateOrderRequest struct {
-	CustomerName    string                 `json:"customer_name" validate:"required,max=100"`
-	CustomerContact string                 `json:"customer_contact" validate:"required,min=7,max=20"`
-	OrderedAt       *time.Time             `json:"ordered_at" validate:"omitempty"`
-	Products        []SyncOrderItemRequest `json:"products" validate:"required,min=1,dive"`
+	CustomerName    string `json:"customer_name" validate:"required,max=100"`
+	CustomerContact string `json:"customer_contact" validate:"required,min=7,max=20"`
+	// TaxPercent is the order tax rate as a percentage (0–100). When omitted the
+	// existing value is preserved.
+	TaxPercent *float64               `json:"tax_percent" validate:"omitempty,min=0,max=100"`
+	OrderedAt  *time.Time             `json:"ordered_at" validate:"omitempty"`
+	Products   []SyncOrderItemRequest `json:"products" validate:"required,min=1,dive"`
 }
 
 // SetOrderGroupRequest moves the order to a different group. Every order must
@@ -110,5 +128,5 @@ type SyncOrderItemRequest struct {
 }
 
 type UpdateOrderStatusRequest struct {
-	Status int8 `json:"status" validate:"required,oneof=1 2 3 4"`
+	Status int8 `json:"status" validate:"required,oneof=1 2 3 4 5"`
 }

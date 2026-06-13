@@ -176,6 +176,67 @@ func (_u *OrderUpdate) AddStatus(v int8) *OrderUpdate {
 	return _u
 }
 
+// SetTaxPercent sets the "tax_percent" field.
+func (_u *OrderUpdate) SetTaxPercent(v float64) *OrderUpdate {
+	_u.mutation.ResetTaxPercent()
+	_u.mutation.SetTaxPercent(v)
+	return _u
+}
+
+// SetNillableTaxPercent sets the "tax_percent" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableTaxPercent(v *float64) *OrderUpdate {
+	if v != nil {
+		_u.SetTaxPercent(*v)
+	}
+	return _u
+}
+
+// AddTaxPercent adds value to the "tax_percent" field.
+func (_u *OrderUpdate) AddTaxPercent(v float64) *OrderUpdate {
+	_u.mutation.AddTaxPercent(v)
+	return _u
+}
+
+// SetIPAddress sets the "ip_address" field.
+func (_u *OrderUpdate) SetIPAddress(v string) *OrderUpdate {
+	_u.mutation.SetIPAddress(v)
+	return _u
+}
+
+// SetNillableIPAddress sets the "ip_address" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableIPAddress(v *string) *OrderUpdate {
+	if v != nil {
+		_u.SetIPAddress(*v)
+	}
+	return _u
+}
+
+// ClearIPAddress clears the value of the "ip_address" field.
+func (_u *OrderUpdate) ClearIPAddress() *OrderUpdate {
+	_u.mutation.ClearIPAddress()
+	return _u
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_u *OrderUpdate) SetDeviceID(v string) *OrderUpdate {
+	_u.mutation.SetDeviceID(v)
+	return _u
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableDeviceID(v *string) *OrderUpdate {
+	if v != nil {
+		_u.SetDeviceID(*v)
+	}
+	return _u
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (_u *OrderUpdate) ClearDeviceID() *OrderUpdate {
+	_u.mutation.ClearDeviceID()
+	return _u
+}
+
 // AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
 func (_u *OrderUpdate) AddProductIDs(ids ...int) *OrderUpdate {
 	_u.mutation.AddProductIDs(ids...)
@@ -276,6 +337,21 @@ func (_u *OrderUpdate) check() error {
 			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxPercent(); ok {
+		if err := order.TaxPercentValidator(v); err != nil {
+			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.IPAddress(); ok {
+		if err := order.IPAddressValidator(v); err != nil {
+			return &ValidationError{Name: "ip_address", err: fmt.Errorf(`ent: validator failed for field "Order.ip_address": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DeviceID(); ok {
+		if err := order.DeviceIDValidator(v); err != nil {
+			return &ValidationError{Name: "device_id", err: fmt.Errorf(`ent: validator failed for field "Order.device_id": %w`, err)}
+		}
+	}
 	if _u.mutation.GroupCleared() && len(_u.mutation.GroupIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Order.group"`)
 	}
@@ -329,6 +405,24 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(order.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.TaxPercent(); ok {
+		_spec.SetField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTaxPercent(); ok {
+		_spec.AddField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.IPAddress(); ok {
+		_spec.SetField(order.FieldIPAddress, field.TypeString, value)
+	}
+	if _u.mutation.IPAddressCleared() {
+		_spec.ClearField(order.FieldIPAddress, field.TypeString)
+	}
+	if value, ok := _u.mutation.DeviceID(); ok {
+		_spec.SetField(order.FieldDeviceID, field.TypeString, value)
+	}
+	if _u.mutation.DeviceIDCleared() {
+		_spec.ClearField(order.FieldDeviceID, field.TypeString)
 	}
 	if _u.mutation.ProductsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -570,6 +664,67 @@ func (_u *OrderUpdateOne) AddStatus(v int8) *OrderUpdateOne {
 	return _u
 }
 
+// SetTaxPercent sets the "tax_percent" field.
+func (_u *OrderUpdateOne) SetTaxPercent(v float64) *OrderUpdateOne {
+	_u.mutation.ResetTaxPercent()
+	_u.mutation.SetTaxPercent(v)
+	return _u
+}
+
+// SetNillableTaxPercent sets the "tax_percent" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableTaxPercent(v *float64) *OrderUpdateOne {
+	if v != nil {
+		_u.SetTaxPercent(*v)
+	}
+	return _u
+}
+
+// AddTaxPercent adds value to the "tax_percent" field.
+func (_u *OrderUpdateOne) AddTaxPercent(v float64) *OrderUpdateOne {
+	_u.mutation.AddTaxPercent(v)
+	return _u
+}
+
+// SetIPAddress sets the "ip_address" field.
+func (_u *OrderUpdateOne) SetIPAddress(v string) *OrderUpdateOne {
+	_u.mutation.SetIPAddress(v)
+	return _u
+}
+
+// SetNillableIPAddress sets the "ip_address" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableIPAddress(v *string) *OrderUpdateOne {
+	if v != nil {
+		_u.SetIPAddress(*v)
+	}
+	return _u
+}
+
+// ClearIPAddress clears the value of the "ip_address" field.
+func (_u *OrderUpdateOne) ClearIPAddress() *OrderUpdateOne {
+	_u.mutation.ClearIPAddress()
+	return _u
+}
+
+// SetDeviceID sets the "device_id" field.
+func (_u *OrderUpdateOne) SetDeviceID(v string) *OrderUpdateOne {
+	_u.mutation.SetDeviceID(v)
+	return _u
+}
+
+// SetNillableDeviceID sets the "device_id" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableDeviceID(v *string) *OrderUpdateOne {
+	if v != nil {
+		_u.SetDeviceID(*v)
+	}
+	return _u
+}
+
+// ClearDeviceID clears the value of the "device_id" field.
+func (_u *OrderUpdateOne) ClearDeviceID() *OrderUpdateOne {
+	_u.mutation.ClearDeviceID()
+	return _u
+}
+
 // AddProductIDs adds the "products" edge to the OrderProduct entity by IDs.
 func (_u *OrderUpdateOne) AddProductIDs(ids ...int) *OrderUpdateOne {
 	_u.mutation.AddProductIDs(ids...)
@@ -683,6 +838,21 @@ func (_u *OrderUpdateOne) check() error {
 			return &ValidationError{Name: "customer_contact", err: fmt.Errorf(`ent: validator failed for field "Order.customer_contact": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.TaxPercent(); ok {
+		if err := order.TaxPercentValidator(v); err != nil {
+			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.IPAddress(); ok {
+		if err := order.IPAddressValidator(v); err != nil {
+			return &ValidationError{Name: "ip_address", err: fmt.Errorf(`ent: validator failed for field "Order.ip_address": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.DeviceID(); ok {
+		if err := order.DeviceIDValidator(v); err != nil {
+			return &ValidationError{Name: "device_id", err: fmt.Errorf(`ent: validator failed for field "Order.device_id": %w`, err)}
+		}
+	}
 	if _u.mutation.GroupCleared() && len(_u.mutation.GroupIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "Order.group"`)
 	}
@@ -753,6 +923,24 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(order.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.TaxPercent(); ok {
+		_spec.SetField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTaxPercent(); ok {
+		_spec.AddField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.IPAddress(); ok {
+		_spec.SetField(order.FieldIPAddress, field.TypeString, value)
+	}
+	if _u.mutation.IPAddressCleared() {
+		_spec.ClearField(order.FieldIPAddress, field.TypeString)
+	}
+	if value, ok := _u.mutation.DeviceID(); ok {
+		_spec.SetField(order.FieldDeviceID, field.TypeString, value)
+	}
+	if _u.mutation.DeviceIDCleared() {
+		_spec.ClearField(order.FieldDeviceID, field.TypeString)
 	}
 	if _u.mutation.ProductsCleared() {
 		edge := &sqlgraph.EdgeSpec{

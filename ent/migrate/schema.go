@@ -73,6 +73,9 @@ var (
 		{Name: "customer_contact", Type: field.TypeString},
 		{Name: "ordered_at", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "tax_percent", Type: field.TypeFloat64, Default: 0},
+		{Name: "ip_address", Type: field.TypeString, Nullable: true, Size: 45},
+		{Name: "device_id", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "group_id", Type: field.TypeInt},
 	}
 	// AntOrderTable holds the schema information for the "ant_order" table.
@@ -83,7 +86,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ant_order_ant_order_group_orders",
-				Columns:    []*schema.Column{AntOrderColumns[10]},
+				Columns:    []*schema.Column{AntOrderColumns[13]},
 				RefColumns: []*schema.Column{AntOrderGroupColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -97,7 +100,12 @@ var (
 			{
 				Name:    "order_group_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntOrderColumns[10]},
+				Columns: []*schema.Column{AntOrderColumns[13]},
+			},
+			{
+				Name:    "order_app_id_division_id_device_id",
+				Unique:  false,
+				Columns: []*schema.Column{AntOrderColumns[3], AntOrderColumns[5], AntOrderColumns[12]},
 			},
 		},
 	}

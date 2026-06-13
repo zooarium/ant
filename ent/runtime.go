@@ -91,6 +91,34 @@ func init() {
 	orderDescStatus := orderFields[7].Descriptor()
 	// order.DefaultStatus holds the default value on creation for the status field.
 	order.DefaultStatus = orderDescStatus.Default.(int8)
+	// orderDescTaxPercent is the schema descriptor for tax_percent field.
+	orderDescTaxPercent := orderFields[8].Descriptor()
+	// order.DefaultTaxPercent holds the default value on creation for the tax_percent field.
+	order.DefaultTaxPercent = orderDescTaxPercent.Default.(float64)
+	// order.TaxPercentValidator is a validator for the "tax_percent" field. It is called by the builders before save.
+	order.TaxPercentValidator = func() func(float64) error {
+		validators := orderDescTaxPercent.Validators
+		fns := [...]func(float64) error{
+			validators[0].(func(float64) error),
+			validators[1].(func(float64) error),
+		}
+		return func(tax_percent float64) error {
+			for _, fn := range fns {
+				if err := fn(tax_percent); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// orderDescIPAddress is the schema descriptor for ip_address field.
+	orderDescIPAddress := orderFields[9].Descriptor()
+	// order.IPAddressValidator is a validator for the "ip_address" field. It is called by the builders before save.
+	order.IPAddressValidator = orderDescIPAddress.Validators[0].(func(string) error)
+	// orderDescDeviceID is the schema descriptor for device_id field.
+	orderDescDeviceID := orderFields[10].Descriptor()
+	// order.DeviceIDValidator is a validator for the "device_id" field. It is called by the builders before save.
+	order.DeviceIDValidator = orderDescDeviceID.Validators[0].(func(string) error)
 	ordergroupMixin := schema.OrderGroup{}.Mixin()
 	ordergroupMixinFields0 := ordergroupMixin[0].Fields()
 	_ = ordergroupMixinFields0

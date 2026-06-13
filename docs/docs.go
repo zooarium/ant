@@ -837,7 +837,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled)",
+                        "description": "Filter by status (1=pending, 2=confirmed, 3=completed, 4=cancelled, 5=paid)",
                         "name": "status",
                         "in": "query"
                     }
@@ -919,6 +919,85 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/internal_order.Order"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/history": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Returns past orders for the authenticated tenant (app + division from the token) matching the given device_id, newest first. Intended for the public order-intake page to recognise a returning customer. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "List order history for a device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Client device identifier",
+                        "name": "device_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max items to return (default 50, max 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items to skip (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_order.Order"
+                                            }
                                         }
                                     }
                                 }
@@ -1238,7 +1317,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled)",
+                "description": "Set the order status (1=pending, 2=confirmed, 3=completed, 4=cancelled, 5=paid)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1814,6 +1893,11 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100
                 },
+                "device_id": {
+                    "description": "DeviceID identifies the client device for returning-customer recognition\non the public order-intake page. Optional; the IP is captured server-side.",
+                    "type": "string",
+                    "maxLength": 64
+                },
                 "group_id": {
                     "description": "GroupID attaches the order to an existing group (tab). When omitted, a\nnew group is minted in the same transaction and attached automatically;\nits token is returned in the order's group_token so the UI can reuse it\nto attach later orders to the same tab.",
                     "type": "integer",
@@ -1841,8 +1925,15 @@ const docTemplate = `{
                         1,
                         2,
                         3,
-                        4
+                        4,
+                        5
                     ]
+                },
+                "tax_percent": {
+                    "description": "TaxPercent is the order tax rate as a percentage (0–100). Defaults to 0\nwhen omitted.",
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
                 }
             }
         },
@@ -1861,6 +1952,10 @@ const docTemplate = `{
                 "customer_name": {
                     "type": "string"
                 },
+                "device_id": {
+                    "description": "DeviceID is the client-supplied device identifier used for returning-\ncustomer recognition on the public order-intake page.",
+                    "type": "string"
+                },
                 "division_id": {
                     "type": "integer"
                 },
@@ -1872,6 +1967,10 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "ip_address": {
+                    "description": "IPAddress is the client IP captured server-side at creation. Read-only.",
+                    "type": "string"
                 },
                 "ordered_at": {
                     "type": "string"
@@ -1887,6 +1986,10 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "integer"
+                },
+                "tax_percent": {
+                    "description": "TaxPercent is the tax rate applied to the order as a percentage\n(e.g. 18.5 = 18.5%). Range 0–100.",
+                    "type": "number"
                 },
                 "total": {
                     "description": "Total is the order amount: sum over items of (base price + chosen\noption deltas) * quantity. Populated on detail reads only.",
@@ -2051,6 +2154,12 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_order.SyncOrderItemRequest"
                     }
+                },
+                "tax_percent": {
+                    "description": "TaxPercent is the order tax rate as a percentage (0–100). When omitted the\nexisting value is preserved.",
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
                 }
             }
         },
@@ -2066,7 +2175,8 @@ const docTemplate = `{
                         1,
                         2,
                         3,
-                        4
+                        4,
+                        5
                     ]
                 }
             }

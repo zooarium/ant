@@ -105,6 +105,21 @@ func Status(v int8) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldStatus, v))
 }
 
+// TaxPercent applies equality check predicate on the "tax_percent" field. It's identical to TaxPercentEQ.
+func TaxPercent(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTaxPercent, v))
+}
+
+// IPAddress applies equality check predicate on the "ip_address" field. It's identical to IPAddressEQ.
+func IPAddress(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldIPAddress, v))
+}
+
+// DeviceID applies equality check predicate on the "device_id" field. It's identical to DeviceIDEQ.
+func DeviceID(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDeviceID, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldCreatedAt, v))
@@ -533,6 +548,196 @@ func StatusLT(v int8) predicate.Order {
 // StatusLTE applies the LTE predicate on the "status" field.
 func StatusLTE(v int8) predicate.Order {
 	return predicate.Order(sql.FieldLTE(FieldStatus, v))
+}
+
+// TaxPercentEQ applies the EQ predicate on the "tax_percent" field.
+func TaxPercentEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTaxPercent, v))
+}
+
+// TaxPercentNEQ applies the NEQ predicate on the "tax_percent" field.
+func TaxPercentNEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldTaxPercent, v))
+}
+
+// TaxPercentIn applies the In predicate on the "tax_percent" field.
+func TaxPercentIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldTaxPercent, vs...))
+}
+
+// TaxPercentNotIn applies the NotIn predicate on the "tax_percent" field.
+func TaxPercentNotIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldTaxPercent, vs...))
+}
+
+// TaxPercentGT applies the GT predicate on the "tax_percent" field.
+func TaxPercentGT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldTaxPercent, v))
+}
+
+// TaxPercentGTE applies the GTE predicate on the "tax_percent" field.
+func TaxPercentGTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldTaxPercent, v))
+}
+
+// TaxPercentLT applies the LT predicate on the "tax_percent" field.
+func TaxPercentLT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldTaxPercent, v))
+}
+
+// TaxPercentLTE applies the LTE predicate on the "tax_percent" field.
+func TaxPercentLTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldTaxPercent, v))
+}
+
+// IPAddressEQ applies the EQ predicate on the "ip_address" field.
+func IPAddressEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldIPAddress, v))
+}
+
+// IPAddressNEQ applies the NEQ predicate on the "ip_address" field.
+func IPAddressNEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldIPAddress, v))
+}
+
+// IPAddressIn applies the In predicate on the "ip_address" field.
+func IPAddressIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldIPAddress, vs...))
+}
+
+// IPAddressNotIn applies the NotIn predicate on the "ip_address" field.
+func IPAddressNotIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldIPAddress, vs...))
+}
+
+// IPAddressGT applies the GT predicate on the "ip_address" field.
+func IPAddressGT(v string) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldIPAddress, v))
+}
+
+// IPAddressGTE applies the GTE predicate on the "ip_address" field.
+func IPAddressGTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldIPAddress, v))
+}
+
+// IPAddressLT applies the LT predicate on the "ip_address" field.
+func IPAddressLT(v string) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldIPAddress, v))
+}
+
+// IPAddressLTE applies the LTE predicate on the "ip_address" field.
+func IPAddressLTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldIPAddress, v))
+}
+
+// IPAddressContains applies the Contains predicate on the "ip_address" field.
+func IPAddressContains(v string) predicate.Order {
+	return predicate.Order(sql.FieldContains(FieldIPAddress, v))
+}
+
+// IPAddressHasPrefix applies the HasPrefix predicate on the "ip_address" field.
+func IPAddressHasPrefix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasPrefix(FieldIPAddress, v))
+}
+
+// IPAddressHasSuffix applies the HasSuffix predicate on the "ip_address" field.
+func IPAddressHasSuffix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasSuffix(FieldIPAddress, v))
+}
+
+// IPAddressIsNil applies the IsNil predicate on the "ip_address" field.
+func IPAddressIsNil() predicate.Order {
+	return predicate.Order(sql.FieldIsNull(FieldIPAddress))
+}
+
+// IPAddressNotNil applies the NotNil predicate on the "ip_address" field.
+func IPAddressNotNil() predicate.Order {
+	return predicate.Order(sql.FieldNotNull(FieldIPAddress))
+}
+
+// IPAddressEqualFold applies the EqualFold predicate on the "ip_address" field.
+func IPAddressEqualFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldEqualFold(FieldIPAddress, v))
+}
+
+// IPAddressContainsFold applies the ContainsFold predicate on the "ip_address" field.
+func IPAddressContainsFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldContainsFold(FieldIPAddress, v))
+}
+
+// DeviceIDEQ applies the EQ predicate on the "device_id" field.
+func DeviceIDEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldDeviceID, v))
+}
+
+// DeviceIDNEQ applies the NEQ predicate on the "device_id" field.
+func DeviceIDNEQ(v string) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldDeviceID, v))
+}
+
+// DeviceIDIn applies the In predicate on the "device_id" field.
+func DeviceIDIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldDeviceID, vs...))
+}
+
+// DeviceIDNotIn applies the NotIn predicate on the "device_id" field.
+func DeviceIDNotIn(vs ...string) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldDeviceID, vs...))
+}
+
+// DeviceIDGT applies the GT predicate on the "device_id" field.
+func DeviceIDGT(v string) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldDeviceID, v))
+}
+
+// DeviceIDGTE applies the GTE predicate on the "device_id" field.
+func DeviceIDGTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldDeviceID, v))
+}
+
+// DeviceIDLT applies the LT predicate on the "device_id" field.
+func DeviceIDLT(v string) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldDeviceID, v))
+}
+
+// DeviceIDLTE applies the LTE predicate on the "device_id" field.
+func DeviceIDLTE(v string) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldDeviceID, v))
+}
+
+// DeviceIDContains applies the Contains predicate on the "device_id" field.
+func DeviceIDContains(v string) predicate.Order {
+	return predicate.Order(sql.FieldContains(FieldDeviceID, v))
+}
+
+// DeviceIDHasPrefix applies the HasPrefix predicate on the "device_id" field.
+func DeviceIDHasPrefix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasPrefix(FieldDeviceID, v))
+}
+
+// DeviceIDHasSuffix applies the HasSuffix predicate on the "device_id" field.
+func DeviceIDHasSuffix(v string) predicate.Order {
+	return predicate.Order(sql.FieldHasSuffix(FieldDeviceID, v))
+}
+
+// DeviceIDIsNil applies the IsNil predicate on the "device_id" field.
+func DeviceIDIsNil() predicate.Order {
+	return predicate.Order(sql.FieldIsNull(FieldDeviceID))
+}
+
+// DeviceIDNotNil applies the NotNil predicate on the "device_id" field.
+func DeviceIDNotNil() predicate.Order {
+	return predicate.Order(sql.FieldNotNull(FieldDeviceID))
+}
+
+// DeviceIDEqualFold applies the EqualFold predicate on the "device_id" field.
+func DeviceIDEqualFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldEqualFold(FieldDeviceID, v))
+}
+
+// DeviceIDContainsFold applies the ContainsFold predicate on the "device_id" field.
+func DeviceIDContainsFold(v string) predicate.Order {
+	return predicate.Order(sql.FieldContainsFold(FieldDeviceID, v))
 }
 
 // HasProducts applies the HasEdge predicate on the "products" edge.
