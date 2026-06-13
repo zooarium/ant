@@ -197,6 +197,27 @@ func (_u *OrderUpdate) AddTaxPercent(v float64) *OrderUpdate {
 	return _u
 }
 
+// SetTotal sets the "total" field.
+func (_u *OrderUpdate) SetTotal(v float64) *OrderUpdate {
+	_u.mutation.ResetTotal()
+	_u.mutation.SetTotal(v)
+	return _u
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (_u *OrderUpdate) SetNillableTotal(v *float64) *OrderUpdate {
+	if v != nil {
+		_u.SetTotal(*v)
+	}
+	return _u
+}
+
+// AddTotal adds value to the "total" field.
+func (_u *OrderUpdate) AddTotal(v float64) *OrderUpdate {
+	_u.mutation.AddTotal(v)
+	return _u
+}
+
 // SetIPAddress sets the "ip_address" field.
 func (_u *OrderUpdate) SetIPAddress(v string) *OrderUpdate {
 	_u.mutation.SetIPAddress(v)
@@ -342,6 +363,11 @@ func (_u *OrderUpdate) check() error {
 			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Total(); ok {
+		if err := order.TotalValidator(v); err != nil {
+			return &ValidationError{Name: "total", err: fmt.Errorf(`ent: validator failed for field "Order.total": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.IPAddress(); ok {
 		if err := order.IPAddressValidator(v); err != nil {
 			return &ValidationError{Name: "ip_address", err: fmt.Errorf(`ent: validator failed for field "Order.ip_address": %w`, err)}
@@ -411,6 +437,12 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedTaxPercent(); ok {
 		_spec.AddField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(order.FieldTotal, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotal(); ok {
+		_spec.AddField(order.FieldTotal, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.IPAddress(); ok {
 		_spec.SetField(order.FieldIPAddress, field.TypeString, value)
@@ -685,6 +717,27 @@ func (_u *OrderUpdateOne) AddTaxPercent(v float64) *OrderUpdateOne {
 	return _u
 }
 
+// SetTotal sets the "total" field.
+func (_u *OrderUpdateOne) SetTotal(v float64) *OrderUpdateOne {
+	_u.mutation.ResetTotal()
+	_u.mutation.SetTotal(v)
+	return _u
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableTotal(v *float64) *OrderUpdateOne {
+	if v != nil {
+		_u.SetTotal(*v)
+	}
+	return _u
+}
+
+// AddTotal adds value to the "total" field.
+func (_u *OrderUpdateOne) AddTotal(v float64) *OrderUpdateOne {
+	_u.mutation.AddTotal(v)
+	return _u
+}
+
 // SetIPAddress sets the "ip_address" field.
 func (_u *OrderUpdateOne) SetIPAddress(v string) *OrderUpdateOne {
 	_u.mutation.SetIPAddress(v)
@@ -843,6 +896,11 @@ func (_u *OrderUpdateOne) check() error {
 			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Total(); ok {
+		if err := order.TotalValidator(v); err != nil {
+			return &ValidationError{Name: "total", err: fmt.Errorf(`ent: validator failed for field "Order.total": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.IPAddress(); ok {
 		if err := order.IPAddressValidator(v); err != nil {
 			return &ValidationError{Name: "ip_address", err: fmt.Errorf(`ent: validator failed for field "Order.ip_address": %w`, err)}
@@ -929,6 +987,12 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 	}
 	if value, ok := _u.mutation.AddedTaxPercent(); ok {
 		_spec.AddField(order.FieldTaxPercent, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.Total(); ok {
+		_spec.SetField(order.FieldTotal, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedTotal(); ok {
+		_spec.AddField(order.FieldTotal, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.IPAddress(); ok {
 		_spec.SetField(order.FieldIPAddress, field.TypeString, value)

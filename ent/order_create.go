@@ -128,6 +128,20 @@ func (_c *OrderCreate) SetNillableTaxPercent(v *float64) *OrderCreate {
 	return _c
 }
 
+// SetTotal sets the "total" field.
+func (_c *OrderCreate) SetTotal(v float64) *OrderCreate {
+	_c.mutation.SetTotal(v)
+	return _c
+}
+
+// SetNillableTotal sets the "total" field if the given value is not nil.
+func (_c *OrderCreate) SetNillableTotal(v *float64) *OrderCreate {
+	if v != nil {
+		_c.SetTotal(*v)
+	}
+	return _c
+}
+
 // SetIPAddress sets the "ip_address" field.
 func (_c *OrderCreate) SetIPAddress(v string) *OrderCreate {
 	_c.mutation.SetIPAddress(v)
@@ -231,6 +245,10 @@ func (_c *OrderCreate) defaults() {
 		v := order.DefaultTaxPercent
 		_c.mutation.SetTaxPercent(v)
 	}
+	if _, ok := _c.mutation.Total(); !ok {
+		v := order.DefaultTotal
+		_c.mutation.SetTotal(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -281,6 +299,14 @@ func (_c *OrderCreate) check() error {
 	if v, ok := _c.mutation.TaxPercent(); ok {
 		if err := order.TaxPercentValidator(v); err != nil {
 			return &ValidationError{Name: "tax_percent", err: fmt.Errorf(`ent: validator failed for field "Order.tax_percent": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Total(); !ok {
+		return &ValidationError{Name: "total", err: errors.New(`ent: missing required field "Order.total"`)}
+	}
+	if v, ok := _c.mutation.Total(); ok {
+		if err := order.TotalValidator(v); err != nil {
+			return &ValidationError{Name: "total", err: fmt.Errorf(`ent: validator failed for field "Order.total": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.IPAddress(); ok {
@@ -361,6 +387,10 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.TaxPercent(); ok {
 		_spec.SetField(order.FieldTaxPercent, field.TypeFloat64, value)
 		_node.TaxPercent = value
+	}
+	if value, ok := _c.mutation.Total(); ok {
+		_spec.SetField(order.FieldTotal, field.TypeFloat64, value)
+		_node.Total = value
 	}
 	if value, ok := _c.mutation.IPAddress(); ok {
 		_spec.SetField(order.FieldIPAddress, field.TypeString, value)

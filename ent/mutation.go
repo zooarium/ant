@@ -1480,6 +1480,8 @@ type OrderMutation struct {
 	addstatus        *int8
 	tax_percent      *float64
 	addtax_percent   *float64
+	total            *float64
+	addtotal         *float64
 	ip_address       *string
 	device_id        *string
 	clearedFields    map[string]struct{}
@@ -2087,6 +2089,62 @@ func (m *OrderMutation) ResetTaxPercent() {
 	m.addtax_percent = nil
 }
 
+// SetTotal sets the "total" field.
+func (m *OrderMutation) SetTotal(f float64) {
+	m.total = &f
+	m.addtotal = nil
+}
+
+// Total returns the value of the "total" field in the mutation.
+func (m *OrderMutation) Total() (r float64, exists bool) {
+	v := m.total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotal returns the old "total" field's value of the Order entity.
+// If the Order object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrderMutation) OldTotal(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotal: %w", err)
+	}
+	return oldValue.Total, nil
+}
+
+// AddTotal adds f to the "total" field.
+func (m *OrderMutation) AddTotal(f float64) {
+	if m.addtotal != nil {
+		*m.addtotal += f
+	} else {
+		m.addtotal = &f
+	}
+}
+
+// AddedTotal returns the value that was added to the "total" field in this mutation.
+func (m *OrderMutation) AddedTotal() (r float64, exists bool) {
+	v := m.addtotal
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotal resets all changes to the "total" field.
+func (m *OrderMutation) ResetTotal() {
+	m.total = nil
+	m.addtotal = nil
+}
+
 // SetIPAddress sets the "ip_address" field.
 func (m *OrderMutation) SetIPAddress(s string) {
 	m.ip_address = &s
@@ -2300,7 +2358,7 @@ func (m *OrderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrderMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, order.FieldCreatedAt)
 	}
@@ -2333,6 +2391,9 @@ func (m *OrderMutation) Fields() []string {
 	}
 	if m.tax_percent != nil {
 		fields = append(fields, order.FieldTaxPercent)
+	}
+	if m.total != nil {
+		fields = append(fields, order.FieldTotal)
 	}
 	if m.ip_address != nil {
 		fields = append(fields, order.FieldIPAddress)
@@ -2370,6 +2431,8 @@ func (m *OrderMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case order.FieldTaxPercent:
 		return m.TaxPercent()
+	case order.FieldTotal:
+		return m.Total()
 	case order.FieldIPAddress:
 		return m.IPAddress()
 	case order.FieldDeviceID:
@@ -2405,6 +2468,8 @@ func (m *OrderMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldStatus(ctx)
 	case order.FieldTaxPercent:
 		return m.OldTaxPercent(ctx)
+	case order.FieldTotal:
+		return m.OldTotal(ctx)
 	case order.FieldIPAddress:
 		return m.OldIPAddress(ctx)
 	case order.FieldDeviceID:
@@ -2495,6 +2560,13 @@ func (m *OrderMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetTaxPercent(v)
 		return nil
+	case order.FieldTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotal(v)
+		return nil
 	case order.FieldIPAddress:
 		v, ok := value.(string)
 		if !ok {
@@ -2532,6 +2604,9 @@ func (m *OrderMutation) AddedFields() []string {
 	if m.addtax_percent != nil {
 		fields = append(fields, order.FieldTaxPercent)
 	}
+	if m.addtotal != nil {
+		fields = append(fields, order.FieldTotal)
+	}
 	return fields
 }
 
@@ -2550,6 +2625,8 @@ func (m *OrderMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedStatus()
 	case order.FieldTaxPercent:
 		return m.AddedTaxPercent()
+	case order.FieldTotal:
+		return m.AddedTotal()
 	}
 	return nil, false
 }
@@ -2593,6 +2670,13 @@ func (m *OrderMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddTaxPercent(v)
+		return nil
+	case order.FieldTotal:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotal(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Order numeric field %s", name)
@@ -2668,6 +2752,9 @@ func (m *OrderMutation) ResetField(name string) error {
 		return nil
 	case order.FieldTaxPercent:
 		m.ResetTaxPercent()
+		return nil
+	case order.FieldTotal:
+		m.ResetTotal()
 		return nil
 	case order.FieldIPAddress:
 		m.ResetIPAddress()

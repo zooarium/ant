@@ -108,10 +108,12 @@ func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, productID int, attrib
 	return p, snapshot, nil
 }
 
-func createItem(ctx context.Context, tx *ent.Tx, appID, orderID, productID, quantity int, attributes []OrderItemAttributeRequest) error {
+// createItem writes one order item and returns its line total
+// ((price + option deltas) * quantity) so callers can accumulate the order total.
+func createItem(ctx context.Context, tx *ent.Tx, appID, orderID, productID, quantity int, attributes []OrderItemAttributeRequest) (float64, error) {
 	p, snapshot, err := buildSnapshot(ctx, tx, appID, productID, attributes)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if _, err := tx.OrderProduct.
 		Create().
@@ -122,9 +124,32 @@ func createItem(ctx context.Context, tx *ent.Tx, appID, orderID, productID, quan
 		SetQuantity(quantity).
 		SetAttributes(snapshot).
 		Save(ctx); err != nil {
-		return fmt.Errorf("create order item: %w", err)
+		return 0, fmt.Errorf("create order item: %w", err)
 	}
-	return nil
+	unit := p.Price
+	for _, a := range snapshot {
+		unit += a.PriceDelta
+	}
+	return unit * float64(quantity), nil
+}
+
+// sumOrderItems recomputes an order's total from its persisted items within the
+// surrounding transaction. Used after a sync where kept items retain their own
+// snapshots, so accumulation from the request alone is insufficient.
+func sumOrderItems(ctx context.Context, tx *ent.Tx, orderID int) (float64, error) {
+	items, err := tx.OrderProduct.
+		Query().
+		Where(orderproduct.OrderID(orderID)).
+		Select(orderproduct.FieldPrice, orderproduct.FieldQuantity, orderproduct.FieldAttributes).
+		All(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("sum order items: %w", err)
+	}
+	var total float64
+	for _, it := range items {
+		total += mapItem(it).LineTotal
+	}
+	return total, nil
 }
 
 // verifyGroup ensures the group exists and belongs to the app. App scoping is
@@ -194,10 +219,16 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 	if err != nil {
 		return Order{}, rollback(tx, fmt.Errorf("create order: %w", err))
 	}
+	var total float64
 	for _, req := range items {
-		if err := createItem(ctx, tx, item.AppID, e.ID, req.ProductID, req.Quantity, req.Attributes); err != nil {
+		lt, err := createItem(ctx, tx, item.AppID, e.ID, req.ProductID, req.Quantity, req.Attributes)
+		if err != nil {
 			return Order{}, rollback(tx, err)
 		}
+		total += lt
+	}
+	if _, err := tx.Order.UpdateOneID(e.ID).SetTotal(total).Save(ctx); err != nil {
+		return Order{}, rollback(tx, fmt.Errorf("set order total: %w", err))
 	}
 	if err := tx.Commit(); err != nil {
 		return Order{}, fmt.Errorf("commit tx: %w", err)
@@ -383,7 +414,7 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 	keep := make(map[int]struct{}, len(items))
 	for _, p := range items {
 		if p.ID == 0 {
-			if err := createItem(ctx, tx, appID, id, p.ProductID, p.Quantity, p.Attributes); err != nil {
+			if _, err := createItem(ctx, tx, appID, id, p.ProductID, p.Quantity, p.Attributes); err != nil {
 				return Order{}, rollback(tx, err)
 			}
 			continue
@@ -414,6 +445,14 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 			Exec(ctx); err != nil {
 			return Order{}, rollback(tx, fmt.Errorf("delete order items: %w", err))
 		}
+	}
+
+	total, err := sumOrderItems(ctx, tx, id)
+	if err != nil {
+		return Order{}, rollback(tx, err)
+	}
+	if _, err := tx.Order.UpdateOneID(id).SetTotal(total).Save(ctx); err != nil {
+		return Order{}, rollback(tx, fmt.Errorf("set order total: %w", err))
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -534,6 +573,7 @@ func (r *orderRepository) mapToModel(e *ent.Order) Order {
 		CustomerContact: e.CustomerContact,
 		Status:          e.Status,
 		TaxPercent:      e.TaxPercent,
+		Total:           e.Total,
 		IPAddress:       e.IPAddress,
 		DeviceID:        e.DeviceID,
 		OrderedAt:       e.OrderedAt,

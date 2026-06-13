@@ -36,6 +36,8 @@ const (
 	FieldStatus = "status"
 	// FieldTaxPercent holds the string denoting the tax_percent field in the database.
 	FieldTaxPercent = "tax_percent"
+	// FieldTotal holds the string denoting the total field in the database.
+	FieldTotal = "total"
 	// FieldIPAddress holds the string denoting the ip_address field in the database.
 	FieldIPAddress = "ip_address"
 	// FieldDeviceID holds the string denoting the device_id field in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldOrderedAt,
 	FieldStatus,
 	FieldTaxPercent,
+	FieldTotal,
 	FieldIPAddress,
 	FieldDeviceID,
 }
@@ -109,6 +112,10 @@ var (
 	DefaultTaxPercent float64
 	// TaxPercentValidator is a validator for the "tax_percent" field. It is called by the builders before save.
 	TaxPercentValidator func(float64) error
+	// DefaultTotal holds the default value on creation for the "total" field.
+	DefaultTotal float64
+	// TotalValidator is a validator for the "total" field. It is called by the builders before save.
+	TotalValidator func(float64) error
 	// IPAddressValidator is a validator for the "ip_address" field. It is called by the builders before save.
 	IPAddressValidator func(string) error
 	// DeviceIDValidator is a validator for the "device_id" field. It is called by the builders before save.
@@ -176,6 +183,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByTaxPercent orders the results by the tax_percent field.
 func ByTaxPercent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTaxPercent, opts...).ToFunc()
+}
+
+// ByTotal orders the results by the total field.
+func ByTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTotal, opts...).ToFunc()
 }
 
 // ByIPAddress orders the results by the ip_address field.

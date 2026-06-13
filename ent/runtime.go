@@ -111,12 +111,18 @@ func init() {
 			return nil
 		}
 	}()
+	// orderDescTotal is the schema descriptor for total field.
+	orderDescTotal := orderFields[9].Descriptor()
+	// order.DefaultTotal holds the default value on creation for the total field.
+	order.DefaultTotal = orderDescTotal.Default.(float64)
+	// order.TotalValidator is a validator for the "total" field. It is called by the builders before save.
+	order.TotalValidator = orderDescTotal.Validators[0].(func(float64) error)
 	// orderDescIPAddress is the schema descriptor for ip_address field.
-	orderDescIPAddress := orderFields[9].Descriptor()
+	orderDescIPAddress := orderFields[10].Descriptor()
 	// order.IPAddressValidator is a validator for the "ip_address" field. It is called by the builders before save.
 	order.IPAddressValidator = orderDescIPAddress.Validators[0].(func(string) error)
 	// orderDescDeviceID is the schema descriptor for device_id field.
-	orderDescDeviceID := orderFields[10].Descriptor()
+	orderDescDeviceID := orderFields[11].Descriptor()
 	// order.DeviceIDValidator is a validator for the "device_id" field. It is called by the builders before save.
 	order.DeviceIDValidator = orderDescDeviceID.Validators[0].(func(string) error)
 	ordergroupMixin := schema.OrderGroup{}.Mixin()

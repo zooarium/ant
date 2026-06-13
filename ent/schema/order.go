@@ -53,6 +53,14 @@ func (Order) Fields() []ent.Field {
 			Min(0).
 			Max(100).
 			Default(0),
+		// total is the denormalized pre-tax order amount: sum over items of
+		// (base price + chosen option deltas) * quantity. Maintained inside the
+		// same transaction on every item change (create/update) so list reads
+		// avoid per-row aggregation. Detail reads recompute from items as the
+		// authoritative value.
+		field.Float("total").
+			Min(0).
+			Default(0),
 		// ip_address is the client IP captured server-side at order creation
 		// (audit / abuse signal). Optional; holds IPv4 or IPv6 (max 45 chars).
 		field.String("ip_address").

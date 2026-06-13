@@ -110,6 +110,11 @@ func TaxPercent(v float64) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldTaxPercent, v))
 }
 
+// Total applies equality check predicate on the "total" field. It's identical to TotalEQ.
+func Total(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTotal, v))
+}
+
 // IPAddress applies equality check predicate on the "ip_address" field. It's identical to IPAddressEQ.
 func IPAddress(v string) predicate.Order {
 	return predicate.Order(sql.FieldEQ(FieldIPAddress, v))
@@ -588,6 +593,46 @@ func TaxPercentLT(v float64) predicate.Order {
 // TaxPercentLTE applies the LTE predicate on the "tax_percent" field.
 func TaxPercentLTE(v float64) predicate.Order {
 	return predicate.Order(sql.FieldLTE(FieldTaxPercent, v))
+}
+
+// TotalEQ applies the EQ predicate on the "total" field.
+func TotalEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldEQ(FieldTotal, v))
+}
+
+// TotalNEQ applies the NEQ predicate on the "total" field.
+func TotalNEQ(v float64) predicate.Order {
+	return predicate.Order(sql.FieldNEQ(FieldTotal, v))
+}
+
+// TotalIn applies the In predicate on the "total" field.
+func TotalIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldIn(FieldTotal, vs...))
+}
+
+// TotalNotIn applies the NotIn predicate on the "total" field.
+func TotalNotIn(vs ...float64) predicate.Order {
+	return predicate.Order(sql.FieldNotIn(FieldTotal, vs...))
+}
+
+// TotalGT applies the GT predicate on the "total" field.
+func TotalGT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGT(FieldTotal, v))
+}
+
+// TotalGTE applies the GTE predicate on the "total" field.
+func TotalGTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldGTE(FieldTotal, v))
+}
+
+// TotalLT applies the LT predicate on the "total" field.
+func TotalLT(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLT(FieldTotal, v))
+}
+
+// TotalLTE applies the LTE predicate on the "total" field.
+func TotalLTE(v float64) predicate.Order {
+	return predicate.Order(sql.FieldLTE(FieldTotal, v))
 }
 
 // IPAddressEQ applies the EQ predicate on the "ip_address" field.

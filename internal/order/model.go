@@ -33,8 +33,10 @@ type Order struct {
 	// customer recognition on the public order-intake page.
 	DeviceID      string `json:"device_id,omitempty"`
 	ProductsCount int    `json:"products_count"`
-	// Total is the order amount: sum over items of (base price + chosen
-	// option deltas) * quantity. Populated on detail reads only.
+	// Total is the pre-tax order amount: sum over items of (base price + chosen
+	// option deltas) * quantity. Persisted as a denormalized column and
+	// maintained on every item change, so it is populated on both list and
+	// detail reads.
 	Total     float64     `json:"total"`
 	Products  []OrderItem `json:"products,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`

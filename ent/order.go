@@ -40,6 +40,8 @@ type Order struct {
 	Status int8 `json:"status,omitempty"`
 	// TaxPercent holds the value of the "tax_percent" field.
 	TaxPercent float64 `json:"tax_percent,omitempty"`
+	// Total holds the value of the "total" field.
+	Total float64 `json:"total,omitempty"`
 	// IPAddress holds the value of the "ip_address" field.
 	IPAddress string `json:"ip_address,omitempty"`
 	// DeviceID holds the value of the "device_id" field.
@@ -86,7 +88,7 @@ func (*Order) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case order.FieldTaxPercent:
+		case order.FieldTaxPercent, order.FieldTotal:
 			values[i] = new(sql.NullFloat64)
 		case order.FieldID, order.FieldAppID, order.FieldUserID, order.FieldDivisionID, order.FieldGroupID, order.FieldStatus:
 			values[i] = new(sql.NullInt64)
@@ -181,6 +183,12 @@ func (_m *Order) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.TaxPercent = value.Float64
 			}
+		case order.FieldTotal:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field total", values[i])
+			} else if value.Valid {
+				_m.Total = value.Float64
+			}
 		case order.FieldIPAddress:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field ip_address", values[i])
@@ -271,6 +279,9 @@ func (_m *Order) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("tax_percent=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TaxPercent))
+	builder.WriteString(", ")
+	builder.WriteString("total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Total))
 	builder.WriteString(", ")
 	builder.WriteString("ip_address=")
 	builder.WriteString(_m.IPAddress)

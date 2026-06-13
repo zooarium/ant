@@ -1,4 +1,5 @@
-h1:PUIXLqWNyxMlw1SejP+zbI4gs0udTo6jGYegOwMMmQ4=
+h1:QjugyCBeOr44OcWzLJieXsxw08mGqzL+KZyUilJ1NT4=
 20260611152924_init.sql h1:YjMu8iqIusxkNY88nPxFZlTbRvrxtSe+qvgWldNXnNU=
 20260613063925_add_order_tax_percent.sql h1:ZmhlHeT1+hp/HJbbfPcK03ZoWqfSHH6JeQLBD52BqYU=
 20260613065532_add_order_ip_device.sql h1:9FEPWzRExkmnHbr5H3K23Hg1n6b/hf660VYQAOlz3bI=
+20260613080458_order_total.sql h1:vxcp85MTvuNGikvlMQLEXQVuOP4Ee8bAcW2g7pErZzc=
