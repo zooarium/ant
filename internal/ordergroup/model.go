@@ -43,6 +43,15 @@ type CreateOrderGroupRequest struct {
 	Label string `json:"label" validate:"omitempty,max=100"`
 }
 
+// CreatePublicOrderGroupRequest is the payload for the public tab-create
+// endpoint. It embeds CreateOrderGroupRequest and adds a honeypot field: a
+// legitimate client leaves Honeypot empty, so any value marks the request as a
+// bot and it is silently dropped.
+type CreatePublicOrderGroupRequest struct {
+	CreateOrderGroupRequest
+	Honeypot string `json:"website" validate:"max=0"`
+}
+
 type UpdateOrderGroupRequest struct {
 	Label string `json:"label" validate:"omitempty,max=100"`
 }

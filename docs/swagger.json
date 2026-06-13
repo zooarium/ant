@@ -940,85 +940,6 @@
                 }
             }
         },
-        "/orders/history": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "Returns past orders for the authenticated tenant (app + division from the token) matching the given device_id, newest first. Intended for the public order-intake page to recognise a returning customer. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "orders"
-                ],
-                "summary": "List order history for a device",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Client device identifier",
-                        "name": "device_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Max items to return (default 50, max 500)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items to skip (default 0)",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/internal_order.Order"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/ant_internal_platform_render.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/ant_internal_platform_render.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/ant_internal_platform_render.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/orders/{id}": {
             "get": {
                 "security": [
@@ -1733,6 +1654,311 @@
                     }
                 }
             }
+        },
+        "/public/order-groups": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Creates a tab (order group) on behalf of a guest-token caller and returns its server-minted token, which can be shared so other family members place orders under the same tab. Protected by reCAPTCHA and a hidden honeypot field.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Create an order group (public)",
+                "parameters": [
+                    {
+                        "description": "Order group object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_ordergroup.CreatePublicOrderGroupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/order-groups/history": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Returns past tabs (order groups, newest first) that contain at least one order placed by the given device, each hydrated with all of its orders and the combined total. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "List order history for a device (public)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Client device identifier",
+                        "name": "device_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max items to return (default 50, max 500)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items to skip (default 0)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/order-groups/{token}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Returns the tab identified by the shareable token, including all member orders and the combined total. Used by the order-intake page so a family member who has the token can view the whole tab.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get an order group by token (public)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order group token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_ordergroup.OrderGroup"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/public/orders": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Creates a pending order on behalf of a guest-token caller, optionally attaching it to an existing group (group_id) or auto-minting a new one. The order is always created pending — confirmation and payment are done at reception. Protected by reCAPTCHA, a hidden honeypot field, and a per-device volume cap.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Create an order (public)",
+                "parameters": [
+                    {
+                        "description": "Order object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_order.CreatePublicOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_order.Order"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1931,6 +2157,71 @@
                 }
             }
         },
+        "internal_order.CreatePublicOrderRequest": {
+            "type": "object",
+            "required": [
+                "customer_contact",
+                "customer_name",
+                "products"
+            ],
+            "properties": {
+                "customer_contact": {
+                    "type": "string",
+                    "maxLength": 20,
+                    "minLength": 7
+                },
+                "customer_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "device_id": {
+                    "description": "DeviceID identifies the client device for returning-customer recognition\non the public order-intake page. Optional; the IP is captured server-side.",
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "group_id": {
+                    "description": "GroupID attaches the order to an existing group (tab). When omitted, a\nnew group is minted in the same transaction and attached automatically;\nits token is returned in the order's group_token so the UI can reuse it\nto attach later orders to the same tab.",
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "group_label": {
+                    "description": "GroupLabel optionally names the tab when a new group is auto-created\n(ignored when group_id is supplied).",
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "ordered_at": {
+                    "description": "OrderedAt sets the business order date; defaults to now when omitted.",
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/internal_order.OrderItemRequest"
+                    }
+                },
+                "status": {
+                    "type": "integer",
+                    "enum": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ]
+                },
+                "tax_percent": {
+                    "description": "TaxPercent is the order tax rate as a percentage (0–100). Defaults to 0\nwhen omitted.",
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "website": {
+                    "type": "string",
+                    "maxLength": 0
+                }
+            }
+        },
         "internal_order.Order": {
             "type": "object",
             "properties": {
@@ -1986,7 +2277,7 @@
                     "type": "number"
                 },
                 "total": {
-                    "description": "Total is the order amount: sum over items of (base price + chosen\noption deltas) * quantity. Populated on detail reads only.",
+                    "description": "Total is the pre-tax order amount: sum over items of (base price + chosen\noption deltas) * quantity. Persisted as a denormalized column and\nmaintained on every item change, so it is populated on both list and\ndetail reads.",
                     "type": "number"
                 },
                 "updated_at": {
@@ -2181,6 +2472,19 @@
                 "label": {
                     "type": "string",
                     "maxLength": 100
+                }
+            }
+        },
+        "internal_ordergroup.CreatePublicOrderGroupRequest": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "website": {
+                    "type": "string",
+                    "maxLength": 0
                 }
             }
         },
@@ -2447,5 +2751,11 @@
             "name": "Authorization",
             "in": "header"
         }
-    }
+    },
+    "tags": [
+        {
+            "description": "Endpoints under the /public prefix, reachable with keeper guest tokens via the order-intake listener.",
+            "name": "Public"
+        }
+    ]
 }

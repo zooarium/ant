@@ -93,21 +93,17 @@ func (r *orderGroupRepository) List(ctx context.Context, appID, limit, offset in
 	return items, nil
 }
 
-func (r *orderGroupRepository) GetByID(ctx context.Context, appID, id int) (OrderGroup, error) {
-	e, err := r.client.OrderGroup.
-		Query().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
-		WithOrders(func(oq *ent.OrderQuery) {
-			oq.Order(ent.Asc(entorder.FieldID)).
-				WithProducts()
-		}).
-		Only(ctx)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return OrderGroup{}, ErrOrderGroupNotFound
-		}
-		return OrderGroup{}, fmt.Errorf("get order group by id: %w", err)
-	}
+// withOrders eager-loads a group's orders (ascending) with their snapshotted
+// products, so hydrateGroup can compute per-order and group totals.
+func withOrders(oq *ent.OrderQuery) {
+	oq.Order(ent.Asc(entorder.FieldID)).WithProducts()
+}
+
+// hydrateGroup maps a fully-loaded group entity (with the Orders edge and each
+// order's Products edge) into the domain model, building the order summaries
+// and the combined total. Shared by GetByID, GetByToken and ListByDevice so the
+// tab assembly lives in one place.
+func (r *orderGroupRepository) hydrateGroup(e *ent.OrderGroup) OrderGroup {
 	g := r.mapToModel(e)
 	g.Orders = make([]OrderSummary, len(e.Edges.Orders))
 	var total float64
@@ -127,7 +123,67 @@ func (r *orderGroupRepository) GetByID(ctx context.Context, appID, id int) (Orde
 	}
 	g.OrdersCount = len(g.Orders)
 	g.Total = total
-	return g, nil
+	return g
+}
+
+func (r *orderGroupRepository) GetByID(ctx context.Context, appID, id int) (OrderGroup, error) {
+	e, err := r.client.OrderGroup.
+		Query().
+		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		WithOrders(withOrders).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return OrderGroup{}, ErrOrderGroupNotFound
+		}
+		return OrderGroup{}, fmt.Errorf("get order group by id: %w", err)
+	}
+	return r.hydrateGroup(e), nil
+}
+
+// GetByToken loads a group (with its orders) by its shareable token within the
+// tenant. Used by the public order-intake page so a family member who has the
+// token can view the whole tab.
+func (r *orderGroupRepository) GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error) {
+	e, err := r.client.OrderGroup.
+		Query().
+		Where(entordergroup.AppID(appID), entordergroup.Token(token)).
+		WithOrders(withOrders).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return OrderGroup{}, ErrOrderGroupNotFound
+		}
+		return OrderGroup{}, fmt.Errorf("get order group by token: %w", err)
+	}
+	return r.hydrateGroup(e), nil
+}
+
+// ListByDevice returns the tabs (groups, newest first) that contain at least
+// one order placed by the given device within the tenant scope, each hydrated
+// with all of its orders and the combined total. Backs the public order history
+// view: a returning customer sees their past tabs with everything on them.
+func (r *orderGroupRepository) ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error) {
+	es, err := r.client.OrderGroup.
+		Query().
+		Where(
+			entordergroup.AppID(appID),
+			entordergroup.DivisionID(divisionID),
+			entordergroup.HasOrdersWith(entorder.DeviceID(deviceID)),
+		).
+		WithOrders(withOrders).
+		Order(ent.Desc(entordergroup.FieldID)).
+		Limit(limit).
+		Offset(offset).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list order groups by device: %w", err)
+	}
+	items := make([]OrderGroup, len(es))
+	for i, e := range es {
+		items[i] = r.hydrateGroup(e)
+	}
+	return items, nil
 }
 
 func (r *orderGroupRepository) Update(ctx context.Context, appID, id int, label string) (OrderGroup, error) {

@@ -15,7 +15,25 @@ type Config struct {
 	Log         LogConfig  `mapstructure:"LOG"`
 	Auth        AuthConfig `mapstructure:"AUTH"`
 	CORS        CORSConfig
+	Captcha     CaptchaConfig     `mapstructure:"CAPTCHA"`
+	PublicOrder PublicOrderConfig `mapstructure:"PUBLIC_ORDER"`
 	Secondary   []SecondaryConfig `mapstructure:"SECONDARY"`
+}
+
+// CaptchaConfig drives Google reCAPTCHA v3 verification on public write routes.
+// When Enabled is false (or Secret is empty) verification is skipped.
+type CaptchaConfig struct {
+	Enabled  bool          `mapstructure:"ENABLED"`
+	Secret   string        `mapstructure:"SECRET"`
+	MinScore float64       `mapstructure:"MIN_SCORE"`
+	Timeout  time.Duration `mapstructure:"TIMEOUT"`
+}
+
+// PublicOrderConfig caps how many orders a single device (or IP, when no
+// device id is sent) may place via the public intake within Window.
+type PublicOrderConfig struct {
+	MaxOrders int           `mapstructure:"MAX_ORDERS"`
+	Window    time.Duration `mapstructure:"WINDOW"`
 }
 
 // SecondaryConfig drives one optional secondary listener: an additional HTTP
@@ -83,6 +101,12 @@ func Load() (*Config, error) {
 	v.SetDefault("AUTH.JWT_SECRET", "a-very-secure-and-shared-secret-key")
 	v.SetDefault("AUTH.JWT_EXPIRY", 24*time.Hour)
 	v.SetDefault("CORS.ALLOWED_ORIGINS", []string{"*"})
+	v.SetDefault("CAPTCHA.ENABLED", false)
+	v.SetDefault("CAPTCHA.SECRET", "")
+	v.SetDefault("CAPTCHA.MIN_SCORE", 0.5)
+	v.SetDefault("CAPTCHA.TIMEOUT", 3*time.Second)
+	v.SetDefault("PUBLIC_ORDER.MAX_ORDERS", 5)
+	v.SetDefault("PUBLIC_ORDER.WINDOW", 24*time.Hour)
 
 	v.SetEnvPrefix("ANT")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

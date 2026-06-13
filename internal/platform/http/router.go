@@ -25,7 +25,7 @@ func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager, mount func(r chi
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: cfg.CORS.AllowedOrigins,
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"},
-		AllowedHeaders: []string{"Origin", "Content-Type", "Authorization"},
+		AllowedHeaders: []string{"Origin", "Content-Type", "Authorization", CaptchaTokenHeader},
 	}))
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)

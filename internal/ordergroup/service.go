@@ -19,6 +19,8 @@ type Repository interface {
 	Create(ctx context.Context, item OrderGroup) (OrderGroup, error)
 	List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error)
 	GetByID(ctx context.Context, appID, id int) (OrderGroup, error)
+	GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error)
+	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error)
 	Update(ctx context.Context, appID, id int, label string) (OrderGroup, error)
 	UpdateStatus(ctx context.Context, appID, id int, status int8) (OrderGroup, error)
 	Delete(ctx context.Context, appID, id int) error
@@ -28,6 +30,8 @@ type Service interface {
 	Create(ctx context.Context, appID, userID, divisionID int, req CreateOrderGroupRequest) (OrderGroup, error)
 	List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error)
 	GetByID(ctx context.Context, appID, id int) (OrderGroup, error)
+	GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error)
+	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error)
 	Update(ctx context.Context, appID, id int, req UpdateOrderGroupRequest) (OrderGroup, error)
 	UpdateStatus(ctx context.Context, appID, id int, req UpdateOrderGroupStatusRequest) (OrderGroup, error)
 	Delete(ctx context.Context, appID, id int) error
@@ -84,6 +88,30 @@ func (s *service) GetByID(ctx context.Context, appID, id int) (OrderGroup, error
 		return OrderGroup{}, err
 	}
 	return item, nil
+}
+
+// GetByToken returns a tab by its shareable token, scoped to the tenant. Used
+// by the public order-intake page.
+func (s *service) GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error) {
+	item, err := s.repo.GetByToken(ctx, appID, token)
+	if err != nil {
+		if !errors.Is(err, ErrOrderGroupNotFound) {
+			slog.Error("failed to get order group by token", "error", err, "app_id", appID)
+		}
+		return OrderGroup{}, err
+	}
+	return item, nil
+}
+
+// ListByDevice returns past tabs for a device (newest first), each with its
+// orders and combined total. Backs the public order history view.
+func (s *service) ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error) {
+	items, err := s.repo.ListByDevice(ctx, appID, divisionID, deviceID, limit, offset)
+	if err != nil {
+		slog.Error("failed to list order groups by device", "error", err, "app_id", appID, "division_id", divisionID)
+		return nil, err
+	}
+	return items, nil
 }
 
 func (s *service) Update(ctx context.Context, appID, id int, req UpdateOrderGroupRequest) (OrderGroup, error) {

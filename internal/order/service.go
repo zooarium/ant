@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -24,6 +25,7 @@ var (
 	ErrDuplicateItemAttribute    = errors.New("duplicate attribute in order item")
 	ErrInvalidCustomerContact    = errors.New("invalid customer contact number")
 	ErrOrderGroupInvalid         = errors.New("order group not found")
+	ErrPublicOrderLimit          = errors.New("public order limit reached for this device")
 )
 
 // customer contact: digits with optional leading +, spaces and dashes allowed.
@@ -31,8 +33,8 @@ var contactPattern = regexp.MustCompile(`^\+?[0-9][0-9 -]{5,18}$`)
 
 type Repository interface {
 	Create(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (Order, error)
+	CreatePublic(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string, maxOrders int, window time.Duration) (Order, error)
 	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
-	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
 	Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error)
@@ -42,8 +44,8 @@ type Repository interface {
 
 type Service interface {
 	Create(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreateOrderRequest) (Order, error)
+	CreatePublic(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreatePublicOrderRequest, maxOrders int, window time.Duration) (Order, error)
 	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
-	History(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
 	Update(ctx context.Context, appID, userID, id int, req UpdateOrderRequest) (Order, error)
 	UpdateStatus(ctx context.Context, appID, userID, id int, req UpdateOrderStatusRequest) (Order, error)
@@ -126,15 +128,42 @@ func (s *service) List(ctx context.Context, appID, userID, limit, offset int, st
 	return items, nil
 }
 
-// History returns a returning customer's past orders for the order-intake page,
-// scoped to the tenant (app_id + division_id) and the supplied device_id.
-func (s *service) History(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error) {
-	items, err := s.repo.ListByDevice(ctx, appID, divisionID, deviceID, limit, offset)
-	if err != nil {
-		slog.Error("failed to list order history", "error", err, "app_id", appID, "division_id", divisionID)
-		return nil, err
+// CreatePublic creates an order from the public order-intake page on behalf of
+// a guest token. It forces StatusPending (a guest can never self-confirm or
+// mark paid — that is reception's job) and enforces a per-device volume cap
+// (maxOrders within window) inside the repository transaction.
+func (s *service) CreatePublic(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreatePublicOrderRequest, maxOrders int, window time.Duration) (Order, error) {
+	if err := s.validate.Struct(req.CreateOrderRequest); err != nil {
+		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
-	return items, nil
+	if !contactPattern.MatchString(req.CustomerContact) {
+		return Order{}, ErrInvalidCustomerContact
+	}
+	item := Order{
+		AppID:           appID,
+		UserID:          userID,
+		DivisionID:      divisionID,
+		CustomerName:    req.CustomerName,
+		CustomerContact: req.CustomerContact,
+		Status:          StatusPending,
+		IPAddress:       ipAddress,
+		DeviceID:        req.DeviceID,
+	}
+	if req.TaxPercent != nil {
+		item.TaxPercent = *req.TaxPercent
+	}
+	if req.OrderedAt != nil {
+		item.OrderedAt = *req.OrderedAt
+	}
+	created, err := s.repo.CreatePublic(ctx, item, req.Products, req.GroupID, req.GroupLabel, maxOrders, window)
+	if err != nil {
+		if !isItemError(err) && !errors.Is(err, ErrPublicOrderLimit) {
+			slog.Error("failed to create public order", "error", err, "app_id", appID, "division_id", divisionID)
+		}
+		return Order{}, err
+	}
+	slog.Info("public order created", "id", created.ID, "app_id", appID, "division_id", divisionID)
+	return created, nil
 }
 
 func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Order, error) {

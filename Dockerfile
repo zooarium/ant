@@ -21,7 +21,8 @@ RUN apk --no-cache add ca-certificates sqlite-libs
 WORKDIR /app
 
 COPY --from=builder /app/ant .
+COPY --from=builder /app/config ./config
 
-EXPOSE 8082
+EXPOSE 8082 8083
 
 CMD ["./ant"]

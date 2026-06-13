@@ -20,6 +20,7 @@ import (
 	"ant/internal/ordergroup"
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/product"
+	"ant/pkg/captcha"
 	"ant/pkg/config"
 
 	"keeper/pkg/auth"
@@ -32,6 +33,9 @@ import (
 // @description This is the ant microservice.
 // @host localhost:8082
 // @BasePath /
+
+// @tag.name Public
+// @tag.description Endpoints under the /public prefix, reachable with keeper guest tokens via the order-intake listener.
 
 // @securityDefinitions.apikey Bearer
 // @in header
@@ -122,7 +126,7 @@ func main() {
 
 	orderRepo := order.NewRepository(client)
 	orderSvc := order.NewService(orderRepo)
-	orderHandler := order.NewHandler(orderSvc)
+	orderHandler := order.NewHandler(orderSvc, cfg.PublicOrder.MaxOrders, cfg.PublicOrder.Window)
 
 	orderGroupRepo := ordergroup.NewRepository(client)
 	orderGroupSvc := ordergroup.NewService(orderGroupRepo)
@@ -130,11 +134,26 @@ func main() {
 
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)
 
+	// Captcha verifier for public write routes. Uses a shared HTTP client with
+	// the timeout from config (never the zero-timeout default client). When
+	// captcha is disabled this is a no-op verifier, so the wiring is identical.
+	captchaClient := &http.Client{Timeout: cfg.Captcha.Timeout}
+	captchaVerifier := captcha.New(cfg.Captcha.Enabled, cfg.Captcha.Secret, cfg.Captcha.MinScore, captchaClient)
+	captchaMW := platformhttp.CaptchaMiddleware(captchaVerifier)
+
 	mount := func(r chi.Router) {
 		r.Mount("/attributes", attributeHandler.Routes())
 		r.Mount("/products", productHandler.Routes())
 		r.Mount("/orders", orderHandler.Routes())
 		r.Mount("/order-groups", orderGroupHandler.Routes())
+		// Public surface (reachable with guest tokens on the order-intake
+		// listener). Write routes carry captcha verification internally; the
+		// product catalog and tab reads are open.
+		r.Route("/public", func(r chi.Router) {
+			r.Mount("/products", productHandler.PublicRoutes())
+			r.Mount("/orders", orderHandler.PublicRoutes(captchaMW))
+			r.Mount("/order-groups", orderGroupHandler.PublicRoutes(captchaMW))
+		})
 	}
 
 	router := platformhttp.NewRouter(cfg, jwtManager, mount)

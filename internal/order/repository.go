@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"ant/ent"
 	entorder "ant/ent/order"
@@ -173,12 +174,67 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
 	}
+	id, err := buildOrderInTx(ctx, tx, item, items, groupID, groupLabel)
+	if err != nil {
+		return Order{}, rollback(tx, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return Order{}, fmt.Errorf("commit tx: %w", err)
+	}
+	return r.GetByID(ctx, item.AppID, item.UserID, id)
+}
+
+// CreatePublic creates an order on behalf of a public (guest) caller, enforcing
+// a per-identity volume cap inside the same transaction as the insert so the
+// check and write cannot race: the count and the create see one consistent
+// snapshot. The cap counts orders within window for the same tenant scope keyed
+// on device id when supplied, else on client IP. maxOrders <= 0 disables it.
+func (r *orderRepository) CreatePublic(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string, maxOrders int, window time.Duration) (Order, error) {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return Order{}, fmt.Errorf("begin tx: %w", err)
+	}
+	if maxOrders > 0 {
+		q := tx.Order.
+			Query().
+			Where(
+				entorder.AppID(item.AppID),
+				entorder.DivisionID(item.DivisionID),
+				entorder.CreatedAtGTE(time.Now().Add(-window)),
+			)
+		if item.DeviceID != "" {
+			q = q.Where(entorder.DeviceID(item.DeviceID))
+		} else {
+			q = q.Where(entorder.IPAddress(item.IPAddress))
+		}
+		n, err := q.Count(ctx)
+		if err != nil {
+			return Order{}, rollback(tx, fmt.Errorf("count public orders: %w", err))
+		}
+		if n >= maxOrders {
+			return Order{}, rollback(tx, ErrPublicOrderLimit)
+		}
+	}
+	id, err := buildOrderInTx(ctx, tx, item, items, groupID, groupLabel)
+	if err != nil {
+		return Order{}, rollback(tx, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return Order{}, fmt.Errorf("commit tx: %w", err)
+	}
+	return r.GetByID(ctx, item.AppID, item.UserID, id)
+}
+
+// buildOrderInTx resolves/mints the group, inserts the order and its items, and
+// sets the order total — all on the supplied transaction. It returns the new
+// order id; the caller owns commit/rollback. Shared by Create and CreatePublic.
+func buildOrderInTx(ctx context.Context, tx *ent.Tx, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (int, error) {
 	// Resolve the group: attach to the supplied one, or mint a fresh group in
 	// the same transaction so a single order-create call both places the order
 	// and opens its tab. Every order belongs to exactly one group.
 	if groupID != nil {
 		if err := verifyGroup(ctx, tx, item.AppID, *groupID); err != nil {
-			return Order{}, rollback(tx, err)
+			return 0, err
 		}
 		item.GroupID = *groupID
 	} else {
@@ -192,7 +248,7 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 			SetStatus(1).
 			Save(ctx)
 		if err != nil {
-			return Order{}, rollback(tx, fmt.Errorf("create order group: %w", err))
+			return 0, fmt.Errorf("create order group: %w", err)
 		}
 		item.GroupID = g.ID
 	}
@@ -217,23 +273,20 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 	}
 	e, err := create.Save(ctx)
 	if err != nil {
-		return Order{}, rollback(tx, fmt.Errorf("create order: %w", err))
+		return 0, fmt.Errorf("create order: %w", err)
 	}
 	var total float64
 	for _, req := range items {
 		lt, err := createItem(ctx, tx, item.AppID, e.ID, req.ProductID, req.Quantity, req.Attributes)
 		if err != nil {
-			return Order{}, rollback(tx, err)
+			return 0, err
 		}
 		total += lt
 	}
 	if _, err := tx.Order.UpdateOneID(e.ID).SetTotal(total).Save(ctx); err != nil {
-		return Order{}, rollback(tx, fmt.Errorf("set order total: %w", err))
+		return 0, fmt.Errorf("set order total: %w", err)
 	}
-	if err := tx.Commit(); err != nil {
-		return Order{}, fmt.Errorf("commit tx: %w", err)
-	}
-	return r.GetByID(ctx, item.AppID, item.UserID, e.ID)
+	return e.ID, nil
 }
 
 func (r *orderRepository) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error) {
@@ -256,59 +309,6 @@ func (r *orderRepository) List(ctx context.Context, appID, userID, limit, offset
 	}
 
 	// Item counts for the page in one grouped query (summary listing).
-	ids := make([]int, len(es))
-	for i, e := range es {
-		ids[i] = e.ID
-	}
-	var rows []struct {
-		OrderID int `json:"order_id"`
-		Count   int `json:"count"`
-	}
-	if err := r.client.OrderProduct.
-		Query().
-		Where(orderproduct.OrderIDIn(ids...)).
-		GroupBy(orderproduct.FieldOrderID).
-		Aggregate(ent.Count()).
-		Scan(ctx, &rows); err != nil {
-		return nil, fmt.Errorf("count order items: %w", err)
-	}
-	counts := make(map[int]int, len(rows))
-	for _, row := range rows {
-		counts[row.OrderID] = row.Count
-	}
-
-	items := make([]Order, len(es))
-	for i, e := range es {
-		o := r.mapToModel(e)
-		o.ProductsCount = counts[e.ID]
-		items[i] = o
-	}
-	return items, nil
-}
-
-// ListByDevice returns a summary page of orders for a device within a tenant
-// scope (app_id + division_id), newest first. Used by the public order-intake
-// page to surface a returning customer's history. Recognition only: the
-// device_id is a soft, client-supplied signal, not an identity guarantee.
-func (r *orderRepository) ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]Order, error) {
-	es, err := r.client.Order.
-		Query().
-		Where(
-			entorder.AppID(appID),
-			entorder.DivisionID(divisionID),
-			entorder.DeviceID(deviceID),
-		).
-		Order(ent.Desc(entorder.FieldID)).
-		Limit(limit).
-		Offset(offset).
-		All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list orders by device: %w", err)
-	}
-	if len(es) == 0 {
-		return []Order{}, nil
-	}
-
 	ids := make([]int, len(es))
 	for i, e := range es {
 		ids[i] = e.ID

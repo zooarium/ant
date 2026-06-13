@@ -3,10 +3,12 @@ package order
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/platform/render"
@@ -20,12 +22,19 @@ import (
 type Handler struct {
 	svc      Service
 	validate *validator.Validate
+	// maxPublicOrders / publicOrderWindow cap public order creation per device
+	// (or IP). Sourced from config; passed through to the service on each
+	// public create. Zero maxPublicOrders disables the cap.
+	maxPublicOrders   int
+	publicOrderWindow time.Duration
 }
 
-func NewHandler(svc Service) *Handler {
+func NewHandler(svc Service, maxPublicOrders int, publicOrderWindow time.Duration) *Handler {
 	return &Handler{
-		svc:      svc,
-		validate: validator.New(),
+		svc:               svc,
+		validate:          validator.New(),
+		maxPublicOrders:   maxPublicOrders,
+		publicOrderWindow: publicOrderWindow,
 	}
 }
 
@@ -33,7 +42,6 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/", h.Create)
 	r.Get("/", h.List)
-	r.Get("/history", h.History)
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", h.GetByID)
 		r.Put("/", h.Update)
@@ -41,6 +49,16 @@ func (h *Handler) Routes() chi.Router {
 		r.Patch("/status", h.UpdateStatus)
 		r.Patch("/group", h.SetGroup)
 	})
+	return r
+}
+
+// PublicRoutes returns the order routes exposed under the /public prefix.
+// Mounted at /public/orders by the router, so POST / becomes
+// POST /public/orders. Guest-token callers create pending orders here; the
+// write route is wrapped with the supplied captcha middleware.
+func (h *Handler) PublicRoutes(captcha func(http.Handler) http.Handler) chi.Router {
+	r := chi.NewRouter()
+	r.With(captcha).Post("/", h.CreatePublic)
 	return r
 }
 
@@ -73,6 +91,8 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 		errors.Is(err, ErrOrderGroupInvalid),
 		errors.Is(err, ErrInvalidCustomerContact):
 		render.Error(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, ErrPublicOrderLimit):
+		render.Error(w, http.StatusTooManyRequests, ErrPublicOrderLimit.Error())
 	default:
 		render.Error(w, http.StatusInternalServerError, err.Error())
 	}
@@ -113,41 +133,49 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, http.StatusCreated, item)
 }
 
-// History handles listing a returning customer's past orders by device.
-// @Summary List order history for a device
-// @Description Returns past orders for the authenticated tenant (app + division from the token) matching the given device_id, newest first. Intended for the public order-intake page to recognise a returning customer. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.
-// @Tags orders
+// CreatePublic handles public order creation from the order-intake page.
+// @Summary Create an order (public)
+// @Description Creates a pending order on behalf of a guest-token caller, optionally attaching it to an existing group (group_id) or auto-minting a new one. The order is always created pending — confirmation and payment are done at reception. Protected by reCAPTCHA, a hidden honeypot field, and a per-device volume cap.
+// @Tags Public
+// @Accept json
 // @Produce json
-// @Param device_id query string true "Client device identifier"
-// @Param limit query int false "Max items to return (default 50, max 500)"
-// @Param offset query int false "Items to skip (default 0)"
-// @Success 200 {object} render.Response{data=[]Order}
+// @Param body body CreatePublicOrderRequest true "Order object"
+// @Success 201 {object} render.Response{data=Order}
 // @Failure 400 {object} render.Response
 // @Failure 401 {object} render.Response
+// @Failure 403 {object} render.Response
+// @Failure 429 {object} render.Response
 // @Failure 500 {object} render.Response
 // @Security Bearer
-// @Router /orders/history [get]
-func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
+// @Router /public/orders [post]
+func (h *Handler) CreatePublic(w http.ResponseWriter, r *http.Request) {
 	claims, err := h.getClaims(r)
 	if err != nil {
 		render.Error(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	deviceID := r.URL.Query().Get("device_id")
-	if deviceID == "" {
-		render.Error(w, http.StatusBadRequest, "device_id is required")
+	var req CreatePublicOrderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	p := platformhttp.ParsePagination(r)
-	items, err := h.svc.History(r.Context(), claims.AppID, claims.DivisionID, deviceID, p.Limit, p.Offset)
+	// Honeypot: a real client never fills this hidden field. Silently accept
+	// (200, no order) so a bot cannot tell it was caught and tune around it.
+	if req.Honeypot != "" {
+		slog.Warn("public order honeypot tripped", "app_id", claims.AppID, "division_id", claims.DivisionID, "ip", clientIP(r))
+		render.JSON(w, http.StatusOK, nil)
+		return
+	}
+
+	item, err := h.svc.CreatePublic(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, clientIP(r), req, h.maxPublicOrders, h.publicOrderWindow)
 	if err != nil {
-		render.Error(w, http.StatusInternalServerError, err.Error())
+		h.renderError(w, err)
 		return
 	}
 
-	render.JSON(w, http.StatusOK, items)
+	render.JSON(w, http.StatusCreated, item)
 }
 
 // List handles listing all orders.

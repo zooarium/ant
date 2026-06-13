@@ -39,6 +39,18 @@ func (h *Handler) Routes() chi.Router {
 	return r
 }
 
+// PublicRoutes returns the read-only product routes exposed under the /public
+// prefix (mounted at /public/products). The catalog is needed by the public
+// order-intake page to let guests browse items. Reuses the same List/GetByID
+// handlers — products are scoped by app id, so a guest token reads its tenant's
+// catalog. No write routes are exposed.
+func (h *Handler) PublicRoutes() chi.Router {
+	r := chi.NewRouter()
+	r.Get("/", h.List)
+	r.Get("/{id}", h.GetByID)
+	return r
+}
+
 func (h *Handler) getClaims(r *http.Request) (*auth.UserClaims, error) {
 	claims, ok := auth.GetClaimsFromContext(r.Context())
 	if !ok {

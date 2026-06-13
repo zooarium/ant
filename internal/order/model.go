@@ -98,6 +98,16 @@ type CreateOrderRequest struct {
 	Products []OrderItemRequest `json:"products" validate:"required,min=1,dive"`
 }
 
+// CreatePublicOrderRequest is the payload for the public order-intake endpoint.
+// It embeds CreateOrderRequest (reusing all of its rules) and adds a honeypot
+// field: a legitimate client leaves Honeypot empty, so any non-empty value
+// marks the request as a bot and is silently dropped. The JSON name "website"
+// is generic so it blends in as a normal hidden form field.
+type CreatePublicOrderRequest struct {
+	CreateOrderRequest
+	Honeypot string `json:"website" validate:"max=0"`
+}
+
 // UpdateOrderRequest atomically replaces the order's customer details and
 // syncs its items in one call. Items are synced by id: an item with an id
 // keeps its product/attribute snapshot and only its quantity is editable; an

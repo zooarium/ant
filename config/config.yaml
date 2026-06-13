@@ -18,6 +18,19 @@ AUTH:
 CORS:
   ALLOWED_ORIGINS:
     - "*"
+# Google reCAPTCHA v3 verification for public write routes (order/group create).
+# ENABLED=false skips verification (dev). SECRET is a placeholder — inject via
+# env in production. Requests scoring below MIN_SCORE are rejected (403).
+CAPTCHA:
+  ENABLED: false
+  SECRET: ""
+  MIN_SCORE: 0.5
+  TIMEOUT: 3s
+# Per-identity cap on public order creation: at most MAX_ORDERS per device id
+# (or client IP when no device id is sent) within WINDOW. Enforced in-tx.
+PUBLIC_ORDER:
+  MAX_ORDERS: 5
+  WINDOW: 24h
 # Optional secondary listeners: extra ports in the same process, each
 # exposing only its allow-listed routes. Identity always comes from JWT;
 # JWT_SECRET (optional) makes the listener verify with a different signing
@@ -39,4 +52,9 @@ SECONDARY:
       REQUESTS: 60
       WINDOW: 1m
     ROUTES:
-      - "GET /orders/history"
+      - "POST /public/orders"
+      - "POST /public/order-groups"
+      - "GET /public/order-groups/{token}"
+      - "GET /public/order-groups/history"
+      - "GET /public/products"
+      - "GET /public/products/{id}"

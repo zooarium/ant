@@ -3,6 +3,7 @@ package ordergroup
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -37,6 +38,19 @@ func (h *Handler) Routes() chi.Router {
 		r.Delete("/", h.Delete)
 		r.Patch("/status", h.UpdateStatus)
 	})
+	return r
+}
+
+// PublicRoutes returns the order-group routes exposed under the /public prefix.
+// Mounted at /public/order-groups, so POST / -> POST /public/order-groups,
+// GET /{token} -> GET /public/order-groups/{token}, and GET /history ->
+// GET /public/order-groups/history. Only the write route is wrapped with the
+// supplied captcha middleware; the read routes stay open.
+func (h *Handler) PublicRoutes(captcha func(http.Handler) http.Handler) chi.Router {
+	r := chi.NewRouter()
+	r.With(captcha).Post("/", h.CreatePublic)
+	r.Get("/history", h.History)
+	r.Get("/{token}", h.GetByTokenPublic)
 	return r
 }
 
@@ -285,4 +299,120 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getIDParam(r *http.Request) (int, error) {
 	return strconv.Atoi(chi.URLParam(r, "id"))
+}
+
+// CreatePublic handles public tab creation from the order-intake page.
+// @Summary Create an order group (public)
+// @Description Creates a tab (order group) on behalf of a guest-token caller and returns its server-minted token, which can be shared so other family members place orders under the same tab. Protected by reCAPTCHA and a hidden honeypot field.
+// @Tags Public
+// @Accept json
+// @Produce json
+// @Param body body CreatePublicOrderGroupRequest true "Order group object"
+// @Success 201 {object} render.Response{data=OrderGroup}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 403 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /public/order-groups [post]
+func (h *Handler) CreatePublic(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var req CreatePublicOrderGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	// Honeypot: silently accept (200, no group) so a bot cannot tell it was caught.
+	if req.Honeypot != "" {
+		slog.Warn("public order group honeypot tripped", "app_id", claims.AppID, "division_id", claims.DivisionID)
+		render.JSON(w, http.StatusOK, nil)
+		return
+	}
+
+	item, err := h.svc.Create(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, req.CreateOrderGroupRequest)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusCreated, item)
+}
+
+// GetByTokenPublic returns a tab (with all its orders and combined total) by
+// its shareable token.
+// @Summary Get an order group by token (public)
+// @Description Returns the tab identified by the shareable token, including all member orders and the combined total. Used by the order-intake page so a family member who has the token can view the whole tab.
+// @Tags Public
+// @Produce json
+// @Param token path string true "Order group token"
+// @Success 200 {object} render.Response{data=OrderGroup}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 404 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /public/order-groups/{token} [get]
+func (h *Handler) GetByTokenPublic(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		render.Error(w, http.StatusBadRequest, "token is required")
+		return
+	}
+
+	item, err := h.svc.GetByToken(r.Context(), claims.AppID, token)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, item)
+}
+
+// History lists a returning customer's past tabs by device.
+// @Summary List order history for a device (public)
+// @Description Returns past tabs (order groups, newest first) that contain at least one order placed by the given device, each hydrated with all of its orders and the combined total. Recognition is best-effort: device_id is a soft, client-supplied signal, not proof of identity.
+// @Tags Public
+// @Produce json
+// @Param device_id query string true "Client device identifier"
+// @Param limit query int false "Max items to return (default 50, max 500)"
+// @Param offset query int false "Items to skip (default 0)"
+// @Success 200 {object} render.Response{data=[]OrderGroup}
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /public/order-groups/history [get]
+func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	deviceID := r.URL.Query().Get("device_id")
+	if deviceID == "" {
+		render.Error(w, http.StatusBadRequest, "device_id is required")
+		return
+	}
+
+	p := platformhttp.ParsePagination(r)
+	items, err := h.svc.ListByDevice(r.Context(), claims.AppID, claims.DivisionID, deviceID, p.Limit, p.Offset)
+	if err != nil {
+		render.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	render.JSON(w, http.StatusOK, items)
 }
