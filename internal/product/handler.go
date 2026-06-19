@@ -71,7 +71,8 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrAttributeInvalid),
 		errors.Is(err, ErrDuplicateAttribute),
 		errors.Is(err, ErrOptionInvalid),
-		errors.Is(err, ErrDuplicateOption):
+		errors.Is(err, ErrDuplicateOption),
+		errors.Is(err, ErrCategoryInvalid):
 		render.Error(w, http.StatusBadRequest, err.Error())
 	default:
 		render.Error(w, http.StatusInternalServerError, err.Error())
@@ -121,6 +122,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param limit query int false "Max items to return (default 50, max 500)"
 // @Param offset query int false "Items to skip (default 0)"
 // @Param status query int false "Filter by status (0 or 1)"
+// @Param category_id query int false "Filter by category (includes the category's entire subtree)"
 // @Success 200 {object} render.Response{data=[]Product}
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
@@ -135,7 +137,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	p := platformhttp.ParsePagination(r)
 	status := platformhttp.ParseStatusFilter(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, p.Limit, p.Offset, status)
+	categoryID := platformhttp.ParseCategoryFilter(r)
+	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, p.Limit, p.Offset, status, categoryID)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return

@@ -20,3 +20,18 @@ func ParseStatusFilter(r *http.Request) *int8 {
 	s := int8(n)
 	return &s
 }
+
+// ParseCategoryFilter extracts an optional category_id query parameter. A
+// missing or non-integer value yields nil (no filter). When set, the product
+// list is scoped to that category and its entire subtree.
+func ParseCategoryFilter(r *http.Request) *int {
+	v := r.URL.Query().Get("category_id")
+	if v == "" {
+		return nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return nil
+	}
+	return &n
+}

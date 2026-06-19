@@ -15,6 +15,7 @@ import (
 
 	"ant/docs"
 	"ant/internal/attribute"
+	"ant/internal/category"
 	"ant/internal/db"
 	"ant/internal/order"
 	"ant/internal/ordergroup"
@@ -120,6 +121,10 @@ func main() {
 	attributeSvc := attribute.NewService(attributeRepo)
 	attributeHandler := attribute.NewHandler(attributeSvc)
 
+	categoryRepo := category.NewRepository(client)
+	categorySvc := category.NewService(categoryRepo)
+	categoryHandler := category.NewHandler(categorySvc)
+
 	productRepo := product.NewRepository(client)
 	productSvc := product.NewService(productRepo)
 	productHandler := product.NewHandler(productSvc)
@@ -143,6 +148,7 @@ func main() {
 
 	mount := func(r chi.Router) {
 		r.Mount("/attributes", attributeHandler.Routes())
+		r.Mount("/categories", categoryHandler.Routes())
 		r.Mount("/products", productHandler.Routes())
 		r.Mount("/orders", orderHandler.Routes())
 		r.Mount("/order-groups", orderGroupHandler.Routes())
@@ -150,6 +156,7 @@ func main() {
 		// listener). Write routes carry captcha verification internally; the
 		// product catalog and tab reads are open.
 		r.Route("/public", func(r chi.Router) {
+			r.Mount("/categories", categoryHandler.PublicRoutes())
 			r.Mount("/products", productHandler.PublicRoutes())
 			r.Mount("/orders", orderHandler.PublicRoutes(captchaMW))
 			r.Mount("/order-groups", orderGroupHandler.PublicRoutes(captchaMW))

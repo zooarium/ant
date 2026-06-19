@@ -5,6 +5,7 @@ package ent
 import (
 	"ant/ent/attribute"
 	"ant/ent/attributeoption"
+	"ant/ent/category"
 	"ant/ent/order"
 	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
@@ -81,6 +82,7 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			attribute.Table:        attribute.ValidColumn,
 			attributeoption.Table:  attributeoption.ValidColumn,
+			category.Table:         category.ValidColumn,
 			order.Table:            order.ValidColumn,
 			ordergroup.Table:       ordergroup.ValidColumn,
 			orderproduct.Table:     orderproduct.ValidColumn,

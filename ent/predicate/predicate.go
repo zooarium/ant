@@ -12,6 +12,9 @@ type Attribute func(*sql.Selector)
 // AttributeOption is the predicate function for attributeoption builders.
 type AttributeOption func(*sql.Selector)
 
+// Category is the predicate function for category builders.
+type Category func(*sql.Selector)
+
 // Order is the predicate function for order builders.
 type Order func(*sql.Selector)
 

@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"ant/ent/category"
 	"ant/ent/product"
 	"ant/ent/productattribute"
 	"context"
@@ -95,6 +96,20 @@ func (_c *ProductCreate) SetNillableStatus(v *int8) *ProductCreate {
 	return _c
 }
 
+// SetCategoryID sets the "category_id" field.
+func (_c *ProductCreate) SetCategoryID(v int) *ProductCreate {
+	_c.mutation.SetCategoryID(v)
+	return _c
+}
+
+// SetNillableCategoryID sets the "category_id" field if the given value is not nil.
+func (_c *ProductCreate) SetNillableCategoryID(v *int) *ProductCreate {
+	if v != nil {
+		_c.SetCategoryID(*v)
+	}
+	return _c
+}
+
 // AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
 func (_c *ProductCreate) AddAttributeIDs(ids ...int) *ProductCreate {
 	_c.mutation.AddAttributeIDs(ids...)
@@ -108,6 +123,11 @@ func (_c *ProductCreate) AddAttributes(v ...*ProductAttribute) *ProductCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddAttributeIDs(ids...)
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_c *ProductCreate) SetCategory(v *Category) *ProductCreate {
+	return _c.SetCategoryID(v.ID)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -259,6 +279,23 @@ func (_c *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.CategoryID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

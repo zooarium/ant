@@ -90,6 +90,55 @@ definitions:
     - name
     - status
     type: object
+  internal_category.Category:
+    properties:
+      app_id:
+        type: integer
+      created_at:
+        type: string
+      depth:
+        type: integer
+      display:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      parent_id:
+        type: integer
+      path:
+        type: string
+      status:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_category.CreateCategoryRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+      parent_id:
+        type: integer
+    required:
+    - name
+    type: object
+  internal_category.MoveCategoryRequest:
+    properties:
+      parent_id:
+        type: integer
+    type: object
+  internal_category.UpdateCategoryRequest:
+    properties:
+      name:
+        maxLength: 100
+        type: string
+      status:
+        enum:
+        - 0
+        - 1
+        type: integer
+    type: object
   internal_order.CreateOrderRequest:
     properties:
       customer_contact:
@@ -512,12 +561,23 @@ definitions:
     required:
     - option_id
     type: object
+  internal_product.CategoryRef:
+    properties:
+      display:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
   internal_product.CreateProductRequest:
     properties:
       attributes:
         items:
           $ref: '#/definitions/internal_product.AttributeAssignmentRequest'
         type: array
+      category_id:
+        type: integer
       name:
         maxLength: 200
         type: string
@@ -540,6 +600,10 @@ definitions:
         items:
           $ref: '#/definitions/internal_product.AssignedAttribute'
         type: array
+      category:
+        $ref: '#/definitions/internal_product.CategoryRef'
+      category_id:
+        type: integer
       created_at:
         type: string
       id:
@@ -561,6 +625,8 @@ definitions:
         items:
           $ref: '#/definitions/internal_product.AttributeAssignmentRequest'
         type: array
+      category_id:
+        type: integer
       name:
         maxLength: 200
         type: string
@@ -798,6 +864,310 @@ paths:
       summary: Update attribute by ID
       tags:
       - attributes
+  /categories:
+    get:
+      description: List categories for the authenticated app. Filter by parent_id
+        and status.
+      parameters:
+      - description: Filter by parent ID
+        in: query
+        name: parent_id
+        type: integer
+      - description: Filter by status (0 or 1)
+        in: query
+        name: status
+        type: integer
+      - description: Max items to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      - description: Items to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_category.Category'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: List categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a category, optionally under a parent for hierarchical grouping.
+      parameters:
+      - description: Category object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_category.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_category.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create a new category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      description: Delete a category. Blocked if it has children or assigned products.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Delete category by ID
+      tags:
+      - categories
+    get:
+      description: Get a single category with its display hierarchy.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_category.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get category by ID
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Update a category's name or status.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Category object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_category.UpdateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_category.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Update category by ID
+      tags:
+      - categories
+  /categories/{id}/descendants:
+    get:
+      description: Returns all categories in the subtree rooted at the given category.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_category.Category'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get all descendants of a category
+      tags:
+      - categories
+  /categories/{id}/move:
+    put:
+      consumes:
+      - application/json
+      description: Move a category (and its subtree) to a different parent. Null parent_id
+        promotes to root.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New parent
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_category.MoveCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_category.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Move a category to a new parent
+      tags:
+      - categories
   /health:
     get:
       description: Get the health status of the service
@@ -1404,6 +1774,10 @@ paths:
       - description: Filter by status (0 or 1)
         in: query
         name: status
+        type: integer
+      - description: Filter by category (includes the category's entire subtree)
+        in: query
+        name: category_id
         type: integer
       produces:
       - application/json

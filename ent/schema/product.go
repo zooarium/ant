@@ -35,17 +35,25 @@ func (Product) Fields() []ent.Field {
 			Default(0),
 		field.Int8("status").
 			Default(1),
+		field.Int("category_id").
+			Optional().
+			Nillable(),
 	}
 }
 
 func (Product) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("attributes", ProductAttribute.Type),
+		edge.From("category", Category.Type).
+			Ref("products").
+			Unique().
+			Field("category_id"),
 	}
 }
 
 func (Product) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("app_id"),
+		index.Fields("category_id"),
 	}
 }

@@ -16,11 +16,12 @@ var (
 	ErrDuplicateAttribute = errors.New("duplicate attribute in request")
 	ErrOptionInvalid      = errors.New("option does not belong to the attribute")
 	ErrDuplicateOption    = errors.New("duplicate option in attribute assignment")
+	ErrCategoryInvalid    = errors.New("category not found or not active")
 )
 
 type Repository interface {
 	Create(ctx context.Context, item Product, assignments []AttributeAssignmentRequest) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error)
+	List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
 	Update(ctx context.Context, appID, userID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, id int) error
@@ -28,7 +29,7 @@ type Repository interface {
 
 type Service interface {
 	Create(ctx context.Context, appID, userID int, req CreateProductRequest) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error)
+	List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
 	Update(ctx context.Context, appID, userID, id int, req UpdateProductRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, id int) error
@@ -77,15 +78,16 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateProdu
 		status = *req.Status
 	}
 	item := Product{
-		AppID:  appID,
-		UserID: userID,
-		Name:   req.Name,
-		Price:  req.Price,
-		Status: status,
+		AppID:      appID,
+		UserID:     userID,
+		Name:       req.Name,
+		Price:      req.Price,
+		Status:     status,
+		CategoryID: req.CategoryID,
 	}
 	created, err := s.repo.Create(ctx, item, req.Attributes)
 	if err != nil {
-		if !errors.Is(err, ErrAttributeInvalid) {
+		if !errors.Is(err, ErrAttributeInvalid) && !errors.Is(err, ErrCategoryInvalid) {
 			slog.Error("failed to create product", "error", err, "app_id", appID, "user_id", userID)
 		}
 		return Product{}, err
@@ -94,8 +96,8 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateProdu
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Product, error) {
-	items, err := s.repo.List(ctx, appID, userID, limit, offset, status)
+func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
+	items, err := s.repo.List(ctx, appID, userID, limit, offset, status, categoryID)
 	if err != nil {
 		slog.Error("failed to list products", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -122,13 +124,14 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateP
 		return Product{}, err
 	}
 	item := Product{
-		Name:   req.Name,
-		Price:  req.Price,
-		Status: *req.Status,
+		Name:       req.Name,
+		Price:      req.Price,
+		Status:     *req.Status,
+		CategoryID: req.CategoryID,
 	}
 	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Attributes)
 	if err != nil {
-		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrAttributeInvalid) {
+		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrAttributeInvalid) && !errors.Is(err, ErrCategoryInvalid) {
 			slog.Error("failed to update product", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}
 		return Product{}, err

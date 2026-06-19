@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"ant/ent/category"
 	"ant/ent/predicate"
 	"ant/ent/product"
 	"ant/ent/productattribute"
@@ -133,6 +134,26 @@ func (_u *ProductUpdate) AddStatus(v int8) *ProductUpdate {
 	return _u
 }
 
+// SetCategoryID sets the "category_id" field.
+func (_u *ProductUpdate) SetCategoryID(v int) *ProductUpdate {
+	_u.mutation.SetCategoryID(v)
+	return _u
+}
+
+// SetNillableCategoryID sets the "category_id" field if the given value is not nil.
+func (_u *ProductUpdate) SetNillableCategoryID(v *int) *ProductUpdate {
+	if v != nil {
+		_u.SetCategoryID(*v)
+	}
+	return _u
+}
+
+// ClearCategoryID clears the value of the "category_id" field.
+func (_u *ProductUpdate) ClearCategoryID() *ProductUpdate {
+	_u.mutation.ClearCategoryID()
+	return _u
+}
+
 // AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
 func (_u *ProductUpdate) AddAttributeIDs(ids ...int) *ProductUpdate {
 	_u.mutation.AddAttributeIDs(ids...)
@@ -146,6 +167,11 @@ func (_u *ProductUpdate) AddAttributes(v ...*ProductAttribute) *ProductUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddAttributeIDs(ids...)
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_u *ProductUpdate) SetCategory(v *Category) *ProductUpdate {
+	return _u.SetCategoryID(v.ID)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -172,6 +198,12 @@ func (_u *ProductUpdate) RemoveAttributes(v ...*ProductAttribute) *ProductUpdate
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAttributeIDs(ids...)
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (_u *ProductUpdate) ClearCategory() *ProductUpdate {
+	_u.mutation.ClearCategory()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -307,6 +339,35 @@ func (_u *ProductUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{product.Label}
@@ -431,6 +492,26 @@ func (_u *ProductUpdateOne) AddStatus(v int8) *ProductUpdateOne {
 	return _u
 }
 
+// SetCategoryID sets the "category_id" field.
+func (_u *ProductUpdateOne) SetCategoryID(v int) *ProductUpdateOne {
+	_u.mutation.SetCategoryID(v)
+	return _u
+}
+
+// SetNillableCategoryID sets the "category_id" field if the given value is not nil.
+func (_u *ProductUpdateOne) SetNillableCategoryID(v *int) *ProductUpdateOne {
+	if v != nil {
+		_u.SetCategoryID(*v)
+	}
+	return _u
+}
+
+// ClearCategoryID clears the value of the "category_id" field.
+func (_u *ProductUpdateOne) ClearCategoryID() *ProductUpdateOne {
+	_u.mutation.ClearCategoryID()
+	return _u
+}
+
 // AddAttributeIDs adds the "attributes" edge to the ProductAttribute entity by IDs.
 func (_u *ProductUpdateOne) AddAttributeIDs(ids ...int) *ProductUpdateOne {
 	_u.mutation.AddAttributeIDs(ids...)
@@ -444,6 +525,11 @@ func (_u *ProductUpdateOne) AddAttributes(v ...*ProductAttribute) *ProductUpdate
 		ids[i] = v[i].ID
 	}
 	return _u.AddAttributeIDs(ids...)
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (_u *ProductUpdateOne) SetCategory(v *Category) *ProductUpdateOne {
+	return _u.SetCategoryID(v.ID)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -470,6 +556,12 @@ func (_u *ProductUpdateOne) RemoveAttributes(v ...*ProductAttribute) *ProductUpd
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveAttributeIDs(ids...)
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (_u *ProductUpdateOne) ClearCategory() *ProductUpdateOne {
+	_u.mutation.ClearCategory()
+	return _u
 }
 
 // Where appends a list predicates to the ProductUpdate builder.
@@ -628,6 +720,35 @@ func (_u *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(productattribute.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

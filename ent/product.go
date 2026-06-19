@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"ant/ent/category"
 	"ant/ent/product"
 	"fmt"
 	"strings"
@@ -31,6 +32,8 @@ type Product struct {
 	Price float64 `json:"price,omitempty"`
 	// Status holds the value of the "status" field.
 	Status int8 `json:"status,omitempty"`
+	// CategoryID holds the value of the "category_id" field.
+	CategoryID *int `json:"category_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProductQuery when eager-loading is set.
 	Edges        ProductEdges `json:"edges"`
@@ -41,9 +44,11 @@ type Product struct {
 type ProductEdges struct {
 	// Attributes holds the value of the attributes edge.
 	Attributes []*ProductAttribute `json:"attributes,omitempty"`
+	// Category holds the value of the category edge.
+	Category *Category `json:"category,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // AttributesOrErr returns the Attributes value or an error if the edge
@@ -55,6 +60,17 @@ func (e ProductEdges) AttributesOrErr() ([]*ProductAttribute, error) {
 	return nil, &NotLoadedError{edge: "attributes"}
 }
 
+// CategoryOrErr returns the Category value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProductEdges) CategoryOrErr() (*Category, error) {
+	if e.Category != nil {
+		return e.Category, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: category.Label}
+	}
+	return nil, &NotLoadedError{edge: "category"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Product) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -62,7 +78,7 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case product.FieldPrice:
 			values[i] = new(sql.NullFloat64)
-		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldStatus:
+		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldStatus, product.FieldCategoryID:
 			values[i] = new(sql.NullInt64)
 		case product.FieldName:
 			values[i] = new(sql.NullString)
@@ -131,6 +147,13 @@ func (_m *Product) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = int8(value.Int64)
 			}
+		case product.FieldCategoryID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field category_id", values[i])
+			} else if value.Valid {
+				_m.CategoryID = new(int)
+				*_m.CategoryID = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -147,6 +170,11 @@ func (_m *Product) Value(name string) (ent.Value, error) {
 // QueryAttributes queries the "attributes" edge of the Product entity.
 func (_m *Product) QueryAttributes() *ProductAttributeQuery {
 	return NewProductClient(_m.config).QueryAttributes(_m)
+}
+
+// QueryCategory queries the "category" edge of the Product entity.
+func (_m *Product) QueryCategory() *CategoryQuery {
+	return NewProductClient(_m.config).QueryCategory(_m)
 }
 
 // Update returns a builder for updating this Product.
@@ -192,6 +220,11 @@ func (_m *Product) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	if v := _m.CategoryID; v != nil {
+		builder.WriteString("category_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

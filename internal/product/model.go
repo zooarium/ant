@@ -11,9 +11,20 @@ type Product struct {
 	Name       string              `json:"name"`
 	Price      float64             `json:"price"`
 	Status     int8                `json:"status"`
+	CategoryID *int                `json:"category_id"`
+	Category   *CategoryRef        `json:"category,omitempty"`
 	Attributes []AssignedAttribute `json:"attributes,omitempty"`
 	CreatedAt  time.Time           `json:"created_at"`
 	UpdatedAt  time.Time           `json:"updated_at"`
+}
+
+// CategoryRef is the category a product is assigned to, with Display rendering
+// the name plus its ancestor hierarchy in parentheses
+// (e.g. "Laptops (Electronics > Computers)").
+type CategoryRef struct {
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Display string `json:"display"`
 }
 
 // AssignedAttribute is an attribute glued to a product, with the product's
@@ -50,6 +61,7 @@ type CreateProductRequest struct {
 	Name       string                       `json:"name" validate:"required,max=200"`
 	Price      float64                      `json:"price" validate:"gte=0"`
 	Status     *int8                        `json:"status" validate:"omitempty,oneof=0 1"`
+	CategoryID *int                         `json:"category_id" validate:"omitempty"`
 	Attributes []AttributeAssignmentRequest `json:"attributes" validate:"omitempty,dive"`
 }
 
@@ -59,5 +71,6 @@ type UpdateProductRequest struct {
 	Name       string                       `json:"name" validate:"required,max=200"`
 	Price      float64                      `json:"price" validate:"gte=0"`
 	Status     *int8                        `json:"status" validate:"required,oneof=0 1"`
+	CategoryID *int                         `json:"category_id" validate:"omitempty"`
 	Attributes []AttributeAssignmentRequest `json:"attributes" validate:"omitempty,dive"`
 }

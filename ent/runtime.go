@@ -5,6 +5,7 @@ package ent
 import (
 	"ant/ent/attribute"
 	"ant/ent/attributeoption"
+	"ant/ent/category"
 	"ant/ent/order"
 	"ant/ent/ordergroup"
 	"ant/ent/orderproduct"
@@ -60,6 +61,33 @@ func init() {
 	attributeoptionDescValue := attributeoptionFields[1].Descriptor()
 	// attributeoption.ValueValidator is a validator for the "value" field. It is called by the builders before save.
 	attributeoption.ValueValidator = attributeoptionDescValue.Validators[0].(func(string) error)
+	categoryMixin := schema.Category{}.Mixin()
+	categoryMixinFields0 := categoryMixin[0].Fields()
+	_ = categoryMixinFields0
+	categoryFields := schema.Category{}.Fields()
+	_ = categoryFields
+	// categoryDescCreatedAt is the schema descriptor for created_at field.
+	categoryDescCreatedAt := categoryMixinFields0[0].Descriptor()
+	// category.DefaultCreatedAt holds the default value on creation for the created_at field.
+	category.DefaultCreatedAt = categoryDescCreatedAt.Default.(func() time.Time)
+	// categoryDescUpdatedAt is the schema descriptor for updated_at field.
+	categoryDescUpdatedAt := categoryMixinFields0[1].Descriptor()
+	// category.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	category.DefaultUpdatedAt = categoryDescUpdatedAt.Default.(func() time.Time)
+	// category.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	category.UpdateDefaultUpdatedAt = categoryDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// categoryDescName is the schema descriptor for name field.
+	categoryDescName := categoryFields[2].Descriptor()
+	// category.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	category.NameValidator = categoryDescName.Validators[0].(func(string) error)
+	// categoryDescDepth is the schema descriptor for depth field.
+	categoryDescDepth := categoryFields[4].Descriptor()
+	// category.DefaultDepth holds the default value on creation for the depth field.
+	category.DefaultDepth = categoryDescDepth.Default.(int8)
+	// categoryDescStatus is the schema descriptor for status field.
+	categoryDescStatus := categoryFields[5].Descriptor()
+	// category.DefaultStatus holds the default value on creation for the status field.
+	category.DefaultStatus = categoryDescStatus.Default.(int8)
 	orderMixin := schema.Order{}.Mixin()
 	orderMixinFields0 := orderMixin[0].Fields()
 	_ = orderMixinFields0

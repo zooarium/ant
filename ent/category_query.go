@@ -6,7 +6,6 @@ import (
 	"ant/ent/category"
 	"ant/ent/predicate"
 	"ant/ent/product"
-	"ant/ent/productattribute"
 	"context"
 	"database/sql/driver"
 	"fmt"
@@ -18,75 +17,54 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// ProductQuery is the builder for querying Product entities.
-type ProductQuery struct {
+// CategoryQuery is the builder for querying Category entities.
+type CategoryQuery struct {
 	config
-	ctx            *QueryContext
-	order          []product.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Product
-	withAttributes *ProductAttributeQuery
-	withCategory   *CategoryQuery
+	ctx          *QueryContext
+	order        []category.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Category
+	withChildren *CategoryQuery
+	withParent   *CategoryQuery
+	withProducts *ProductQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the ProductQuery builder.
-func (_q *ProductQuery) Where(ps ...predicate.Product) *ProductQuery {
+// Where adds a new predicate for the CategoryQuery builder.
+func (_q *CategoryQuery) Where(ps ...predicate.Category) *CategoryQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *ProductQuery) Limit(limit int) *ProductQuery {
+func (_q *CategoryQuery) Limit(limit int) *CategoryQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *ProductQuery) Offset(offset int) *ProductQuery {
+func (_q *CategoryQuery) Offset(offset int) *CategoryQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *ProductQuery) Unique(unique bool) *ProductQuery {
+func (_q *CategoryQuery) Unique(unique bool) *CategoryQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *ProductQuery) Order(o ...product.OrderOption) *ProductQuery {
+func (_q *CategoryQuery) Order(o ...category.OrderOption) *CategoryQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryAttributes chains the current query on the "attributes" edge.
-func (_q *ProductQuery) QueryAttributes() *ProductAttributeQuery {
-	query := (&ProductAttributeClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(product.Table, product.FieldID, selector),
-			sqlgraph.To(productattribute.Table, productattribute.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, product.AttributesTable, product.AttributesColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryCategory chains the current query on the "category" edge.
-func (_q *ProductQuery) QueryCategory() *CategoryQuery {
+// QueryChildren chains the current query on the "children" edge.
+func (_q *CategoryQuery) QueryChildren() *CategoryQuery {
 	query := (&CategoryClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -97,9 +75,9 @@ func (_q *ProductQuery) QueryCategory() *CategoryQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.From(category.Table, category.FieldID, selector),
 			sqlgraph.To(category.Table, category.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, product.CategoryTable, product.CategoryColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, category.ChildrenTable, category.ChildrenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -107,21 +85,65 @@ func (_q *ProductQuery) QueryCategory() *CategoryQuery {
 	return query
 }
 
-// First returns the first Product entity from the query.
-// Returns a *NotFoundError when no Product was found.
-func (_q *ProductQuery) First(ctx context.Context) (*Product, error) {
+// QueryParent chains the current query on the "parent" edge.
+func (_q *CategoryQuery) QueryParent() *CategoryQuery {
+	query := (&CategoryClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, category.ParentTable, category.ParentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryProducts chains the current query on the "products" edge.
+func (_q *CategoryQuery) QueryProducts() *ProductQuery {
+	query := (&ProductClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, selector),
+			sqlgraph.To(product.Table, product.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, category.ProductsTable, category.ProductsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// First returns the first Category entity from the query.
+// Returns a *NotFoundError when no Category was found.
+func (_q *CategoryQuery) First(ctx context.Context) (*Category, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{product.Label}
+		return nil, &NotFoundError{category.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *ProductQuery) FirstX(ctx context.Context) *Product {
+func (_q *CategoryQuery) FirstX(ctx context.Context) *Category {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,22 +151,22 @@ func (_q *ProductQuery) FirstX(ctx context.Context) *Product {
 	return node
 }
 
-// FirstID returns the first Product ID from the query.
-// Returns a *NotFoundError when no Product ID was found.
-func (_q *ProductQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first Category ID from the query.
+// Returns a *NotFoundError when no Category ID was found.
+func (_q *CategoryQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{product.Label}
+		err = &NotFoundError{category.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *ProductQuery) FirstIDX(ctx context.Context) int {
+func (_q *CategoryQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -152,10 +174,10 @@ func (_q *ProductQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Product entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Product entity is found.
-// Returns a *NotFoundError when no Product entities are found.
-func (_q *ProductQuery) Only(ctx context.Context) (*Product, error) {
+// Only returns a single Category entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one Category entity is found.
+// Returns a *NotFoundError when no Category entities are found.
+func (_q *CategoryQuery) Only(ctx context.Context) (*Category, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -164,14 +186,14 @@ func (_q *ProductQuery) Only(ctx context.Context) (*Product, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{product.Label}
+		return nil, &NotFoundError{category.Label}
 	default:
-		return nil, &NotSingularError{product.Label}
+		return nil, &NotSingularError{category.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *ProductQuery) OnlyX(ctx context.Context) *Product {
+func (_q *CategoryQuery) OnlyX(ctx context.Context) *Category {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -179,10 +201,10 @@ func (_q *ProductQuery) OnlyX(ctx context.Context) *Product {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Product ID in the query.
-// Returns a *NotSingularError when more than one Product ID is found.
+// OnlyID is like Only, but returns the only Category ID in the query.
+// Returns a *NotSingularError when more than one Category ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *ProductQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *CategoryQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -191,15 +213,15 @@ func (_q *ProductQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{product.Label}
+		err = &NotFoundError{category.Label}
 	default:
-		err = &NotSingularError{product.Label}
+		err = &NotSingularError{category.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *ProductQuery) OnlyIDX(ctx context.Context) int {
+func (_q *CategoryQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -207,18 +229,18 @@ func (_q *ProductQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Products.
-func (_q *ProductQuery) All(ctx context.Context) ([]*Product, error) {
+// All executes the query and returns a list of Categories.
+func (_q *CategoryQuery) All(ctx context.Context) ([]*Category, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Product, *ProductQuery]()
-	return withInterceptors[[]*Product](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*Category, *CategoryQuery]()
+	return withInterceptors[[]*Category](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *ProductQuery) AllX(ctx context.Context) []*Product {
+func (_q *CategoryQuery) AllX(ctx context.Context) []*Category {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -226,20 +248,20 @@ func (_q *ProductQuery) AllX(ctx context.Context) []*Product {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Product IDs.
-func (_q *ProductQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of Category IDs.
+func (_q *CategoryQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(product.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(category.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *ProductQuery) IDsX(ctx context.Context) []int {
+func (_q *CategoryQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -248,16 +270,16 @@ func (_q *ProductQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *ProductQuery) Count(ctx context.Context) (int, error) {
+func (_q *CategoryQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*ProductQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*CategoryQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *ProductQuery) CountX(ctx context.Context) int {
+func (_q *CategoryQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -266,7 +288,7 @@ func (_q *ProductQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *ProductQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *CategoryQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -279,7 +301,7 @@ func (_q *ProductQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *ProductQuery) ExistX(ctx context.Context) bool {
+func (_q *CategoryQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -287,45 +309,57 @@ func (_q *ProductQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the ProductQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the CategoryQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *ProductQuery) Clone() *ProductQuery {
+func (_q *CategoryQuery) Clone() *CategoryQuery {
 	if _q == nil {
 		return nil
 	}
-	return &ProductQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]product.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.Product{}, _q.predicates...),
-		withAttributes: _q.withAttributes.Clone(),
-		withCategory:   _q.withCategory.Clone(),
+	return &CategoryQuery{
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]category.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.Category{}, _q.predicates...),
+		withChildren: _q.withChildren.Clone(),
+		withParent:   _q.withParent.Clone(),
+		withProducts: _q.withProducts.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithAttributes tells the query-builder to eager-load the nodes that are connected to
-// the "attributes" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ProductQuery) WithAttributes(opts ...func(*ProductAttributeQuery)) *ProductQuery {
-	query := (&ProductAttributeClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withAttributes = query
-	return _q
-}
-
-// WithCategory tells the query-builder to eager-load the nodes that are connected to
-// the "category" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ProductQuery) WithCategory(opts ...func(*CategoryQuery)) *ProductQuery {
+// WithChildren tells the query-builder to eager-load the nodes that are connected to
+// the "children" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CategoryQuery) WithChildren(opts ...func(*CategoryQuery)) *CategoryQuery {
 	query := (&CategoryClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withCategory = query
+	_q.withChildren = query
+	return _q
+}
+
+// WithParent tells the query-builder to eager-load the nodes that are connected to
+// the "parent" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CategoryQuery) WithParent(opts ...func(*CategoryQuery)) *CategoryQuery {
+	query := (&CategoryClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withParent = query
+	return _q
+}
+
+// WithProducts tells the query-builder to eager-load the nodes that are connected to
+// the "products" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CategoryQuery) WithProducts(opts ...func(*ProductQuery)) *CategoryQuery {
+	query := (&ProductClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withProducts = query
 	return _q
 }
 
@@ -339,15 +373,15 @@ func (_q *ProductQuery) WithCategory(opts ...func(*CategoryQuery)) *ProductQuery
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Product.Query().
-//		GroupBy(product.FieldCreatedAt).
+//	client.Category.Query().
+//		GroupBy(category.FieldCreatedAt).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *ProductQuery) GroupBy(field string, fields ...string) *ProductGroupBy {
+func (_q *CategoryQuery) GroupBy(field string, fields ...string) *CategoryGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &ProductGroupBy{build: _q}
+	grbuild := &CategoryGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = product.Label
+	grbuild.label = category.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -361,23 +395,23 @@ func (_q *ProductQuery) GroupBy(field string, fields ...string) *ProductGroupBy 
 //		CreatedAt time.Time `json:"created_at,omitempty"`
 //	}
 //
-//	client.Product.Query().
-//		Select(product.FieldCreatedAt).
+//	client.Category.Query().
+//		Select(category.FieldCreatedAt).
 //		Scan(ctx, &v)
-func (_q *ProductQuery) Select(fields ...string) *ProductSelect {
+func (_q *CategoryQuery) Select(fields ...string) *CategorySelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &ProductSelect{ProductQuery: _q}
-	sbuild.label = product.Label
+	sbuild := &CategorySelect{CategoryQuery: _q}
+	sbuild.label = category.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a ProductSelect configured with the given aggregations.
-func (_q *ProductQuery) Aggregate(fns ...AggregateFunc) *ProductSelect {
+// Aggregate returns a CategorySelect configured with the given aggregations.
+func (_q *CategoryQuery) Aggregate(fns ...AggregateFunc) *CategorySelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *ProductQuery) prepareQuery(ctx context.Context) error {
+func (_q *CategoryQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -389,7 +423,7 @@ func (_q *ProductQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !product.ValidColumn(f) {
+		if !category.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -403,20 +437,21 @@ func (_q *ProductQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Product, error) {
+func (_q *CategoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Category, error) {
 	var (
-		nodes       = []*Product{}
+		nodes       = []*Category{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
-			_q.withAttributes != nil,
-			_q.withCategory != nil,
+		loadedTypes = [3]bool{
+			_q.withChildren != nil,
+			_q.withParent != nil,
+			_q.withProducts != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Product).scanValues(nil, columns)
+		return (*Category).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Product{config: _q.config}
+		node := &Category{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -430,25 +465,32 @@ func (_q *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withAttributes; query != nil {
-		if err := _q.loadAttributes(ctx, query, nodes,
-			func(n *Product) { n.Edges.Attributes = []*ProductAttribute{} },
-			func(n *Product, e *ProductAttribute) { n.Edges.Attributes = append(n.Edges.Attributes, e) }); err != nil {
+	if query := _q.withChildren; query != nil {
+		if err := _q.loadChildren(ctx, query, nodes,
+			func(n *Category) { n.Edges.Children = []*Category{} },
+			func(n *Category, e *Category) { n.Edges.Children = append(n.Edges.Children, e) }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withCategory; query != nil {
-		if err := _q.loadCategory(ctx, query, nodes, nil,
-			func(n *Product, e *Category) { n.Edges.Category = e }); err != nil {
+	if query := _q.withParent; query != nil {
+		if err := _q.loadParent(ctx, query, nodes, nil,
+			func(n *Category, e *Category) { n.Edges.Parent = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withProducts; query != nil {
+		if err := _q.loadProducts(ctx, query, nodes,
+			func(n *Category) { n.Edges.Products = []*Product{} },
+			func(n *Category, e *Product) { n.Edges.Products = append(n.Edges.Products, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *ProductQuery) loadAttributes(ctx context.Context, query *ProductAttributeQuery, nodes []*Product, init func(*Product), assign func(*Product, *ProductAttribute)) error {
+func (_q *CategoryQuery) loadChildren(ctx context.Context, query *CategoryQuery, nodes []*Category, init func(*Category), assign func(*Category, *Category)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Product)
+	nodeids := make(map[int]*Category)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -457,33 +499,36 @@ func (_q *ProductQuery) loadAttributes(ctx context.Context, query *ProductAttrib
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(productattribute.FieldProductID)
+		query.ctx.AppendFieldOnce(category.FieldParentID)
 	}
-	query.Where(predicate.ProductAttribute(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(product.AttributesColumn), fks...))
+	query.Where(predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(category.ChildrenColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.ProductID
-		node, ok := nodeids[fk]
+		fk := n.ParentID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "parent_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "product_id" returned %v for node %v`, fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "parent_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
-func (_q *ProductQuery) loadCategory(ctx context.Context, query *CategoryQuery, nodes []*Product, init func(*Product), assign func(*Product, *Category)) error {
+func (_q *CategoryQuery) loadParent(ctx context.Context, query *CategoryQuery, nodes []*Category, init func(*Category), assign func(*Category, *Category)) error {
 	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Product)
+	nodeids := make(map[int][]*Category)
 	for i := range nodes {
-		if nodes[i].CategoryID == nil {
+		if nodes[i].ParentID == nil {
 			continue
 		}
-		fk := *nodes[i].CategoryID
+		fk := *nodes[i].ParentID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -500,7 +545,7 @@ func (_q *ProductQuery) loadCategory(ctx context.Context, query *CategoryQuery, 
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "category_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "parent_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -508,8 +553,41 @@ func (_q *ProductQuery) loadCategory(ctx context.Context, query *CategoryQuery, 
 	}
 	return nil
 }
+func (_q *CategoryQuery) loadProducts(ctx context.Context, query *ProductQuery, nodes []*Category, init func(*Category), assign func(*Category, *Product)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Category)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(product.FieldCategoryID)
+	}
+	query.Where(predicate.Product(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(category.ProductsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CategoryID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "category_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "category_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
 
-func (_q *ProductQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *CategoryQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -518,8 +596,8 @@ func (_q *ProductQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *ProductQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(product.Table, product.Columns, sqlgraph.NewFieldSpec(product.FieldID, field.TypeInt))
+func (_q *CategoryQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(category.Table, category.Columns, sqlgraph.NewFieldSpec(category.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -528,14 +606,14 @@ func (_q *ProductQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, product.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, category.FieldID)
 		for i := range fields {
-			if fields[i] != product.FieldID {
+			if fields[i] != category.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
-		if _q.withCategory != nil {
-			_spec.Node.AddColumnOnce(product.FieldCategoryID)
+		if _q.withParent != nil {
+			_spec.Node.AddColumnOnce(category.FieldParentID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -561,12 +639,12 @@ func (_q *ProductQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *ProductQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *CategoryQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(product.Table)
+	t1 := builder.Table(category.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = product.Columns
+		columns = category.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -593,28 +671,28 @@ func (_q *ProductQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// ProductGroupBy is the group-by builder for Product entities.
-type ProductGroupBy struct {
+// CategoryGroupBy is the group-by builder for Category entities.
+type CategoryGroupBy struct {
 	selector
-	build *ProductQuery
+	build *CategoryQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *ProductGroupBy) Aggregate(fns ...AggregateFunc) *ProductGroupBy {
+func (_g *CategoryGroupBy) Aggregate(fns ...AggregateFunc) *CategoryGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *ProductGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *CategoryGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ProductQuery, *ProductGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*CategoryQuery, *CategoryGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *ProductGroupBy) sqlScan(ctx context.Context, root *ProductQuery, v any) error {
+func (_g *CategoryGroupBy) sqlScan(ctx context.Context, root *CategoryQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -641,28 +719,28 @@ func (_g *ProductGroupBy) sqlScan(ctx context.Context, root *ProductQuery, v any
 	return sql.ScanSlice(rows, v)
 }
 
-// ProductSelect is the builder for selecting fields of Product entities.
-type ProductSelect struct {
-	*ProductQuery
+// CategorySelect is the builder for selecting fields of Category entities.
+type CategorySelect struct {
+	*CategoryQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *ProductSelect) Aggregate(fns ...AggregateFunc) *ProductSelect {
+func (_s *CategorySelect) Aggregate(fns ...AggregateFunc) *CategorySelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *ProductSelect) Scan(ctx context.Context, v any) error {
+func (_s *CategorySelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ProductQuery, *ProductSelect](ctx, _s.ProductQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*CategoryQuery, *CategorySelect](ctx, _s.CategoryQuery, _s, _s.inters, v)
 }
 
-func (_s *ProductSelect) sqlScan(ctx context.Context, root *ProductQuery, v any) error {
+func (_s *CategorySelect) sqlScan(ctx context.Context, root *CategoryQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

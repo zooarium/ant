@@ -28,8 +28,12 @@ const (
 	FieldPrice = "price"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldCategoryID holds the string denoting the category_id field in the database.
+	FieldCategoryID = "category_id"
 	// EdgeAttributes holds the string denoting the attributes edge name in mutations.
 	EdgeAttributes = "attributes"
+	// EdgeCategory holds the string denoting the category edge name in mutations.
+	EdgeCategory = "category"
 	// Table holds the table name of the product in the database.
 	Table = "ant_product"
 	// AttributesTable is the table that holds the attributes relation/edge.
@@ -39,6 +43,13 @@ const (
 	AttributesInverseTable = "ant_product_attribute"
 	// AttributesColumn is the table column denoting the attributes relation/edge.
 	AttributesColumn = "product_id"
+	// CategoryTable is the table that holds the category relation/edge.
+	CategoryTable = "ant_product"
+	// CategoryInverseTable is the table name for the Category entity.
+	// It exists in this package in order to avoid circular dependency with the "category" package.
+	CategoryInverseTable = "ant_category"
+	// CategoryColumn is the table column denoting the category relation/edge.
+	CategoryColumn = "category_id"
 )
 
 // Columns holds all SQL columns for product fields.
@@ -51,6 +62,7 @@ var Columns = []string{
 	FieldName,
 	FieldPrice,
 	FieldStatus,
+	FieldCategoryID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -121,6 +133,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
 }
 
+// ByCategoryID orders the results by the category_id field.
+func ByCategoryID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCategoryID, opts...).ToFunc()
+}
+
 // ByAttributesCount orders the results by attributes count.
 func ByAttributesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -134,10 +151,24 @@ func ByAttributes(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newAttributesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByCategoryField orders the results by category field.
+func ByCategoryField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCategoryStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newAttributesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(AttributesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, AttributesTable, AttributesColumn),
+	)
+}
+func newCategoryStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CategoryInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CategoryTable, CategoryColumn),
 	)
 }
