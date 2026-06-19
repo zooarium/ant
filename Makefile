@@ -1,6 +1,12 @@
 CUR_DIR := $(notdir $(shell pwd))
 export GO_VERSION ?= 1.26.3
 
+# Service metadata (consumed by `make info` / `make health`).
+SERVICE      := ant
+SERVICE_DESC := Products & orders
+HEALTH_PORT  := 8082
+HEALTH_URL   := http://localhost:$(HEALTH_PORT)/health
+
 # Per-service dev image: build-base + git + pinned tools, baked once (see Dockerfile.dev).
 DEV_IMAGE := $(CUR_DIR)-godev:$(GO_VERSION)
 
@@ -22,7 +28,7 @@ DOCKER_GO := docker run --rm \
 	-e CGO_ENABLED=1 -e CGO_CFLAGS="-D_LARGEFILE64_SOURCE" \
 	$(DEV_IMAGE)
 
-.PHONY: all build up down restart logs ps test benchmark fmt lint swag clean shell help tidy vet generate vendor coverage coverage-view build-local build-prod sql migrate-gen migrate-apply deps-upgrade go-upgrade config-check dev-image sync-tools docker-upgrade
+.PHONY: all build up down restart logs ps test benchmark fmt lint swag clean shell help tidy vet generate vendor coverage coverage-view build-local build-prod sql migrate-gen migrate-apply deps-upgrade go-upgrade config-check dev-image sync-tools docker-upgrade health info
 
 # Build the per-service dev image. Layer-cached: rebuilds only when Dockerfile.dev or GO_VERSION changes.
 dev-image:
@@ -142,6 +148,23 @@ config-check: dev-image
 clean:
 	docker-compose down --rmi all --volumes --remove-orphans
 
+health:
+	@echo "GET $(HEALTH_URL)"
+	@curl -fsS -m 5 -w '\nHTTP %{http_code}  (%{time_total}s)\n' $(HEALTH_URL) \
+		|| { echo "health: $(SERVICE) unreachable on port $(HEALTH_PORT) — is it up? try 'make up'"; exit 1; }
+
+info:
+	@echo "Service:        $(SERVICE)"
+	@echo "Purpose:        $(SERVICE_DESC)"
+	@echo "Primary port:   $(HEALTH_PORT)"
+	@echo "Health:         $(HEALTH_URL)"
+	@echo "Go (toolchain): $(GO_VERSION)"
+	@echo "Go (go.mod):    $$(awk '$$1=="go"{print $$2; exit}' go.mod)"
+	@echo "DB driver:      $$(awk -F'\"' '/DRIVER:/{print $$2; exit}' config/config.yaml)"
+	@printf 'Secondary:      '; grep -E '^[[:space:]]*- NAME:' config/config.yaml | sed -E 's/.*NAME:[[:space:]]*"?([^"]*)"?.*/\1/' | paste -sd', ' - | grep . || echo 'none'
+	@echo "Containers:"
+	@docker-compose ps 2>/dev/null || true
+
 help:
 	@echo "Usage: make [target]"
 	@echo ""
@@ -176,4 +199,6 @@ help:
 	@echo "  sql            Run SQL query (use query=...)"
 	@echo "  config-check   Validate config incl. secondary listeners"
 	@echo "  clean          Deep clean containers/images"
+	@echo "  health         Check service health endpoint (curl /health)"
+	@echo "  info           Show service metadata (name, port, purpose, Go version)"
 	@echo "  help           Show this help"
