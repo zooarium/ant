@@ -17,24 +17,24 @@ var (
 
 type Repository interface {
 	Create(ctx context.Context, item OrderGroup) (OrderGroup, error)
-	List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error)
-	GetByID(ctx context.Context, appID, id int) (OrderGroup, error)
-	GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error)
+	List(ctx context.Context, appID, divisionID, limit, offset int, status *int8) ([]OrderGroup, error)
+	GetByID(ctx context.Context, appID, divisionID, id int) (OrderGroup, error)
+	GetByToken(ctx context.Context, appID, divisionID int, token string) (OrderGroup, error)
 	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error)
-	Update(ctx context.Context, appID, id int, label string) (OrderGroup, error)
-	UpdateStatus(ctx context.Context, appID, id int, status int8) (OrderGroup, error)
-	Delete(ctx context.Context, appID, id int) error
+	Update(ctx context.Context, appID, divisionID, id int, label string) (OrderGroup, error)
+	UpdateStatus(ctx context.Context, appID, divisionID, id int, status int8) (OrderGroup, error)
+	Delete(ctx context.Context, appID, divisionID, id int) error
 }
 
 type Service interface {
 	Create(ctx context.Context, appID, userID, divisionID int, req CreateOrderGroupRequest) (OrderGroup, error)
-	List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error)
-	GetByID(ctx context.Context, appID, id int) (OrderGroup, error)
-	GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error)
+	List(ctx context.Context, appID, divisionID, limit, offset int, status *int8) ([]OrderGroup, error)
+	GetByID(ctx context.Context, appID, divisionID, id int) (OrderGroup, error)
+	GetByToken(ctx context.Context, appID, divisionID int, token string) (OrderGroup, error)
 	ListByDevice(ctx context.Context, appID, divisionID int, deviceID string, limit, offset int) ([]OrderGroup, error)
-	Update(ctx context.Context, appID, id int, req UpdateOrderGroupRequest) (OrderGroup, error)
-	UpdateStatus(ctx context.Context, appID, id int, req UpdateOrderGroupStatusRequest) (OrderGroup, error)
-	Delete(ctx context.Context, appID, id int) error
+	Update(ctx context.Context, appID, divisionID, id int, req UpdateOrderGroupRequest) (OrderGroup, error)
+	UpdateStatus(ctx context.Context, appID, divisionID, id int, req UpdateOrderGroupStatusRequest) (OrderGroup, error)
+	Delete(ctx context.Context, appID, divisionID, id int) error
 }
 
 type service struct {
@@ -70,8 +70,8 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error) {
-	items, err := s.repo.List(ctx, appID, limit, offset, status)
+func (s *service) List(ctx context.Context, appID, divisionID, limit, offset int, status *int8) ([]OrderGroup, error) {
+	items, err := s.repo.List(ctx, appID, divisionID, limit, offset, status)
 	if err != nil {
 		slog.Error("failed to list order groups", "error", err, "app_id", appID)
 		return nil, err
@@ -79,8 +79,8 @@ func (s *service) List(ctx context.Context, appID, limit, offset int, status *in
 	return items, nil
 }
 
-func (s *service) GetByID(ctx context.Context, appID, id int) (OrderGroup, error) {
-	item, err := s.repo.GetByID(ctx, appID, id)
+func (s *service) GetByID(ctx context.Context, appID, divisionID, id int) (OrderGroup, error) {
+	item, err := s.repo.GetByID(ctx, appID, divisionID, id)
 	if err != nil {
 		if !errors.Is(err, ErrOrderGroupNotFound) {
 			slog.Error("failed to get order group by id", "error", err, "id", id, "app_id", appID)
@@ -92,8 +92,8 @@ func (s *service) GetByID(ctx context.Context, appID, id int) (OrderGroup, error
 
 // GetByToken returns a tab by its shareable token, scoped to the tenant. Used
 // by the public order-intake page.
-func (s *service) GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error) {
-	item, err := s.repo.GetByToken(ctx, appID, token)
+func (s *service) GetByToken(ctx context.Context, appID, divisionID int, token string) (OrderGroup, error) {
+	item, err := s.repo.GetByToken(ctx, appID, divisionID, token)
 	if err != nil {
 		if !errors.Is(err, ErrOrderGroupNotFound) {
 			slog.Error("failed to get order group by token", "error", err, "app_id", appID)
@@ -114,11 +114,11 @@ func (s *service) ListByDevice(ctx context.Context, appID, divisionID int, devic
 	return items, nil
 }
 
-func (s *service) Update(ctx context.Context, appID, id int, req UpdateOrderGroupRequest) (OrderGroup, error) {
+func (s *service) Update(ctx context.Context, appID, divisionID, id int, req UpdateOrderGroupRequest) (OrderGroup, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return OrderGroup{}, fmt.Errorf("validate request: %w", err)
 	}
-	updated, err := s.repo.Update(ctx, appID, id, req.Label)
+	updated, err := s.repo.Update(ctx, appID, divisionID, id, req.Label)
 	if err != nil {
 		if !errors.Is(err, ErrOrderGroupNotFound) {
 			slog.Error("failed to update order group", "error", err, "id", id, "app_id", appID)
@@ -129,11 +129,11 @@ func (s *service) Update(ctx context.Context, appID, id int, req UpdateOrderGrou
 	return updated, nil
 }
 
-func (s *service) UpdateStatus(ctx context.Context, appID, id int, req UpdateOrderGroupStatusRequest) (OrderGroup, error) {
+func (s *service) UpdateStatus(ctx context.Context, appID, divisionID, id int, req UpdateOrderGroupStatusRequest) (OrderGroup, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return OrderGroup{}, fmt.Errorf("validate request: %w", err)
 	}
-	updated, err := s.repo.UpdateStatus(ctx, appID, id, req.Status)
+	updated, err := s.repo.UpdateStatus(ctx, appID, divisionID, id, req.Status)
 	if err != nil {
 		if !errors.Is(err, ErrOrderGroupNotFound) {
 			slog.Error("failed to update order group status", "error", err, "id", id, "app_id", appID)
@@ -144,8 +144,8 @@ func (s *service) UpdateStatus(ctx context.Context, appID, id int, req UpdateOrd
 	return updated, nil
 }
 
-func (s *service) Delete(ctx context.Context, appID, id int) error {
-	if err := s.repo.Delete(ctx, appID, id); err != nil {
+func (s *service) Delete(ctx context.Context, appID, divisionID, id int) error {
+	if err := s.repo.Delete(ctx, appID, divisionID, id); err != nil {
 		if !errors.Is(err, ErrOrderGroupNotFound) && !errors.Is(err, ErrOrderGroupInUse) {
 			slog.Error("failed to delete order group", "error", err, "id", id, "app_id", appID)
 		}

@@ -29,6 +29,9 @@ func (Attribute) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("app_id"),
 		field.Int("user_id"),
+		// division_id is the branch (keeper division) the attribute belongs to.
+		// Attributes are per-branch master data, scoped within one division.
+		field.Int("division_id"),
 		field.String("name").
 			NotEmpty(),
 		field.Int8("status").
@@ -45,6 +48,6 @@ func (Attribute) Edges() []ent.Edge {
 
 func (Attribute) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("app_id"),
+		index.Fields("app_id", "division_id"),
 	}
 }

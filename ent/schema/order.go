@@ -89,7 +89,7 @@ func (Order) Edges() []ent.Edge {
 
 func (Order) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("app_id", "status"),
+		index.Fields("app_id", "division_id", "status"),
 		index.Fields("group_id"),
 		// Recognition lookup on order-intake: orders for a device within a
 		// tenant scope. Always queried by app_id + division_id + device_id.

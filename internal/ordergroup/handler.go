@@ -133,7 +133,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	p := platformhttp.ParsePagination(r)
 	status := platformhttp.ParseStatusFilter(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, p.Limit, p.Offset, status)
+	items, err := h.svc.List(r.Context(), claims.AppID, claims.DivisionID, p.Limit, p.Offset, status)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -168,7 +168,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.GetByID(r.Context(), claims.AppID, id)
+	item, err := h.svc.GetByID(r.Context(), claims.AppID, claims.DivisionID, id)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -211,7 +211,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Update(r.Context(), claims.AppID, id, req)
+	item, err := h.svc.Update(r.Context(), claims.AppID, claims.DivisionID, id, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -254,7 +254,7 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.UpdateStatus(r.Context(), claims.AppID, id, req)
+	item, err := h.svc.UpdateStatus(r.Context(), claims.AppID, claims.DivisionID, id, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -289,7 +289,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.Delete(r.Context(), claims.AppID, id); err != nil {
+	if err := h.svc.Delete(r.Context(), claims.AppID, claims.DivisionID, id); err != nil {
 		h.renderError(w, err)
 		return
 	}
@@ -371,7 +371,7 @@ func (h *Handler) GetByTokenPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.GetByToken(r.Context(), claims.AppID, token)
+	item, err := h.svc.GetByToken(r.Context(), claims.AppID, claims.DivisionID, token)
 	if err != nil {
 		h.renderError(w, err)
 		return

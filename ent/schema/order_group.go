@@ -56,6 +56,6 @@ func (OrderGroup) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("app_id", "token").
 			Unique(),
-		index.Fields("app_id", "status"),
+		index.Fields("app_id", "division_id", "status"),
 	}
 }

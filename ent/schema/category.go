@@ -31,6 +31,9 @@ func (Category) Mixin() []ent.Mixin {
 func (Category) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("app_id"),
+		// division_id is the branch (keeper division) the category belongs to.
+		// Categories are per-branch master data, scoped within one division.
+		field.Int("division_id"),
 		field.Int("parent_id").
 			Optional().
 			Nillable(),
@@ -60,6 +63,6 @@ func (Category) Edges() []ent.Edge {
 func (Category) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("path"),
-		index.Fields("app_id", "parent_id"),
+		index.Fields("app_id", "division_id", "parent_id"),
 	}
 }

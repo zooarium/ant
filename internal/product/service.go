@@ -21,18 +21,18 @@ var (
 
 type Repository interface {
 	Create(ctx context.Context, item Product, assignments []AttributeAssignmentRequest) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
-	Update(ctx context.Context, appID, userID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type Service interface {
-	Create(ctx context.Context, appID, userID int, req CreateProductRequest) (Product, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Product, error)
-	Update(ctx context.Context, appID, userID, id int, req UpdateProductRequest) (Product, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	Create(ctx context.Context, appID, userID, divisionID int, req CreateProductRequest) (Product, error)
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateProductRequest) (Product, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type service struct {
@@ -66,7 +66,7 @@ func checkDuplicateAssignments(assignments []AttributeAssignmentRequest) error {
 	return nil
 }
 
-func (s *service) Create(ctx context.Context, appID, userID int, req CreateProductRequest) (Product, error) {
+func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req CreateProductRequest) (Product, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Product{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -80,6 +80,7 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateProdu
 	item := Product{
 		AppID:      appID,
 		UserID:     userID,
+		DivisionID: divisionID,
 		Name:       req.Name,
 		Price:      req.Price,
 		Status:     status,
@@ -96,8 +97,8 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateProdu
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
-	items, err := s.repo.List(ctx, appID, userID, limit, offset, status, categoryID)
+func (s *service) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
+	items, err := s.repo.List(ctx, appID, userID, divisionID, limit, offset, status, categoryID)
 	if err != nil {
 		slog.Error("failed to list products", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -105,8 +106,8 @@ func (s *service) List(ctx context.Context, appID, userID, limit, offset int, st
 	return items, nil
 }
 
-func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Product, error) {
-	item, err := s.repo.GetByID(ctx, appID, userID, id)
+func (s *service) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error) {
+	item, err := s.repo.GetByID(ctx, appID, userID, divisionID, id)
 	if err != nil {
 		if !errors.Is(err, ErrProductNotFound) {
 			slog.Error("failed to get product by id", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -116,7 +117,7 @@ func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Product, 
 	return item, nil
 }
 
-func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateProductRequest) (Product, error) {
+func (s *service) Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateProductRequest) (Product, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Product{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -129,7 +130,7 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateP
 		Status:     *req.Status,
 		CategoryID: req.CategoryID,
 	}
-	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Attributes)
+	updated, err := s.repo.Update(ctx, appID, userID, divisionID, id, item, req.Attributes)
 	if err != nil {
 		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrAttributeInvalid) && !errors.Is(err, ErrCategoryInvalid) {
 			slog.Error("failed to update product", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -140,8 +141,8 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateP
 	return updated, nil
 }
 
-func (s *service) Delete(ctx context.Context, appID, userID, id int) error {
-	if err := s.repo.Delete(ctx, appID, userID, id); err != nil {
+func (s *service) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
+	if err := s.repo.Delete(ctx, appID, userID, divisionID, id); err != nil {
 		if !errors.Is(err, ErrProductNotFound) && !errors.Is(err, ErrProductInUse) {
 			slog.Error("failed to delete product", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}

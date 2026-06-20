@@ -43,10 +43,10 @@ func (r *orderGroupRepository) Create(ctx context.Context, item OrderGroup) (Ord
 	return r.mapToModel(e), nil
 }
 
-func (r *orderGroupRepository) List(ctx context.Context, appID, limit, offset int, status *int8) ([]OrderGroup, error) {
+func (r *orderGroupRepository) List(ctx context.Context, appID, divisionID, limit, offset int, status *int8) ([]OrderGroup, error) {
 	q := r.client.OrderGroup.
 		Query().
-		Where(entordergroup.AppID(appID))
+		Where(entordergroup.AppID(appID), entordergroup.DivisionID(divisionID))
 	if status != nil {
 		q = q.Where(entordergroup.Status(*status))
 	}
@@ -126,10 +126,10 @@ func (r *orderGroupRepository) hydrateGroup(e *ent.OrderGroup) OrderGroup {
 	return g
 }
 
-func (r *orderGroupRepository) GetByID(ctx context.Context, appID, id int) (OrderGroup, error) {
+func (r *orderGroupRepository) GetByID(ctx context.Context, appID, divisionID, id int) (OrderGroup, error) {
 	e, err := r.client.OrderGroup.
 		Query().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(id), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		WithOrders(withOrders).
 		Only(ctx)
 	if err != nil {
@@ -144,10 +144,10 @@ func (r *orderGroupRepository) GetByID(ctx context.Context, appID, id int) (Orde
 // GetByToken loads a group (with its orders) by its shareable token within the
 // tenant. Used by the public order-intake page so a family member who has the
 // token can view the whole tab.
-func (r *orderGroupRepository) GetByToken(ctx context.Context, appID int, token string) (OrderGroup, error) {
+func (r *orderGroupRepository) GetByToken(ctx context.Context, appID, divisionID int, token string) (OrderGroup, error) {
 	e, err := r.client.OrderGroup.
 		Query().
-		Where(entordergroup.AppID(appID), entordergroup.Token(token)).
+		Where(entordergroup.AppID(appID), entordergroup.DivisionID(divisionID), entordergroup.Token(token)).
 		WithOrders(withOrders).
 		Only(ctx)
 	if err != nil {
@@ -186,10 +186,10 @@ func (r *orderGroupRepository) ListByDevice(ctx context.Context, appID, division
 	return items, nil
 }
 
-func (r *orderGroupRepository) Update(ctx context.Context, appID, id int, label string) (OrderGroup, error) {
+func (r *orderGroupRepository) Update(ctx context.Context, appID, divisionID, id int, label string) (OrderGroup, error) {
 	count, err := r.client.OrderGroup.
 		Update().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(id), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		SetLabel(label).
 		Save(ctx)
 	if err != nil {
@@ -198,13 +198,13 @@ func (r *orderGroupRepository) Update(ctx context.Context, appID, id int, label 
 	if count == 0 {
 		return OrderGroup{}, ErrOrderGroupNotFound
 	}
-	return r.GetByID(ctx, appID, id)
+	return r.GetByID(ctx, appID, divisionID, id)
 }
 
-func (r *orderGroupRepository) UpdateStatus(ctx context.Context, appID, id int, status int8) (OrderGroup, error) {
+func (r *orderGroupRepository) UpdateStatus(ctx context.Context, appID, divisionID, id int, status int8) (OrderGroup, error) {
 	count, err := r.client.OrderGroup.
 		Update().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(id), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		SetStatus(status).
 		Save(ctx)
 	if err != nil {
@@ -213,21 +213,21 @@ func (r *orderGroupRepository) UpdateStatus(ctx context.Context, appID, id int, 
 	if count == 0 {
 		return OrderGroup{}, ErrOrderGroupNotFound
 	}
-	return r.GetByID(ctx, appID, id)
+	return r.GetByID(ctx, appID, divisionID, id)
 }
 
 // Delete removes the group. Because every order must belong to a group, a
 // group that still has orders cannot be deleted; reassign or remove its orders
 // first. Guarded in a transaction to avoid a delete racing a concurrent order
 // attach.
-func (r *orderGroupRepository) Delete(ctx context.Context, appID, id int) error {
+func (r *orderGroupRepository) Delete(ctx context.Context, appID, divisionID, id int) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	exists, err := tx.OrderGroup.
 		Query().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(id), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		Exist(ctx)
 	if err != nil {
 		return rollback(tx, fmt.Errorf("check order group exists: %w", err))
@@ -247,7 +247,7 @@ func (r *orderGroupRepository) Delete(ctx context.Context, appID, id int) error 
 	}
 	if _, err := tx.OrderGroup.
 		Delete().
-		Where(entordergroup.ID(id), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(id), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		Exec(ctx); err != nil {
 		return rollback(tx, fmt.Errorf("delete order group: %w", err))
 	}

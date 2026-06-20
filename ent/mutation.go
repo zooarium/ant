@@ -54,6 +54,8 @@ type AttributeMutation struct {
 	addapp_id                 *int
 	user_id                   *int
 	adduser_id                *int
+	division_id               *int
+	adddivision_id            *int
 	name                      *string
 	status                    *int8
 	addstatus                 *int8
@@ -351,6 +353,62 @@ func (m *AttributeMutation) ResetUserID() {
 	m.adduser_id = nil
 }
 
+// SetDivisionID sets the "division_id" field.
+func (m *AttributeMutation) SetDivisionID(i int) {
+	m.division_id = &i
+	m.adddivision_id = nil
+}
+
+// DivisionID returns the value of the "division_id" field in the mutation.
+func (m *AttributeMutation) DivisionID() (r int, exists bool) {
+	v := m.division_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDivisionID returns the old "division_id" field's value of the Attribute entity.
+// If the Attribute object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AttributeMutation) OldDivisionID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDivisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDivisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDivisionID: %w", err)
+	}
+	return oldValue.DivisionID, nil
+}
+
+// AddDivisionID adds i to the "division_id" field.
+func (m *AttributeMutation) AddDivisionID(i int) {
+	if m.adddivision_id != nil {
+		*m.adddivision_id += i
+	} else {
+		m.adddivision_id = &i
+	}
+}
+
+// AddedDivisionID returns the value that was added to the "division_id" field in this mutation.
+func (m *AttributeMutation) AddedDivisionID() (r int, exists bool) {
+	v := m.adddivision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDivisionID resets all changes to the "division_id" field.
+func (m *AttributeMutation) ResetDivisionID() {
+	m.division_id = nil
+	m.adddivision_id = nil
+}
+
 // SetName sets the "name" field.
 func (m *AttributeMutation) SetName(s string) {
 	m.name = &s
@@ -585,7 +643,7 @@ func (m *AttributeMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AttributeMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.created_at != nil {
 		fields = append(fields, attribute.FieldCreatedAt)
 	}
@@ -597,6 +655,9 @@ func (m *AttributeMutation) Fields() []string {
 	}
 	if m.user_id != nil {
 		fields = append(fields, attribute.FieldUserID)
+	}
+	if m.division_id != nil {
+		fields = append(fields, attribute.FieldDivisionID)
 	}
 	if m.name != nil {
 		fields = append(fields, attribute.FieldName)
@@ -620,6 +681,8 @@ func (m *AttributeMutation) Field(name string) (ent.Value, bool) {
 		return m.AppID()
 	case attribute.FieldUserID:
 		return m.UserID()
+	case attribute.FieldDivisionID:
+		return m.DivisionID()
 	case attribute.FieldName:
 		return m.Name()
 	case attribute.FieldStatus:
@@ -641,6 +704,8 @@ func (m *AttributeMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldAppID(ctx)
 	case attribute.FieldUserID:
 		return m.OldUserID(ctx)
+	case attribute.FieldDivisionID:
+		return m.OldDivisionID(ctx)
 	case attribute.FieldName:
 		return m.OldName(ctx)
 	case attribute.FieldStatus:
@@ -682,6 +747,13 @@ func (m *AttributeMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUserID(v)
 		return nil
+	case attribute.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDivisionID(v)
+		return nil
 	case attribute.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -710,6 +782,9 @@ func (m *AttributeMutation) AddedFields() []string {
 	if m.adduser_id != nil {
 		fields = append(fields, attribute.FieldUserID)
 	}
+	if m.adddivision_id != nil {
+		fields = append(fields, attribute.FieldDivisionID)
+	}
 	if m.addstatus != nil {
 		fields = append(fields, attribute.FieldStatus)
 	}
@@ -725,6 +800,8 @@ func (m *AttributeMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAppID()
 	case attribute.FieldUserID:
 		return m.AddedUserID()
+	case attribute.FieldDivisionID:
+		return m.AddedDivisionID()
 	case attribute.FieldStatus:
 		return m.AddedStatus()
 	}
@@ -749,6 +826,13 @@ func (m *AttributeMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddUserID(v)
+		return nil
+	case attribute.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDivisionID(v)
 		return nil
 	case attribute.FieldStatus:
 		v, ok := value.(int8)
@@ -795,6 +879,9 @@ func (m *AttributeMutation) ResetField(name string) error {
 		return nil
 	case attribute.FieldUserID:
 		m.ResetUserID()
+		return nil
+	case attribute.FieldDivisionID:
+		m.ResetDivisionID()
 		return nil
 	case attribute.FieldName:
 		m.ResetName()
@@ -1471,6 +1558,8 @@ type CategoryMutation struct {
 	updated_at      *time.Time
 	app_id          *int
 	addapp_id       *int
+	division_id     *int
+	adddivision_id  *int
 	name            *string
 	_path           *string
 	depth           *int8
@@ -1715,6 +1804,62 @@ func (m *CategoryMutation) AddedAppID() (r int, exists bool) {
 func (m *CategoryMutation) ResetAppID() {
 	m.app_id = nil
 	m.addapp_id = nil
+}
+
+// SetDivisionID sets the "division_id" field.
+func (m *CategoryMutation) SetDivisionID(i int) {
+	m.division_id = &i
+	m.adddivision_id = nil
+}
+
+// DivisionID returns the value of the "division_id" field in the mutation.
+func (m *CategoryMutation) DivisionID() (r int, exists bool) {
+	v := m.division_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDivisionID returns the old "division_id" field's value of the Category entity.
+// If the Category object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CategoryMutation) OldDivisionID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDivisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDivisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDivisionID: %w", err)
+	}
+	return oldValue.DivisionID, nil
+}
+
+// AddDivisionID adds i to the "division_id" field.
+func (m *CategoryMutation) AddDivisionID(i int) {
+	if m.adddivision_id != nil {
+		*m.adddivision_id += i
+	} else {
+		m.adddivision_id = &i
+	}
+}
+
+// AddedDivisionID returns the value that was added to the "division_id" field in this mutation.
+func (m *CategoryMutation) AddedDivisionID() (r int, exists bool) {
+	v := m.adddivision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDivisionID resets all changes to the "division_id" field.
+func (m *CategoryMutation) ResetDivisionID() {
+	m.division_id = nil
+	m.adddivision_id = nil
 }
 
 // SetParentID sets the "parent_id" field.
@@ -2119,7 +2264,7 @@ func (m *CategoryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CategoryMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, category.FieldCreatedAt)
 	}
@@ -2128,6 +2273,9 @@ func (m *CategoryMutation) Fields() []string {
 	}
 	if m.app_id != nil {
 		fields = append(fields, category.FieldAppID)
+	}
+	if m.division_id != nil {
+		fields = append(fields, category.FieldDivisionID)
 	}
 	if m.parent != nil {
 		fields = append(fields, category.FieldParentID)
@@ -2158,6 +2306,8 @@ func (m *CategoryMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case category.FieldAppID:
 		return m.AppID()
+	case category.FieldDivisionID:
+		return m.DivisionID()
 	case category.FieldParentID:
 		return m.ParentID()
 	case category.FieldName:
@@ -2183,6 +2333,8 @@ func (m *CategoryMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldUpdatedAt(ctx)
 	case category.FieldAppID:
 		return m.OldAppID(ctx)
+	case category.FieldDivisionID:
+		return m.OldDivisionID(ctx)
 	case category.FieldParentID:
 		return m.OldParentID(ctx)
 	case category.FieldName:
@@ -2222,6 +2374,13 @@ func (m *CategoryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAppID(v)
+		return nil
+	case category.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDivisionID(v)
 		return nil
 	case category.FieldParentID:
 		v, ok := value.(int)
@@ -2269,6 +2428,9 @@ func (m *CategoryMutation) AddedFields() []string {
 	if m.addapp_id != nil {
 		fields = append(fields, category.FieldAppID)
 	}
+	if m.adddivision_id != nil {
+		fields = append(fields, category.FieldDivisionID)
+	}
 	if m.adddepth != nil {
 		fields = append(fields, category.FieldDepth)
 	}
@@ -2285,6 +2447,8 @@ func (m *CategoryMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case category.FieldAppID:
 		return m.AddedAppID()
+	case category.FieldDivisionID:
+		return m.AddedDivisionID()
 	case category.FieldDepth:
 		return m.AddedDepth()
 	case category.FieldStatus:
@@ -2304,6 +2468,13 @@ func (m *CategoryMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAppID(v)
+		return nil
+	case category.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDivisionID(v)
 		return nil
 	case category.FieldDepth:
 		v, ok := value.(int8)
@@ -2363,6 +2534,9 @@ func (m *CategoryMutation) ResetField(name string) error {
 		return nil
 	case category.FieldAppID:
 		m.ResetAppID()
+		return nil
+	case category.FieldDivisionID:
+		m.ResetDivisionID()
 		return nil
 	case category.FieldParentID:
 		m.ResetParentID()
@@ -5762,6 +5936,8 @@ type ProductMutation struct {
 	addapp_id         *int
 	user_id           *int
 	adduser_id        *int
+	division_id       *int
+	adddivision_id    *int
 	name              *string
 	price             *float64
 	addprice          *float64
@@ -6058,6 +6234,62 @@ func (m *ProductMutation) AddedUserID() (r int, exists bool) {
 func (m *ProductMutation) ResetUserID() {
 	m.user_id = nil
 	m.adduser_id = nil
+}
+
+// SetDivisionID sets the "division_id" field.
+func (m *ProductMutation) SetDivisionID(i int) {
+	m.division_id = &i
+	m.adddivision_id = nil
+}
+
+// DivisionID returns the value of the "division_id" field in the mutation.
+func (m *ProductMutation) DivisionID() (r int, exists bool) {
+	v := m.division_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDivisionID returns the old "division_id" field's value of the Product entity.
+// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductMutation) OldDivisionID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDivisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDivisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDivisionID: %w", err)
+	}
+	return oldValue.DivisionID, nil
+}
+
+// AddDivisionID adds i to the "division_id" field.
+func (m *ProductMutation) AddDivisionID(i int) {
+	if m.adddivision_id != nil {
+		*m.adddivision_id += i
+	} else {
+		m.adddivision_id = &i
+	}
+}
+
+// AddedDivisionID returns the value that was added to the "division_id" field in this mutation.
+func (m *ProductMutation) AddedDivisionID() (r int, exists bool) {
+	v := m.adddivision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDivisionID resets all changes to the "division_id" field.
+func (m *ProductMutation) ResetDivisionID() {
+	m.division_id = nil
+	m.adddivision_id = nil
 }
 
 // SetName sets the "name" field.
@@ -6372,7 +6604,7 @@ func (m *ProductMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProductMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, product.FieldCreatedAt)
 	}
@@ -6384,6 +6616,9 @@ func (m *ProductMutation) Fields() []string {
 	}
 	if m.user_id != nil {
 		fields = append(fields, product.FieldUserID)
+	}
+	if m.division_id != nil {
+		fields = append(fields, product.FieldDivisionID)
 	}
 	if m.name != nil {
 		fields = append(fields, product.FieldName)
@@ -6413,6 +6648,8 @@ func (m *ProductMutation) Field(name string) (ent.Value, bool) {
 		return m.AppID()
 	case product.FieldUserID:
 		return m.UserID()
+	case product.FieldDivisionID:
+		return m.DivisionID()
 	case product.FieldName:
 		return m.Name()
 	case product.FieldPrice:
@@ -6438,6 +6675,8 @@ func (m *ProductMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldAppID(ctx)
 	case product.FieldUserID:
 		return m.OldUserID(ctx)
+	case product.FieldDivisionID:
+		return m.OldDivisionID(ctx)
 	case product.FieldName:
 		return m.OldName(ctx)
 	case product.FieldPrice:
@@ -6483,6 +6722,13 @@ func (m *ProductMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUserID(v)
 		return nil
+	case product.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDivisionID(v)
+		return nil
 	case product.FieldName:
 		v, ok := value.(string)
 		if !ok {
@@ -6525,6 +6771,9 @@ func (m *ProductMutation) AddedFields() []string {
 	if m.adduser_id != nil {
 		fields = append(fields, product.FieldUserID)
 	}
+	if m.adddivision_id != nil {
+		fields = append(fields, product.FieldDivisionID)
+	}
 	if m.addprice != nil {
 		fields = append(fields, product.FieldPrice)
 	}
@@ -6543,6 +6792,8 @@ func (m *ProductMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedAppID()
 	case product.FieldUserID:
 		return m.AddedUserID()
+	case product.FieldDivisionID:
+		return m.AddedDivisionID()
 	case product.FieldPrice:
 		return m.AddedPrice()
 	case product.FieldStatus:
@@ -6569,6 +6820,13 @@ func (m *ProductMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddUserID(v)
+		return nil
+	case product.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDivisionID(v)
 		return nil
 	case product.FieldPrice:
 		v, ok := value.(float64)
@@ -6631,6 +6889,9 @@ func (m *ProductMutation) ResetField(name string) error {
 		return nil
 	case product.FieldUserID:
 		m.ResetUserID()
+		return nil
+	case product.FieldDivisionID:
+		m.ResetDivisionID()
 		return nil
 	case product.FieldName:
 		m.ResetName()

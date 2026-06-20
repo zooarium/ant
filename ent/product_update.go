@@ -78,6 +78,27 @@ func (_u *ProductUpdate) AddUserID(v int) *ProductUpdate {
 	return _u
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_u *ProductUpdate) SetDivisionID(v int) *ProductUpdate {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *ProductUpdate) SetNillableDivisionID(v *int) *ProductUpdate {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *ProductUpdate) AddDivisionID(v int) *ProductUpdate {
+	_u.mutation.AddDivisionID(v)
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *ProductUpdate) SetName(v string) *ProductUpdate {
 	_u.mutation.SetName(v)
@@ -279,6 +300,12 @@ func (_u *ProductUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(product.FieldUserID, field.TypeInt, value)
 	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(product.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(product.FieldDivisionID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(product.FieldName, field.TypeString, value)
 	}
@@ -433,6 +460,27 @@ func (_u *ProductUpdateOne) SetNillableUserID(v *int) *ProductUpdateOne {
 // AddUserID adds value to the "user_id" field.
 func (_u *ProductUpdateOne) AddUserID(v int) *ProductUpdateOne {
 	_u.mutation.AddUserID(v)
+	return _u
+}
+
+// SetDivisionID sets the "division_id" field.
+func (_u *ProductUpdateOne) SetDivisionID(v int) *ProductUpdateOne {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *ProductUpdateOne) SetNillableDivisionID(v *int) *ProductUpdateOne {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *ProductUpdateOne) AddDivisionID(v int) *ProductUpdateOne {
+	_u.mutation.AddDivisionID(v)
 	return _u
 }
 
@@ -666,6 +714,12 @@ func (_u *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err er
 	}
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(product.FieldUserID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(product.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(product.FieldDivisionID, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(product.FieldName, field.TypeString, value)

@@ -11,16 +11,17 @@ import (
 // renders the name followed by its ancestor hierarchy in parentheses
 // (e.g. "Laptops (Electronics > Computers)").
 type Category struct {
-	ID        int       `json:"id"`
-	AppID     int       `json:"app_id"`
-	ParentID  *int      `json:"parent_id"`
-	Name      string    `json:"name"`
-	Path      string    `json:"path"`
-	Depth     int8      `json:"depth"`
-	Status    int8      `json:"status"`
-	Display   string    `json:"display"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         int       `json:"id"`
+	AppID      int       `json:"app_id"`
+	DivisionID int       `json:"division_id"`
+	ParentID   *int      `json:"parent_id"`
+	Name       string    `json:"name"`
+	Path       string    `json:"path"`
+	Depth      int8      `json:"depth"`
+	Status     int8      `json:"status"`
+	Display    string    `json:"display"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // CreateCategoryRequest is the payload for creating a category.

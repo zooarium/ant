@@ -2486,6 +2486,9 @@
                 "created_at": {
                     "type": "string"
                 },
+                "division_id": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -2613,6 +2616,9 @@
                 },
                 "display": {
                     "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
@@ -3292,6 +3298,9 @@
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"

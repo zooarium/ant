@@ -112,7 +112,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Create(r.Context(), claims.AppID, req)
+	item, err := h.svc.Create(r.Context(), claims.AppID, claims.DivisionID, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -154,7 +154,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 
 	p := platformhttp.ParsePagination(r)
 	status := platformhttp.ParseStatusFilter(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, parentID, status, p.Limit, p.Offset)
+	items, err := h.svc.List(r.Context(), claims.AppID, claims.DivisionID, parentID, status, p.Limit, p.Offset)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -188,7 +188,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.GetByID(r.Context(), claims.AppID, id)
+	item, err := h.svc.GetByID(r.Context(), claims.AppID, claims.DivisionID, id)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -222,7 +222,7 @@ func (h *Handler) Descendants(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.svc.Descendants(r.Context(), claims.AppID, id)
+	items, err := h.svc.Descendants(r.Context(), claims.AppID, claims.DivisionID, id)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -269,7 +269,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Update(r.Context(), claims.AppID, id, req)
+	item, err := h.svc.Update(r.Context(), claims.AppID, claims.DivisionID, id, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -312,7 +312,7 @@ func (h *Handler) Move(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.svc.Move(r.Context(), claims.AppID, id, req)
+	item, err := h.svc.Move(r.Context(), claims.AppID, claims.DivisionID, id, req)
 	if err != nil {
 		h.renderError(w, err)
 		return
@@ -348,7 +348,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.svc.Delete(r.Context(), claims.AppID, id); err != nil {
+	if err := h.svc.Delete(r.Context(), claims.AppID, claims.DivisionID, id); err != nil {
 		h.renderError(w, err)
 		return
 	}

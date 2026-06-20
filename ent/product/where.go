@@ -75,6 +75,11 @@ func UserID(v int) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldUserID, v))
 }
 
+// DivisionID applies equality check predicate on the "division_id" field. It's identical to DivisionIDEQ.
+func DivisionID(v int) predicate.Product {
+	return predicate.Product(sql.FieldEQ(FieldDivisionID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldName, v))
@@ -253,6 +258,46 @@ func UserIDLT(v int) predicate.Product {
 // UserIDLTE applies the LTE predicate on the "user_id" field.
 func UserIDLTE(v int) predicate.Product {
 	return predicate.Product(sql.FieldLTE(FieldUserID, v))
+}
+
+// DivisionIDEQ applies the EQ predicate on the "division_id" field.
+func DivisionIDEQ(v int) predicate.Product {
+	return predicate.Product(sql.FieldEQ(FieldDivisionID, v))
+}
+
+// DivisionIDNEQ applies the NEQ predicate on the "division_id" field.
+func DivisionIDNEQ(v int) predicate.Product {
+	return predicate.Product(sql.FieldNEQ(FieldDivisionID, v))
+}
+
+// DivisionIDIn applies the In predicate on the "division_id" field.
+func DivisionIDIn(vs ...int) predicate.Product {
+	return predicate.Product(sql.FieldIn(FieldDivisionID, vs...))
+}
+
+// DivisionIDNotIn applies the NotIn predicate on the "division_id" field.
+func DivisionIDNotIn(vs ...int) predicate.Product {
+	return predicate.Product(sql.FieldNotIn(FieldDivisionID, vs...))
+}
+
+// DivisionIDGT applies the GT predicate on the "division_id" field.
+func DivisionIDGT(v int) predicate.Product {
+	return predicate.Product(sql.FieldGT(FieldDivisionID, v))
+}
+
+// DivisionIDGTE applies the GTE predicate on the "division_id" field.
+func DivisionIDGTE(v int) predicate.Product {
+	return predicate.Product(sql.FieldGTE(FieldDivisionID, v))
+}
+
+// DivisionIDLT applies the LT predicate on the "division_id" field.
+func DivisionIDLT(v int) predicate.Product {
+	return predicate.Product(sql.FieldLT(FieldDivisionID, v))
+}
+
+// DivisionIDLTE applies the LTE predicate on the "division_id" field.
+func DivisionIDLTE(v int) predicate.Product {
+	return predicate.Product(sql.FieldLTE(FieldDivisionID, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

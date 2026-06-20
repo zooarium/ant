@@ -55,6 +55,12 @@ func (_c *CategoryCreate) SetAppID(v int) *CategoryCreate {
 	return _c
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_c *CategoryCreate) SetDivisionID(v int) *CategoryCreate {
+	_c.mutation.SetDivisionID(v)
+	return _c
+}
+
 // SetParentID sets the "parent_id" field.
 func (_c *CategoryCreate) SetParentID(v int) *CategoryCreate {
 	_c.mutation.SetParentID(v)
@@ -208,6 +214,9 @@ func (_c *CategoryCreate) check() error {
 	if _, ok := _c.mutation.AppID(); !ok {
 		return &ValidationError{Name: "app_id", err: errors.New(`ent: missing required field "Category.app_id"`)}
 	}
+	if _, ok := _c.mutation.DivisionID(); !ok {
+		return &ValidationError{Name: "division_id", err: errors.New(`ent: missing required field "Category.division_id"`)}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Category.name"`)}
 	}
@@ -262,6 +271,10 @@ func (_c *CategoryCreate) createSpec() (*Category, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AppID(); ok {
 		_spec.SetField(category.FieldAppID, field.TypeInt, value)
 		_node.AppID = value
+	}
+	if value, ok := _c.mutation.DivisionID(); ok {
+		_spec.SetField(category.FieldDivisionID, field.TypeInt, value)
+		_node.DivisionID = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(category.FieldName, field.TypeString, value)

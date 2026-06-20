@@ -27,6 +27,7 @@ func (r *attributeRepository) Create(ctx context.Context, item Attribute) (Attri
 		Create().
 		SetAppID(item.AppID).
 		SetUserID(item.UserID).
+		SetDivisionID(item.DivisionID).
 		SetName(item.Name).
 		SetStatus(item.Status).
 		Save(ctx)
@@ -48,13 +49,13 @@ func (r *attributeRepository) Create(ctx context.Context, item Attribute) (Attri
 	if err := tx.Commit(); err != nil {
 		return Attribute{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, item.AppID, item.UserID, e.ID)
+	return r.GetByID(ctx, item.AppID, item.UserID, item.DivisionID, e.ID)
 }
 
-func (r *attributeRepository) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Attribute, error) {
+func (r *attributeRepository) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Attribute, error) {
 	q := r.client.Attribute.
 		Query().
-		Where(entattribute.AppID(appID))
+		Where(entattribute.AppID(appID), entattribute.DivisionID(divisionID))
 	if status != nil {
 		q = q.Where(entattribute.Status(*status))
 	}
@@ -76,10 +77,10 @@ func (r *attributeRepository) List(ctx context.Context, appID, userID, limit, of
 	return items, nil
 }
 
-func (r *attributeRepository) GetByID(ctx context.Context, appID, userID, id int) (Attribute, error) {
+func (r *attributeRepository) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Attribute, error) {
 	e, err := r.client.Attribute.
 		Query().
-		Where(entattribute.ID(id), entattribute.AppID(appID)).
+		Where(entattribute.ID(id), entattribute.AppID(appID), entattribute.DivisionID(divisionID)).
 		WithOptions(func(oq *ent.AttributeOptionQuery) {
 			oq.Order(ent.Asc(attributeoption.FieldID))
 		}).
@@ -97,14 +98,14 @@ func (r *attributeRepository) GetByID(ctx context.Context, appID, userID, id int
 // transaction: payload options with an id update the existing option, ones
 // without an id are created, and existing options absent from the payload are
 // deleted.
-func (r *attributeRepository) Update(ctx context.Context, appID, userID, id int, item Attribute, options []SyncOptionRequest) (Attribute, error) {
+func (r *attributeRepository) Update(ctx context.Context, appID, userID, divisionID, id int, item Attribute, options []SyncOptionRequest) (Attribute, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Attribute{}, fmt.Errorf("begin tx: %w", err)
 	}
 	count, err := tx.Attribute.
 		Update().
-		Where(entattribute.ID(id), entattribute.AppID(appID)).
+		Where(entattribute.ID(id), entattribute.AppID(appID), entattribute.DivisionID(divisionID)).
 		SetName(item.Name).
 		SetStatus(item.Status).
 		Save(ctx)
@@ -171,17 +172,17 @@ func (r *attributeRepository) Update(ctx context.Context, appID, userID, id int,
 	if err := tx.Commit(); err != nil {
 		return Attribute{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, appID, userID, id)
+	return r.GetByID(ctx, appID, userID, divisionID, id)
 }
 
-func (r *attributeRepository) Delete(ctx context.Context, appID, userID, id int) error {
+func (r *attributeRepository) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	exists, err := tx.Attribute.
 		Query().
-		Where(entattribute.ID(id), entattribute.AppID(appID)).
+		Where(entattribute.ID(id), entattribute.AppID(appID), entattribute.DivisionID(divisionID)).
 		Exist(ctx)
 	if err != nil {
 		return rollback(tx, fmt.Errorf("check attribute exists: %w", err))
@@ -207,7 +208,7 @@ func (r *attributeRepository) Delete(ctx context.Context, appID, userID, id int)
 	}
 	if _, err := tx.Attribute.
 		Delete().
-		Where(entattribute.ID(id), entattribute.AppID(appID)).
+		Where(entattribute.ID(id), entattribute.AppID(appID), entattribute.DivisionID(divisionID)).
 		Exec(ctx); err != nil {
 		return rollback(tx, fmt.Errorf("delete attribute: %w", err))
 	}
@@ -223,14 +224,15 @@ func (r *attributeRepository) mapToModel(e *ent.Attribute) Attribute {
 		options[i] = Option{ID: o.ID, Value: o.Value}
 	}
 	return Attribute{
-		ID:        e.ID,
-		AppID:     e.AppID,
-		UserID:    e.UserID,
-		Name:      e.Name,
-		Status:    e.Status,
-		Options:   options,
-		CreatedAt: e.CreatedAt,
-		UpdatedAt: e.UpdatedAt,
+		ID:         e.ID,
+		AppID:      e.AppID,
+		UserID:     e.UserID,
+		DivisionID: e.DivisionID,
+		Name:       e.Name,
+		Status:     e.Status,
+		Options:    options,
+		CreatedAt:  e.CreatedAt,
+		UpdatedAt:  e.UpdatedAt,
 	}
 }
 

@@ -62,6 +62,12 @@ func (_c *AttributeCreate) SetUserID(v int) *AttributeCreate {
 	return _c
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_c *AttributeCreate) SetDivisionID(v int) *AttributeCreate {
+	_c.mutation.SetDivisionID(v)
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *AttributeCreate) SetName(v string) *AttributeCreate {
 	_c.mutation.SetName(v)
@@ -175,6 +181,9 @@ func (_c *AttributeCreate) check() error {
 	if _, ok := _c.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Attribute.user_id"`)}
 	}
+	if _, ok := _c.mutation.DivisionID(); !ok {
+		return &ValidationError{Name: "division_id", err: errors.New(`ent: missing required field "Attribute.division_id"`)}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Attribute.name"`)}
 	}
@@ -227,6 +236,10 @@ func (_c *AttributeCreate) createSpec() (*Attribute, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UserID(); ok {
 		_spec.SetField(attribute.FieldUserID, field.TypeInt, value)
 		_node.UserID = value
+	}
+	if value, ok := _c.mutation.DivisionID(); ok {
+		_spec.SetField(attribute.FieldDivisionID, field.TypeInt, value)
+		_node.DivisionID = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(attribute.FieldName, field.TypeString, value)

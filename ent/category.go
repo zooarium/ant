@@ -23,6 +23,8 @@ type Category struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// AppID holds the value of the "app_id" field.
 	AppID int `json:"app_id,omitempty"`
+	// DivisionID holds the value of the "division_id" field.
+	DivisionID int `json:"division_id,omitempty"`
 	// ParentID holds the value of the "parent_id" field.
 	ParentID *int `json:"parent_id,omitempty"`
 	// Name holds the value of the "name" field.
@@ -86,7 +88,7 @@ func (*Category) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case category.FieldID, category.FieldAppID, category.FieldParentID, category.FieldDepth, category.FieldStatus:
+		case category.FieldID, category.FieldAppID, category.FieldDivisionID, category.FieldParentID, category.FieldDepth, category.FieldStatus:
 			values[i] = new(sql.NullInt64)
 		case category.FieldName, category.FieldPath:
 			values[i] = new(sql.NullString)
@@ -130,6 +132,12 @@ func (_m *Category) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field app_id", values[i])
 			} else if value.Valid {
 				_m.AppID = int(value.Int64)
+			}
+		case category.FieldDivisionID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field division_id", values[i])
+			} else if value.Valid {
+				_m.DivisionID = int(value.Int64)
 			}
 		case category.FieldParentID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -221,6 +229,9 @@ func (_m *Category) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("app_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.AppID))
+	builder.WriteString(", ")
+	builder.WriteString("division_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DivisionID))
 	builder.WriteString(", ")
 	if v := _m.ParentID; v != nil {
 		builder.WriteString("parent_id=")

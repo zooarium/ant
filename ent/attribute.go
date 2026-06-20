@@ -25,6 +25,8 @@ type Attribute struct {
 	AppID int `json:"app_id,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID int `json:"user_id,omitempty"`
+	// DivisionID holds the value of the "division_id" field.
+	DivisionID int `json:"division_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Status holds the value of the "status" field.
@@ -69,7 +71,7 @@ func (*Attribute) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case attribute.FieldID, attribute.FieldAppID, attribute.FieldUserID, attribute.FieldStatus:
+		case attribute.FieldID, attribute.FieldAppID, attribute.FieldUserID, attribute.FieldDivisionID, attribute.FieldStatus:
 			values[i] = new(sql.NullInt64)
 		case attribute.FieldName:
 			values[i] = new(sql.NullString)
@@ -119,6 +121,12 @@ func (_m *Attribute) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
 				_m.UserID = int(value.Int64)
+			}
+		case attribute.FieldDivisionID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field division_id", values[i])
+			} else if value.Valid {
+				_m.DivisionID = int(value.Int64)
 			}
 		case attribute.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -189,6 +197,9 @@ func (_m *Attribute) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("user_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
+	builder.WriteString(", ")
+	builder.WriteString("division_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DivisionID))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

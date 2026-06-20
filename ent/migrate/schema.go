@@ -16,6 +16,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "app_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
+		{Name: "division_id", Type: field.TypeInt},
 		{Name: "name", Type: field.TypeString},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
 	}
@@ -26,9 +27,9 @@ var (
 		PrimaryKey: []*schema.Column{AntAttributeColumns[0]},
 		Indexes: []*schema.Index{
 			{
-				Name:    "attribute_app_id",
+				Name:    "attribute_app_id_division_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntAttributeColumns[3]},
+				Columns: []*schema.Column{AntAttributeColumns[3], AntAttributeColumns[5]},
 			},
 		},
 	}
@@ -67,6 +68,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "app_id", Type: field.TypeInt},
+		{Name: "division_id", Type: field.TypeInt},
 		{Name: "name", Type: field.TypeString},
 		{Name: "path", Type: field.TypeString},
 		{Name: "depth", Type: field.TypeInt8, Default: 0},
@@ -81,7 +83,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ant_category_ant_category_children",
-				Columns:    []*schema.Column{AntCategoryColumns[8]},
+				Columns:    []*schema.Column{AntCategoryColumns[9]},
 				RefColumns: []*schema.Column{AntCategoryColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -90,12 +92,12 @@ var (
 			{
 				Name:    "category_path",
 				Unique:  false,
-				Columns: []*schema.Column{AntCategoryColumns[5]},
+				Columns: []*schema.Column{AntCategoryColumns[6]},
 			},
 			{
-				Name:    "category_app_id_parent_id",
+				Name:    "category_app_id_division_id_parent_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntCategoryColumns[3], AntCategoryColumns[8]},
+				Columns: []*schema.Column{AntCategoryColumns[3], AntCategoryColumns[4], AntCategoryColumns[9]},
 			},
 		},
 	}
@@ -132,9 +134,9 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "order_app_id_status",
+				Name:    "order_app_id_division_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{AntOrderColumns[3], AntOrderColumns[9]},
+				Columns: []*schema.Column{AntOrderColumns[3], AntOrderColumns[5], AntOrderColumns[9]},
 			},
 			{
 				Name:    "order_group_id",
@@ -172,9 +174,9 @@ var (
 				Columns: []*schema.Column{AntOrderGroupColumns[3], AntOrderGroupColumns[6]},
 			},
 			{
-				Name:    "ordergroup_app_id_status",
+				Name:    "ordergroup_app_id_division_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{AntOrderGroupColumns[3], AntOrderGroupColumns[8]},
+				Columns: []*schema.Column{AntOrderGroupColumns[3], AntOrderGroupColumns[5], AntOrderGroupColumns[8]},
 			},
 		},
 	}
@@ -223,6 +225,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "app_id", Type: field.TypeInt},
 		{Name: "user_id", Type: field.TypeInt},
+		{Name: "division_id", Type: field.TypeInt},
 		{Name: "name", Type: field.TypeString},
 		{Name: "price", Type: field.TypeFloat64, Default: 0},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
@@ -236,21 +239,21 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ant_product_ant_category_products",
-				Columns:    []*schema.Column{AntProductColumns[8]},
+				Columns:    []*schema.Column{AntProductColumns[9]},
 				RefColumns: []*schema.Column{AntCategoryColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "product_app_id",
+				Name:    "product_app_id_division_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntProductColumns[3]},
+				Columns: []*schema.Column{AntProductColumns[3], AntProductColumns[5]},
 			},
 			{
-				Name:    "product_category_id",
+				Name:    "product_app_id_division_id_category_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntProductColumns[8]},
+				Columns: []*schema.Column{AntProductColumns[3], AntProductColumns[5], AntProductColumns[9]},
 			},
 		},
 	}

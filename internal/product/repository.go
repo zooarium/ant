@@ -26,7 +26,7 @@ func NewRepository(client *ent.Client) *productRepository {
 // verifyAttributes ensures every assigned attribute exists, belongs to the
 // app and is active, and that every option chosen for it belongs to that
 // attribute. Only active attributes can be glued to a product.
-func verifyAttributes(ctx context.Context, tx *ent.Tx, appID int, assignments []AttributeAssignmentRequest) error {
+func verifyAttributes(ctx context.Context, tx *ent.Tx, appID, divisionID int, assignments []AttributeAssignmentRequest) error {
 	if len(assignments) == 0 {
 		return nil
 	}
@@ -39,6 +39,7 @@ func verifyAttributes(ctx context.Context, tx *ent.Tx, appID int, assignments []
 		Where(
 			entattribute.IDIn(ids...),
 			entattribute.AppID(appID),
+			entattribute.DivisionID(divisionID),
 			entattribute.Status(1),
 		).
 		WithOptions().
@@ -73,7 +74,7 @@ func verifyAttributes(ctx context.Context, tx *ent.Tx, appID int, assignments []
 
 // verifyCategory ensures the assigned category (if any) exists, belongs to the
 // app and is active. A nil categoryID means "no category" and always passes.
-func verifyCategory(ctx context.Context, tx *ent.Tx, appID int, categoryID *int) error {
+func verifyCategory(ctx context.Context, tx *ent.Tx, appID, divisionID int, categoryID *int) error {
 	if categoryID == nil {
 		return nil
 	}
@@ -82,6 +83,7 @@ func verifyCategory(ctx context.Context, tx *ent.Tx, appID int, categoryID *int)
 		Where(
 			entcategory.IDEQ(*categoryID),
 			entcategory.AppIDEQ(appID),
+			entcategory.DivisionIDEQ(divisionID),
 			entcategory.StatusEQ(1),
 		).
 		Exist(ctx)
@@ -125,16 +127,17 @@ func (r *productRepository) Create(ctx context.Context, item Product, assignment
 	if err != nil {
 		return Product{}, fmt.Errorf("begin tx: %w", err)
 	}
-	if err := verifyAttributes(ctx, tx, item.AppID, assignments); err != nil {
+	if err := verifyAttributes(ctx, tx, item.AppID, item.DivisionID, assignments); err != nil {
 		return Product{}, rollback(tx, err)
 	}
-	if err := verifyCategory(ctx, tx, item.AppID, item.CategoryID); err != nil {
+	if err := verifyCategory(ctx, tx, item.AppID, item.DivisionID, item.CategoryID); err != nil {
 		return Product{}, rollback(tx, err)
 	}
 	e, err := tx.Product.
 		Create().
 		SetAppID(item.AppID).
 		SetUserID(item.UserID).
+		SetDivisionID(item.DivisionID).
 		SetName(item.Name).
 		SetPrice(item.Price).
 		SetStatus(item.Status).
@@ -149,20 +152,20 @@ func (r *productRepository) Create(ctx context.Context, item Product, assignment
 	if err := tx.Commit(); err != nil {
 		return Product{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, item.AppID, item.UserID, e.ID)
+	return r.GetByID(ctx, item.AppID, item.UserID, item.DivisionID, e.ID)
 }
 
-func (r *productRepository) List(ctx context.Context, appID, userID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
+func (r *productRepository) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
 	q := r.client.Product.
 		Query().
-		Where(entproduct.AppID(appID))
+		Where(entproduct.AppID(appID), entproduct.DivisionID(divisionID))
 	if status != nil {
 		q = q.Where(entproduct.Status(*status))
 	}
 	if categoryID != nil {
 		// Hierarchical filter: include the category and its whole subtree. An
 		// unknown category yields an empty result rather than an error.
-		ids, err := r.categorySubtreeIDs(ctx, appID, *categoryID)
+		ids, err := r.categorySubtreeIDs(ctx, appID, divisionID, *categoryID)
 		if err != nil {
 			return nil, err
 		}
@@ -183,18 +186,18 @@ func (r *productRepository) List(ctx context.Context, appID, userID, limit, offs
 	for i, e := range es {
 		items[i] = r.mapToModel(e)
 	}
-	if err := r.decorateCategories(ctx, appID, items); err != nil {
+	if err := r.decorateCategories(ctx, appID, divisionID, items); err != nil {
 		return nil, err
 	}
 	return items, nil
 }
 
 // categorySubtreeIDs returns the ids of the category and all its descendants,
-// scoped to the app. An empty slice means the category does not exist.
-func (r *productRepository) categorySubtreeIDs(ctx context.Context, appID, categoryID int) ([]int, error) {
+// scoped to the app and division. An empty slice means the category does not exist.
+func (r *productRepository) categorySubtreeIDs(ctx context.Context, appID, divisionID, categoryID int) ([]int, error) {
 	cat, err := r.client.Category.
 		Query().
-		Where(entcategory.IDEQ(categoryID), entcategory.AppIDEQ(appID)).
+		Where(entcategory.IDEQ(categoryID), entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID)).
 		Select(entcategory.FieldPath).
 		Only(ctx)
 	if err != nil {
@@ -205,7 +208,7 @@ func (r *productRepository) categorySubtreeIDs(ctx context.Context, appID, categ
 	}
 	ids, err := r.client.Category.
 		Query().
-		Where(entcategory.AppIDEQ(appID), entcategory.PathHasPrefix(cat.Path)).
+		Where(entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID), entcategory.PathHasPrefix(cat.Path)).
 		Select(entcategory.FieldID).
 		Ints(ctx)
 	if err != nil {
@@ -214,10 +217,10 @@ func (r *productRepository) categorySubtreeIDs(ctx context.Context, appID, categ
 	return ids, nil
 }
 
-func (r *productRepository) GetByID(ctx context.Context, appID, userID, id int) (Product, error) {
+func (r *productRepository) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error) {
 	e, err := r.client.Product.
 		Query().
-		Where(entproduct.ID(id), entproduct.AppID(appID)).
+		Where(entproduct.ID(id), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		WithAttributes(func(paq *ent.ProductAttributeQuery) {
 			paq.WithAttribute(func(aq *ent.AttributeQuery) {
 				aq.WithOptions(func(oq *ent.AttributeOptionQuery) {
@@ -235,26 +238,26 @@ func (r *productRepository) GetByID(ctx context.Context, appID, userID, id int) 
 	item := r.mapToModel(e)
 	item.Attributes = mapAssignments(e.Edges.Attributes)
 	single := []Product{item}
-	if err := r.decorateCategories(ctx, appID, single); err != nil {
+	if err := r.decorateCategories(ctx, appID, divisionID, single); err != nil {
 		return Product{}, err
 	}
 	return single[0], nil
 }
 
-func (r *productRepository) Update(ctx context.Context, appID, userID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error) {
+func (r *productRepository) Update(ctx context.Context, appID, userID, divisionID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Product{}, fmt.Errorf("begin tx: %w", err)
 	}
-	if err := verifyAttributes(ctx, tx, appID, assignments); err != nil {
+	if err := verifyAttributes(ctx, tx, appID, divisionID, assignments); err != nil {
 		return Product{}, rollback(tx, err)
 	}
-	if err := verifyCategory(ctx, tx, appID, item.CategoryID); err != nil {
+	if err := verifyCategory(ctx, tx, appID, divisionID, item.CategoryID); err != nil {
 		return Product{}, rollback(tx, err)
 	}
 	upd := tx.Product.
 		Update().
-		Where(entproduct.ID(id), entproduct.AppID(appID)).
+		Where(entproduct.ID(id), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		SetName(item.Name).
 		SetPrice(item.Price).
 		SetStatus(item.Status)
@@ -284,17 +287,17 @@ func (r *productRepository) Update(ctx context.Context, appID, userID, id int, i
 	if err := tx.Commit(); err != nil {
 		return Product{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, appID, userID, id)
+	return r.GetByID(ctx, appID, userID, divisionID, id)
 }
 
-func (r *productRepository) Delete(ctx context.Context, appID, userID, id int) error {
+func (r *productRepository) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	exists, err := tx.Product.
 		Query().
-		Where(entproduct.ID(id), entproduct.AppID(appID)).
+		Where(entproduct.ID(id), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		Exist(ctx)
 	if err != nil {
 		return rollback(tx, fmt.Errorf("check product exists: %w", err))
@@ -322,7 +325,7 @@ func (r *productRepository) Delete(ctx context.Context, appID, userID, id int) e
 	}
 	if _, err := tx.Product.
 		Delete().
-		Where(entproduct.ID(id), entproduct.AppID(appID)).
+		Where(entproduct.ID(id), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		Exec(ctx); err != nil {
 		return rollback(tx, fmt.Errorf("delete product: %w", err))
 	}
@@ -337,6 +340,7 @@ func (r *productRepository) mapToModel(e *ent.Product) Product {
 		ID:         e.ID,
 		AppID:      e.AppID,
 		UserID:     e.UserID,
+		DivisionID: e.DivisionID,
 		Name:       e.Name,
 		Price:      e.Price,
 		Status:     e.Status,
@@ -349,7 +353,7 @@ func (r *productRepository) mapToModel(e *ent.Product) Product {
 // decorateCategories fills the Category ref (id, name, display) for every
 // product that has a category, resolving names and ancestor hierarchies in two
 // batched queries (categories, then their ancestors) — no N+1.
-func (r *productRepository) decorateCategories(ctx context.Context, appID int, items []Product) error {
+func (r *productRepository) decorateCategories(ctx context.Context, appID, divisionID int, items []Product) error {
 	catIDs := make(map[int]struct{})
 	for _, it := range items {
 		if it.CategoryID != nil {
@@ -362,7 +366,7 @@ func (r *productRepository) decorateCategories(ctx context.Context, appID int, i
 
 	cats, err := r.client.Category.
 		Query().
-		Where(entcategory.AppIDEQ(appID), entcategory.IDIn(intKeys(catIDs)...)).
+		Where(entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID), entcategory.IDIn(intKeys(catIDs)...)).
 		Select(entcategory.FieldID, entcategory.FieldName, entcategory.FieldPath).
 		All(ctx)
 	if err != nil {
@@ -389,7 +393,7 @@ func (r *productRepository) decorateCategories(ctx context.Context, appID int, i
 	if len(ancestorIDs) > 0 {
 		rows, err := r.client.Category.
 			Query().
-			Where(entcategory.AppIDEQ(appID), entcategory.IDIn(intKeys(ancestorIDs)...)).
+			Where(entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID), entcategory.IDIn(intKeys(ancestorIDs)...)).
 			Select(entcategory.FieldID, entcategory.FieldName).
 			All(ctx)
 		if err != nil {

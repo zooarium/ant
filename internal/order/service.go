@@ -34,23 +34,23 @@ var contactPattern = regexp.MustCompile(`^\+?[0-9][0-9 -]{5,18}$`)
 type Repository interface {
 	Create(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string) (Order, error)
 	CreatePublic(ctx context.Context, item Order, items []OrderItemRequest, groupID *int, groupLabel string, maxOrders int, window time.Duration) (Order, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
-	Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error)
-	UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error)
-	SetGroup(ctx context.Context, appID, userID, id, groupID int) (Order, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Order, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Order, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error)
+	UpdateStatus(ctx context.Context, appID, userID, divisionID, id int, status int8) (Order, error)
+	SetGroup(ctx context.Context, appID, userID, divisionID, id, groupID int) (Order, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type Service interface {
 	Create(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreateOrderRequest) (Order, error)
 	CreatePublic(ctx context.Context, appID, userID, divisionID int, ipAddress string, req CreatePublicOrderRequest, maxOrders int, window time.Duration) (Order, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Order, error)
-	Update(ctx context.Context, appID, userID, id int, req UpdateOrderRequest) (Order, error)
-	UpdateStatus(ctx context.Context, appID, userID, id int, req UpdateOrderStatusRequest) (Order, error)
-	SetGroup(ctx context.Context, appID, userID, id int, req SetOrderGroupRequest) (Order, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Order, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Order, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateOrderRequest) (Order, error)
+	UpdateStatus(ctx context.Context, appID, userID, divisionID, id int, req UpdateOrderStatusRequest) (Order, error)
+	SetGroup(ctx context.Context, appID, userID, divisionID, id int, req SetOrderGroupRequest) (Order, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type service struct {
@@ -119,8 +119,8 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, ipA
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error) {
-	items, err := s.repo.List(ctx, appID, userID, limit, offset, status)
+func (s *service) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Order, error) {
+	items, err := s.repo.List(ctx, appID, userID, divisionID, limit, offset, status)
 	if err != nil {
 		slog.Error("failed to list orders", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -166,8 +166,8 @@ func (s *service) CreatePublic(ctx context.Context, appID, userID, divisionID in
 	return created, nil
 }
 
-func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Order, error) {
-	item, err := s.repo.GetByID(ctx, appID, userID, id)
+func (s *service) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Order, error) {
+	item, err := s.repo.GetByID(ctx, appID, userID, divisionID, id)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) {
 			slog.Error("failed to get order by id", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -177,7 +177,7 @@ func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Order, er
 	return item, nil
 }
 
-func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateOrderRequest) (Order, error) {
+func (s *service) Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateOrderRequest) (Order, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -207,7 +207,7 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateO
 	if req.OrderedAt != nil {
 		item.OrderedAt = *req.OrderedAt
 	}
-	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Products, req.TaxPercent)
+	updated, err := s.repo.Update(ctx, appID, userID, divisionID, id, item, req.Products, req.TaxPercent)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) && !isItemError(err) {
 			slog.Error("failed to update order", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -218,11 +218,11 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateO
 	return updated, nil
 }
 
-func (s *service) UpdateStatus(ctx context.Context, appID, userID, id int, req UpdateOrderStatusRequest) (Order, error) {
+func (s *service) UpdateStatus(ctx context.Context, appID, userID, divisionID, id int, req UpdateOrderStatusRequest) (Order, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
-	updated, err := s.repo.UpdateStatus(ctx, appID, userID, id, req.Status)
+	updated, err := s.repo.UpdateStatus(ctx, appID, userID, divisionID, id, req.Status)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) {
 			slog.Error("failed to update order status", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -233,11 +233,11 @@ func (s *service) UpdateStatus(ctx context.Context, appID, userID, id int, req U
 	return updated, nil
 }
 
-func (s *service) SetGroup(ctx context.Context, appID, userID, id int, req SetOrderGroupRequest) (Order, error) {
+func (s *service) SetGroup(ctx context.Context, appID, userID, divisionID, id int, req SetOrderGroupRequest) (Order, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
-	updated, err := s.repo.SetGroup(ctx, appID, userID, id, *req.GroupID)
+	updated, err := s.repo.SetGroup(ctx, appID, userID, divisionID, id, *req.GroupID)
 	if err != nil {
 		if !errors.Is(err, ErrOrderNotFound) && !errors.Is(err, ErrOrderGroupInvalid) {
 			slog.Error("failed to set order group", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -248,8 +248,8 @@ func (s *service) SetGroup(ctx context.Context, appID, userID, id int, req SetOr
 	return updated, nil
 }
 
-func (s *service) Delete(ctx context.Context, appID, userID, id int) error {
-	if err := s.repo.Delete(ctx, appID, userID, id); err != nil {
+func (s *service) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
+	if err := s.repo.Delete(ctx, appID, userID, divisionID, id); err != nil {
 		if !errors.Is(err, ErrOrderNotFound) {
 			slog.Error("failed to delete order", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}

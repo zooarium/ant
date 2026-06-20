@@ -26,6 +26,8 @@ type Product struct {
 	AppID int `json:"app_id,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID int `json:"user_id,omitempty"`
+	// DivisionID holds the value of the "division_id" field.
+	DivisionID int `json:"division_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Price holds the value of the "price" field.
@@ -78,7 +80,7 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case product.FieldPrice:
 			values[i] = new(sql.NullFloat64)
-		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldStatus, product.FieldCategoryID:
+		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldDivisionID, product.FieldStatus, product.FieldCategoryID:
 			values[i] = new(sql.NullInt64)
 		case product.FieldName:
 			values[i] = new(sql.NullString)
@@ -128,6 +130,12 @@ func (_m *Product) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
 				_m.UserID = int(value.Int64)
+			}
+		case product.FieldDivisionID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field division_id", values[i])
+			} else if value.Valid {
+				_m.DivisionID = int(value.Int64)
 			}
 		case product.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -211,6 +219,9 @@ func (_m *Product) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("user_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
+	builder.WriteString(", ")
+	builder.WriteString("division_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DivisionID))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

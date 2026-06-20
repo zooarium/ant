@@ -8,6 +8,7 @@ type Product struct {
 	ID         int                 `json:"id"`
 	AppID      int                 `json:"app_id"`
 	UserID     int                 `json:"user_id"`
+	DivisionID int                 `json:"division_id"`
 	Name       string              `json:"name"`
 	Price      float64             `json:"price"`
 	Status     int8                `json:"status"`

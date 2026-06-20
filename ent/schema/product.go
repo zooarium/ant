@@ -29,6 +29,10 @@ func (Product) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int("app_id"),
 		field.Int("user_id"),
+		// division_id is the branch (keeper division) the product belongs to.
+		// Master data is per-branch: products are created and queried within a
+		// single division scope.
+		field.Int("division_id"),
 		field.String("name").
 			NotEmpty(),
 		field.Float("price").
@@ -53,7 +57,7 @@ func (Product) Edges() []ent.Edge {
 
 func (Product) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("app_id"),
-		index.Fields("category_id"),
+		index.Fields("app_id", "division_id"),
+		index.Fields("app_id", "division_id", "category_id"),
 	}
 }

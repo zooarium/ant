@@ -26,6 +26,7 @@ func NewRepository(client *ent.Client) *categoryRepository {
 func (r *categoryRepository) Create(ctx context.Context, c Category, parentPath string) (*Category, error) {
 	q := r.client.Category.Create().
 		SetAppID(c.AppID).
+		SetDivisionID(c.DivisionID).
 		SetName(c.Name).
 		SetPath("").
 		SetDepth(0).
@@ -54,17 +55,21 @@ func (r *categoryRepository) Create(ctx context.Context, c Category, parentPath 
 	}
 
 	c2 := r.mapToModel(updated)
-	if err := r.decorate(ctx, c.AppID, []*Category{c2}); err != nil {
+	if err := r.decorate(ctx, c.AppID, c.DivisionID, []*Category{c2}); err != nil {
 		return nil, err
 	}
 	return c2, nil
 }
 
-// GetByID returns a category scoped to an app. appID=0 bypasses the app filter.
-func (r *categoryRepository) GetByID(ctx context.Context, appID, id int) (*Category, error) {
+// GetByID returns a category scoped to an app and division. appID=0 bypasses the
+// app filter; divisionID=0 bypasses the division filter.
+func (r *categoryRepository) GetByID(ctx context.Context, appID, divisionID, id int) (*Category, error) {
 	q := r.client.Category.Query().Where(entcategory.IDEQ(id))
 	if appID != 0 {
 		q = q.Where(entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		q = q.Where(entcategory.DivisionIDEQ(divisionID))
 	}
 	c, err := q.Only(ctx)
 	if err != nil {
@@ -75,17 +80,20 @@ func (r *categoryRepository) GetByID(ctx context.Context, appID, id int) (*Categ
 		return nil, err
 	}
 	model := r.mapToModel(c)
-	if err := r.decorate(ctx, appID, []*Category{model}); err != nil {
+	if err := r.decorate(ctx, appID, divisionID, []*Category{model}); err != nil {
 		return nil, err
 	}
 	return model, nil
 }
 
-// List returns categories scoped to an app. If parentID is nil, returns all.
-func (r *categoryRepository) List(ctx context.Context, appID int, parentID *int, status *int8, limit, offset int) ([]*Category, error) {
+// List returns categories scoped to an app and division. If parentID is nil, returns all.
+func (r *categoryRepository) List(ctx context.Context, appID, divisionID int, parentID *int, status *int8, limit, offset int) ([]*Category, error) {
 	q := r.client.Category.Query()
 	if appID != 0 {
 		q = q.Where(entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		q = q.Where(entcategory.DivisionIDEQ(divisionID))
 	}
 	if parentID != nil {
 		q = q.Where(entcategory.ParentIDEQ(*parentID))
@@ -106,20 +114,23 @@ func (r *categoryRepository) List(ctx context.Context, appID int, parentID *int,
 	for i, c := range rows {
 		result[i] = r.mapToModel(c)
 	}
-	if err := r.decorate(ctx, appID, result); err != nil {
+	if err := r.decorate(ctx, appID, divisionID, result); err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
 // Descendants returns the subtree rooted at path, excluding the node itself.
-func (r *categoryRepository) Descendants(ctx context.Context, appID int, path string) ([]*Category, error) {
+func (r *categoryRepository) Descendants(ctx context.Context, appID, divisionID int, path string) ([]*Category, error) {
 	predicates := []predicate.Category{
 		entcategory.PathHasPrefix(path),
 		entcategory.PathNEQ(path),
 	}
 	if appID != 0 {
 		predicates = append(predicates, entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		predicates = append(predicates, entcategory.DivisionIDEQ(divisionID))
 	}
 	rows, err := r.client.Category.Query().
 		Where(predicates...).
@@ -133,17 +144,20 @@ func (r *categoryRepository) Descendants(ctx context.Context, appID int, path st
 	for i, c := range rows {
 		result[i] = r.mapToModel(c)
 	}
-	if err := r.decorate(ctx, appID, result); err != nil {
+	if err := r.decorate(ctx, appID, divisionID, result); err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
 // Update sets name and status of a category.
-func (r *categoryRepository) Update(ctx context.Context, appID, id int, c *Category) (*Category, error) {
+func (r *categoryRepository) Update(ctx context.Context, appID, divisionID, id int, c *Category) (*Category, error) {
 	q := r.client.Category.Update().Where(entcategory.IDEQ(id))
 	if appID != 0 {
 		q = q.Where(entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		q = q.Where(entcategory.DivisionIDEQ(divisionID))
 	}
 	count, err := q.
 		SetName(c.Name).
@@ -156,19 +170,19 @@ func (r *categoryRepository) Update(ctx context.Context, appID, id int, c *Categ
 	if count == 0 {
 		return nil, ErrCategoryNotFound
 	}
-	return r.GetByID(ctx, appID, id)
+	return r.GetByID(ctx, appID, divisionID, id)
 }
 
 // Move atomically reparents a category and cascades the path/depth update
 // across the node and all descendants inside a single transaction.
-func (r *categoryRepository) Move(ctx context.Context, id int, newParentID *int, oldPath, newPath string) error {
+func (r *categoryRepository) Move(ctx context.Context, appID, divisionID, id int, newParentID *int, oldPath, newPath string) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		slog.Error("database error: failed to begin transaction for category move", "id", id, "error", err)
 		return fmt.Errorf("begin tx: %w", err)
 	}
 
-	if err := r.moveTx(ctx, tx, id, newParentID, oldPath, newPath); err != nil {
+	if err := r.moveTx(ctx, tx, appID, divisionID, id, newParentID, oldPath, newPath); err != nil {
 		if rerr := tx.Rollback(); rerr != nil {
 			slog.Error("database error: failed to rollback category move", "id", id, "error", rerr)
 		}
@@ -182,9 +196,16 @@ func (r *categoryRepository) Move(ctx context.Context, id int, newParentID *int,
 	return nil
 }
 
-func (r *categoryRepository) moveTx(ctx context.Context, tx *ent.Tx, id int, newParentID *int, oldPath, newPath string) error {
+func (r *categoryRepository) moveTx(ctx context.Context, tx *ent.Tx, appID, divisionID, id int, newParentID *int, oldPath, newPath string) error {
+	cascade := []predicate.Category{entcategory.PathHasPrefix(oldPath)}
+	if appID != 0 {
+		cascade = append(cascade, entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		cascade = append(cascade, entcategory.DivisionIDEQ(divisionID))
+	}
 	affected, err := tx.Category.Query().
-		Where(entcategory.PathHasPrefix(oldPath)).
+		Where(cascade...).
 		All(ctx)
 	if err != nil {
 		slog.Error("database error: failed to fetch categories for path cascade", "old_path", oldPath, "error", err)
@@ -230,11 +251,14 @@ func (r *categoryRepository) CountProducts(ctx context.Context, id int) (int, er
 		Count(ctx)
 }
 
-// Delete removes a category scoped to an app.
-func (r *categoryRepository) Delete(ctx context.Context, appID, id int) error {
+// Delete removes a category scoped to an app and division.
+func (r *categoryRepository) Delete(ctx context.Context, appID, divisionID, id int) error {
 	q := r.client.Category.Delete().Where(entcategory.IDEQ(id))
 	if appID != 0 {
 		q = q.Where(entcategory.AppIDEQ(appID))
+	}
+	if divisionID != 0 {
+		q = q.Where(entcategory.DivisionIDEQ(divisionID))
 	}
 	count, err := q.Exec(ctx)
 	if err != nil {
@@ -249,7 +273,7 @@ func (r *categoryRepository) Delete(ctx context.Context, appID, id int) error {
 
 // decorate fills the Display field of each category by resolving ancestor
 // names in a single batched query (no N+1).
-func (r *categoryRepository) decorate(ctx context.Context, appID int, cats []*Category) error {
+func (r *categoryRepository) decorate(ctx context.Context, appID, divisionID int, cats []*Category) error {
 	if len(cats) == 0 {
 		return nil
 	}
@@ -274,6 +298,9 @@ func (r *categoryRepository) decorate(ctx context.Context, appID int, cats []*Ca
 		q := r.client.Category.Query().Where(entcategory.IDIn(idList...))
 		if appID != 0 {
 			q = q.Where(entcategory.AppIDEQ(appID))
+		}
+		if divisionID != 0 {
+			q = q.Where(entcategory.DivisionIDEQ(divisionID))
 		}
 		rows, err := q.
 			Select(entcategory.FieldID, entcategory.FieldName).
@@ -304,14 +331,15 @@ func (r *categoryRepository) decorate(ctx context.Context, appID int, cats []*Ca
 
 func (r *categoryRepository) mapToModel(c *ent.Category) *Category {
 	return &Category{
-		ID:        c.ID,
-		AppID:     c.AppID,
-		ParentID:  c.ParentID,
-		Name:      c.Name,
-		Path:      c.Path,
-		Depth:     c.Depth,
-		Status:    c.Status,
-		CreatedAt: c.CreatedAt,
-		UpdatedAt: c.UpdatedAt,
+		ID:         c.ID,
+		AppID:      c.AppID,
+		DivisionID: c.DivisionID,
+		ParentID:   c.ParentID,
+		Name:       c.Name,
+		Path:       c.Path,
+		Depth:      c.Depth,
+		Status:     c.Status,
+		CreatedAt:  c.CreatedAt,
+		UpdatedAt:  c.UpdatedAt,
 	}
 }

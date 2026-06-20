@@ -26,10 +26,10 @@ func NewRepository(client *ent.Client) *orderRepository {
 // buildSnapshot validates an item request against the live catalogue and
 // returns the denormalized snapshot to store with the order. It must run
 // inside the surrounding transaction so the checks and writes are atomic.
-func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, productID int, attributes []OrderItemAttributeRequest) (*ent.Product, []schema.OrderItemAttribute, error) {
+func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, divisionID, productID int, attributes []OrderItemAttributeRequest) (*ent.Product, []schema.OrderItemAttribute, error) {
 	p, err := tx.Product.
 		Query().
-		Where(entproduct.ID(productID), entproduct.AppID(appID)).
+		Where(entproduct.ID(productID), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		WithAttributes(func(paq *ent.ProductAttributeQuery) {
 			paq.WithAttribute(func(aq *ent.AttributeQuery) {
 				aq.WithOptions()
@@ -111,8 +111,8 @@ func buildSnapshot(ctx context.Context, tx *ent.Tx, appID, productID int, attrib
 
 // createItem writes one order item and returns its line total
 // ((price + option deltas) * quantity) so callers can accumulate the order total.
-func createItem(ctx context.Context, tx *ent.Tx, appID, orderID, productID, quantity int, attributes []OrderItemAttributeRequest) (float64, error) {
-	p, snapshot, err := buildSnapshot(ctx, tx, appID, productID, attributes)
+func createItem(ctx context.Context, tx *ent.Tx, appID, divisionID, orderID, productID, quantity int, attributes []OrderItemAttributeRequest) (float64, error) {
+	p, snapshot, err := buildSnapshot(ctx, tx, appID, divisionID, productID, attributes)
 	if err != nil {
 		return 0, err
 	}
@@ -155,10 +155,10 @@ func sumOrderItems(ctx context.Context, tx *ent.Tx, orderID int) (float64, error
 
 // verifyGroup ensures the group exists and belongs to the app. App scoping is
 // not enforced by the FK, so it must be checked explicitly.
-func verifyGroup(ctx context.Context, tx *ent.Tx, appID, groupID int) error {
+func verifyGroup(ctx context.Context, tx *ent.Tx, appID, divisionID, groupID int) error {
 	ok, err := tx.OrderGroup.
 		Query().
-		Where(entordergroup.ID(groupID), entordergroup.AppID(appID)).
+		Where(entordergroup.ID(groupID), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 		Exist(ctx)
 	if err != nil {
 		return fmt.Errorf("verify order group: %w", err)
@@ -181,7 +181,7 @@ func (r *orderRepository) Create(ctx context.Context, item Order, items []OrderI
 	if err := tx.Commit(); err != nil {
 		return Order{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, item.AppID, item.UserID, id)
+	return r.GetByID(ctx, item.AppID, item.UserID, item.DivisionID, id)
 }
 
 // CreatePublic creates an order on behalf of a public (guest) caller, enforcing
@@ -222,7 +222,7 @@ func (r *orderRepository) CreatePublic(ctx context.Context, item Order, items []
 	if err := tx.Commit(); err != nil {
 		return Order{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, item.AppID, item.UserID, id)
+	return r.GetByID(ctx, item.AppID, item.UserID, item.DivisionID, id)
 }
 
 // buildOrderInTx resolves/mints the group, inserts the order and its items, and
@@ -233,7 +233,7 @@ func buildOrderInTx(ctx context.Context, tx *ent.Tx, item Order, items []OrderIt
 	// the same transaction so a single order-create call both places the order
 	// and opens its tab. Every order belongs to exactly one group.
 	if groupID != nil {
-		if err := verifyGroup(ctx, tx, item.AppID, *groupID); err != nil {
+		if err := verifyGroup(ctx, tx, item.AppID, item.DivisionID, *groupID); err != nil {
 			return 0, err
 		}
 		item.GroupID = *groupID
@@ -277,7 +277,7 @@ func buildOrderInTx(ctx context.Context, tx *ent.Tx, item Order, items []OrderIt
 	}
 	var total float64
 	for _, req := range items {
-		lt, err := createItem(ctx, tx, item.AppID, e.ID, req.ProductID, req.Quantity, req.Attributes)
+		lt, err := createItem(ctx, tx, item.AppID, item.DivisionID, e.ID, req.ProductID, req.Quantity, req.Attributes)
 		if err != nil {
 			return 0, err
 		}
@@ -289,10 +289,10 @@ func buildOrderInTx(ctx context.Context, tx *ent.Tx, item Order, items []OrderIt
 	return e.ID, nil
 }
 
-func (r *orderRepository) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Order, error) {
+func (r *orderRepository) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Order, error) {
 	q := r.client.Order.
 		Query().
-		Where(entorder.AppID(appID))
+		Where(entorder.AppID(appID), entorder.DivisionID(divisionID))
 	if status != nil {
 		q = q.Where(entorder.Status(*status))
 	}
@@ -339,10 +339,10 @@ func (r *orderRepository) List(ctx context.Context, appID, userID, limit, offset
 	return items, nil
 }
 
-func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (Order, error) {
+func (r *orderRepository) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Order, error) {
 	e, err := r.client.Order.
 		Query().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		WithProducts(func(opq *ent.OrderProductQuery) {
 			opq.Order(ent.Asc(orderproduct.FieldID))
 		}).
@@ -373,14 +373,14 @@ func (r *orderRepository) GetByID(ctx context.Context, appID, userID, id int) (O
 // in one transaction: payload items with an id update the existing item's
 // quantity (the snapshot is immutable), ones without an id are added from the
 // live catalogue, and existing items absent from the payload are deleted.
-func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error) {
+func (r *orderRepository) Update(ctx context.Context, appID, userID, divisionID, id int, item Order, items []SyncOrderItemRequest, taxPercent *float64) (Order, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
 	}
 	upd := tx.Order.
 		Update().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		SetCustomerName(item.CustomerName).
 		SetCustomerContact(item.CustomerContact)
 	// tax_percent is preserved when the payload omits it.
@@ -414,7 +414,7 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 	keep := make(map[int]struct{}, len(items))
 	for _, p := range items {
 		if p.ID == 0 {
-			if _, err := createItem(ctx, tx, appID, id, p.ProductID, p.Quantity, p.Attributes); err != nil {
+			if _, err := createItem(ctx, tx, appID, divisionID, id, p.ProductID, p.Quantity, p.Attributes); err != nil {
 				return Order{}, rollback(tx, err)
 			}
 			continue
@@ -458,19 +458,19 @@ func (r *orderRepository) Update(ctx context.Context, appID, userID, id int, ite
 	if err := tx.Commit(); err != nil {
 		return Order{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, appID, userID, id)
+	return r.GetByID(ctx, appID, userID, divisionID, id)
 }
 
 // SetGroup moves the order to a different group. The target group must belong
 // to the same app. Orders always belong to a group, so there is no detach.
-func (r *orderRepository) SetGroup(ctx context.Context, appID, userID, id, groupID int) (Order, error) {
+func (r *orderRepository) SetGroup(ctx context.Context, appID, userID, divisionID, id, groupID int) (Order, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return Order{}, fmt.Errorf("begin tx: %w", err)
 	}
 	exists, err := tx.Order.
 		Query().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		Exist(ctx)
 	if err != nil {
 		return Order{}, rollback(tx, fmt.Errorf("check order exists: %w", err))
@@ -478,12 +478,12 @@ func (r *orderRepository) SetGroup(ctx context.Context, appID, userID, id, group
 	if !exists {
 		return Order{}, rollback(tx, ErrOrderNotFound)
 	}
-	if err := verifyGroup(ctx, tx, appID, groupID); err != nil {
+	if err := verifyGroup(ctx, tx, appID, divisionID, groupID); err != nil {
 		return Order{}, rollback(tx, err)
 	}
 	if _, err := tx.Order.
 		Update().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		SetGroupID(groupID).
 		Save(ctx); err != nil {
 		return Order{}, rollback(tx, fmt.Errorf("set order group: %w", err))
@@ -491,13 +491,13 @@ func (r *orderRepository) SetGroup(ctx context.Context, appID, userID, id, group
 	if err := tx.Commit(); err != nil {
 		return Order{}, fmt.Errorf("commit tx: %w", err)
 	}
-	return r.GetByID(ctx, appID, userID, id)
+	return r.GetByID(ctx, appID, userID, divisionID, id)
 }
 
-func (r *orderRepository) UpdateStatus(ctx context.Context, appID, userID, id int, status int8) (Order, error) {
+func (r *orderRepository) UpdateStatus(ctx context.Context, appID, userID, divisionID, id int, status int8) (Order, error) {
 	count, err := r.client.Order.
 		Update().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		SetStatus(status).
 		Save(ctx)
 	if err != nil {
@@ -506,17 +506,17 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, appID, userID, id in
 	if count == 0 {
 		return Order{}, ErrOrderNotFound
 	}
-	return r.GetByID(ctx, appID, userID, id)
+	return r.GetByID(ctx, appID, userID, divisionID, id)
 }
 
-func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) error {
+func (r *orderRepository) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	groupID, err := tx.Order.
 		Query().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		Select(entorder.FieldGroupID).
 		Int(ctx)
 	if err != nil {
@@ -533,7 +533,7 @@ func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) err
 	}
 	if _, err := tx.Order.
 		Delete().
-		Where(entorder.ID(id), entorder.AppID(appID)).
+		Where(entorder.ID(id), entorder.AppID(appID), entorder.DivisionID(divisionID)).
 		Exec(ctx); err != nil {
 		return rollback(tx, fmt.Errorf("delete order: %w", err))
 	}
@@ -550,7 +550,7 @@ func (r *orderRepository) Delete(ctx context.Context, appID, userID, id int) err
 	if remaining == 0 {
 		if _, err := tx.OrderGroup.
 			Delete().
-			Where(entordergroup.ID(groupID), entordergroup.AppID(appID)).
+			Where(entordergroup.ID(groupID), entordergroup.AppID(appID), entordergroup.DivisionID(divisionID)).
 			Exec(ctx); err != nil {
 			return rollback(tx, fmt.Errorf("delete empty order group: %w", err))
 		}

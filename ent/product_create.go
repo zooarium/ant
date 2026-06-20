@@ -62,6 +62,12 @@ func (_c *ProductCreate) SetUserID(v int) *ProductCreate {
 	return _c
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_c *ProductCreate) SetDivisionID(v int) *ProductCreate {
+	_c.mutation.SetDivisionID(v)
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *ProductCreate) SetName(v string) *ProductCreate {
 	_c.mutation.SetName(v)
@@ -197,6 +203,9 @@ func (_c *ProductCreate) check() error {
 	if _, ok := _c.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "Product.user_id"`)}
 	}
+	if _, ok := _c.mutation.DivisionID(); !ok {
+		return &ValidationError{Name: "division_id", err: errors.New(`ent: missing required field "Product.division_id"`)}
+	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Product.name"`)}
 	}
@@ -252,6 +261,10 @@ func (_c *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UserID(); ok {
 		_spec.SetField(product.FieldUserID, field.TypeInt, value)
 		_node.UserID = value
+	}
+	if value, ok := _c.mutation.DivisionID(); ok {
+		_spec.SetField(product.FieldDivisionID, field.TypeInt, value)
+		_node.DivisionID = value
 	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(product.FieldName, field.TypeString, value)

@@ -19,18 +19,18 @@ var (
 
 type Repository interface {
 	Create(ctx context.Context, item Attribute) (Attribute, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Attribute, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Attribute, error)
-	Update(ctx context.Context, appID, userID, id int, item Attribute, options []SyncOptionRequest) (Attribute, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Attribute, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Attribute, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, item Attribute, options []SyncOptionRequest) (Attribute, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type Service interface {
-	Create(ctx context.Context, appID, userID int, req CreateAttributeRequest) (Attribute, error)
-	List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Attribute, error)
-	GetByID(ctx context.Context, appID, userID, id int) (Attribute, error)
-	Update(ctx context.Context, appID, userID, id int, req UpdateAttributeRequest) (Attribute, error)
-	Delete(ctx context.Context, appID, userID, id int) error
+	Create(ctx context.Context, appID, userID, divisionID int, req CreateAttributeRequest) (Attribute, error)
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Attribute, error)
+	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Attribute, error)
+	Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateAttributeRequest) (Attribute, error)
+	Delete(ctx context.Context, appID, userID, divisionID, id int) error
 }
 
 type service struct {
@@ -57,7 +57,7 @@ func checkDuplicateValues(values []string) error {
 	return nil
 }
 
-func (s *service) Create(ctx context.Context, appID, userID int, req CreateAttributeRequest) (Attribute, error) {
+func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req CreateAttributeRequest) (Attribute, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Attribute{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -75,11 +75,12 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateAttri
 		status = *req.Status
 	}
 	item := Attribute{
-		AppID:   appID,
-		UserID:  userID,
-		Name:    req.Name,
-		Status:  status,
-		Options: options,
+		AppID:      appID,
+		UserID:     userID,
+		DivisionID: divisionID,
+		Name:       req.Name,
+		Status:     status,
+		Options:    options,
 	}
 	created, err := s.repo.Create(ctx, item)
 	if err != nil {
@@ -90,8 +91,8 @@ func (s *service) Create(ctx context.Context, appID, userID int, req CreateAttri
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, limit, offset int, status *int8) ([]Attribute, error) {
-	items, err := s.repo.List(ctx, appID, userID, limit, offset, status)
+func (s *service) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8) ([]Attribute, error) {
+	items, err := s.repo.List(ctx, appID, userID, divisionID, limit, offset, status)
 	if err != nil {
 		slog.Error("failed to list attributes", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -99,8 +100,8 @@ func (s *service) List(ctx context.Context, appID, userID, limit, offset int, st
 	return items, nil
 }
 
-func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Attribute, error) {
-	item, err := s.repo.GetByID(ctx, appID, userID, id)
+func (s *service) GetByID(ctx context.Context, appID, userID, divisionID, id int) (Attribute, error) {
+	item, err := s.repo.GetByID(ctx, appID, userID, divisionID, id)
 	if err != nil {
 		if !errors.Is(err, ErrAttributeNotFound) {
 			slog.Error("failed to get attribute by id", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -110,7 +111,7 @@ func (s *service) GetByID(ctx context.Context, appID, userID, id int) (Attribute
 	return item, nil
 }
 
-func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateAttributeRequest) (Attribute, error) {
+func (s *service) Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateAttributeRequest) (Attribute, error) {
 	if err := s.validate.Struct(req); err != nil {
 		return Attribute{}, fmt.Errorf("validate request: %w", err)
 	}
@@ -125,7 +126,7 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateA
 		Name:   req.Name,
 		Status: *req.Status,
 	}
-	updated, err := s.repo.Update(ctx, appID, userID, id, item, req.Options)
+	updated, err := s.repo.Update(ctx, appID, userID, divisionID, id, item, req.Options)
 	if err != nil {
 		if !errors.Is(err, ErrAttributeNotFound) && !errors.Is(err, ErrOptionNotFound) {
 			slog.Error("failed to update attribute", "error", err, "id", id, "app_id", appID, "user_id", userID)
@@ -136,8 +137,8 @@ func (s *service) Update(ctx context.Context, appID, userID, id int, req UpdateA
 	return updated, nil
 }
 
-func (s *service) Delete(ctx context.Context, appID, userID, id int) error {
-	if err := s.repo.Delete(ctx, appID, userID, id); err != nil {
+func (s *service) Delete(ctx context.Context, appID, userID, divisionID, id int) error {
+	if err := s.repo.Delete(ctx, appID, userID, divisionID, id); err != nil {
 		if !errors.Is(err, ErrAttributeNotFound) && !errors.Is(err, ErrAttributeInUse) {
 			slog.Error("failed to delete attribute", "error", err, "id", id, "app_id", appID, "user_id", userID)
 		}

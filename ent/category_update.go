@@ -56,6 +56,27 @@ func (_u *CategoryUpdate) AddAppID(v int) *CategoryUpdate {
 	return _u
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_u *CategoryUpdate) SetDivisionID(v int) *CategoryUpdate {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *CategoryUpdate) SetNillableDivisionID(v *int) *CategoryUpdate {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *CategoryUpdate) AddDivisionID(v int) *CategoryUpdate {
+	_u.mutation.AddDivisionID(v)
+	return _u
+}
+
 // SetParentID sets the "parent_id" field.
 func (_u *CategoryUpdate) SetParentID(v int) *CategoryUpdate {
 	_u.mutation.SetParentID(v)
@@ -301,6 +322,12 @@ func (_u *CategoryUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedAppID(); ok {
 		_spec.AddField(category.FieldAppID, field.TypeInt, value)
 	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(category.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(category.FieldDivisionID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(category.FieldName, field.TypeString, value)
 	}
@@ -482,6 +509,27 @@ func (_u *CategoryUpdateOne) SetNillableAppID(v *int) *CategoryUpdateOne {
 // AddAppID adds value to the "app_id" field.
 func (_u *CategoryUpdateOne) AddAppID(v int) *CategoryUpdateOne {
 	_u.mutation.AddAppID(v)
+	return _u
+}
+
+// SetDivisionID sets the "division_id" field.
+func (_u *CategoryUpdateOne) SetDivisionID(v int) *CategoryUpdateOne {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *CategoryUpdateOne) SetNillableDivisionID(v *int) *CategoryUpdateOne {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *CategoryUpdateOne) AddDivisionID(v int) *CategoryUpdateOne {
+	_u.mutation.AddDivisionID(v)
 	return _u
 }
 
@@ -759,6 +807,12 @@ func (_u *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err 
 	}
 	if value, ok := _u.mutation.AddedAppID(); ok {
 		_spec.AddField(category.FieldAppID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(category.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(category.FieldDivisionID, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(category.FieldName, field.TypeString, value)

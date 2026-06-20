@@ -20,6 +20,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldAppID holds the string denoting the app_id field in the database.
 	FieldAppID = "app_id"
+	// FieldDivisionID holds the string denoting the division_id field in the database.
+	FieldDivisionID = "division_id"
 	// FieldParentID holds the string denoting the parent_id field in the database.
 	FieldParentID = "parent_id"
 	// FieldName holds the string denoting the name field in the database.
@@ -61,6 +63,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldAppID,
+	FieldDivisionID,
 	FieldParentID,
 	FieldName,
 	FieldPath,
@@ -114,6 +117,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByAppID orders the results by the app_id field.
 func ByAppID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAppID, opts...).ToFunc()
+}
+
+// ByDivisionID orders the results by the division_id field.
+func ByDivisionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDivisionID, opts...).ToFunc()
 }
 
 // ByParentID orders the results by the parent_id field.

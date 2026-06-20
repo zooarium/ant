@@ -78,6 +78,27 @@ func (_u *AttributeUpdate) AddUserID(v int) *AttributeUpdate {
 	return _u
 }
 
+// SetDivisionID sets the "division_id" field.
+func (_u *AttributeUpdate) SetDivisionID(v int) *AttributeUpdate {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *AttributeUpdate) SetNillableDivisionID(v *int) *AttributeUpdate {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *AttributeUpdate) AddDivisionID(v int) *AttributeUpdate {
+	_u.mutation.AddDivisionID(v)
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *AttributeUpdate) SetName(v string) *AttributeUpdate {
 	_u.mutation.SetName(v)
@@ -263,6 +284,12 @@ func (_u *AttributeUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(attribute.FieldUserID, field.TypeInt, value)
 	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(attribute.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(attribute.FieldDivisionID, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(attribute.FieldName, field.TypeString, value)
 	}
@@ -427,6 +454,27 @@ func (_u *AttributeUpdateOne) SetNillableUserID(v *int) *AttributeUpdateOne {
 // AddUserID adds value to the "user_id" field.
 func (_u *AttributeUpdateOne) AddUserID(v int) *AttributeUpdateOne {
 	_u.mutation.AddUserID(v)
+	return _u
+}
+
+// SetDivisionID sets the "division_id" field.
+func (_u *AttributeUpdateOne) SetDivisionID(v int) *AttributeUpdateOne {
+	_u.mutation.ResetDivisionID()
+	_u.mutation.SetDivisionID(v)
+	return _u
+}
+
+// SetNillableDivisionID sets the "division_id" field if the given value is not nil.
+func (_u *AttributeUpdateOne) SetNillableDivisionID(v *int) *AttributeUpdateOne {
+	if v != nil {
+		_u.SetDivisionID(*v)
+	}
+	return _u
+}
+
+// AddDivisionID adds value to the "division_id" field.
+func (_u *AttributeUpdateOne) AddDivisionID(v int) *AttributeUpdateOne {
+	_u.mutation.AddDivisionID(v)
 	return _u
 }
 
@@ -644,6 +692,12 @@ func (_u *AttributeUpdateOne) sqlSave(ctx context.Context) (_node *Attribute, er
 	}
 	if value, ok := _u.mutation.AddedUserID(); ok {
 		_spec.AddField(attribute.FieldUserID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DivisionID(); ok {
+		_spec.SetField(attribute.FieldDivisionID, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDivisionID(); ok {
+		_spec.AddField(attribute.FieldDivisionID, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(attribute.FieldName, field.TypeString, value)

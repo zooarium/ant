@@ -20,25 +20,25 @@ var (
 // Repository is the data-access contract for categories.
 type Repository interface {
 	Create(ctx context.Context, c Category, parentPath string) (*Category, error)
-	GetByID(ctx context.Context, appID, id int) (*Category, error)
-	List(ctx context.Context, appID int, parentID *int, status *int8, limit, offset int) ([]*Category, error)
-	Descendants(ctx context.Context, appID int, path string) ([]*Category, error)
-	Update(ctx context.Context, appID, id int, c *Category) (*Category, error)
-	Move(ctx context.Context, id int, newParentID *int, oldPath, newPath string) error
+	GetByID(ctx context.Context, appID, divisionID, id int) (*Category, error)
+	List(ctx context.Context, appID, divisionID int, parentID *int, status *int8, limit, offset int) ([]*Category, error)
+	Descendants(ctx context.Context, appID, divisionID int, path string) ([]*Category, error)
+	Update(ctx context.Context, appID, divisionID, id int, c *Category) (*Category, error)
+	Move(ctx context.Context, appID, divisionID, id int, newParentID *int, oldPath, newPath string) error
 	CountChildren(ctx context.Context, id int) (int, error)
 	CountProducts(ctx context.Context, id int) (int, error)
-	Delete(ctx context.Context, appID, id int) error
+	Delete(ctx context.Context, appID, divisionID, id int) error
 }
 
 // Service is the business-logic contract for categories.
 type Service interface {
-	Create(ctx context.Context, appID int, req CreateCategoryRequest) (*Category, error)
-	GetByID(ctx context.Context, appID, id int) (*Category, error)
-	List(ctx context.Context, appID int, parentID *int, status *int8, limit, offset int) ([]*Category, error)
-	Descendants(ctx context.Context, appID, id int) ([]*Category, error)
-	Update(ctx context.Context, appID, id int, req UpdateCategoryRequest) (*Category, error)
-	Move(ctx context.Context, appID, id int, req MoveCategoryRequest) (*Category, error)
-	Delete(ctx context.Context, appID, id int) error
+	Create(ctx context.Context, appID, divisionID int, req CreateCategoryRequest) (*Category, error)
+	GetByID(ctx context.Context, appID, divisionID, id int) (*Category, error)
+	List(ctx context.Context, appID, divisionID int, parentID *int, status *int8, limit, offset int) ([]*Category, error)
+	Descendants(ctx context.Context, appID, divisionID, id int) ([]*Category, error)
+	Update(ctx context.Context, appID, divisionID, id int, req UpdateCategoryRequest) (*Category, error)
+	Move(ctx context.Context, appID, divisionID, id int, req MoveCategoryRequest) (*Category, error)
+	Delete(ctx context.Context, appID, divisionID, id int) error
 }
 
 type service struct {
@@ -50,10 +50,10 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) Create(ctx context.Context, appID int, req CreateCategoryRequest) (*Category, error) {
+func (s *service) Create(ctx context.Context, appID, divisionID int, req CreateCategoryRequest) (*Category, error) {
 	parentPath := "/"
 	if req.ParentID != nil {
-		parent, err := s.repo.GetByID(ctx, appID, *req.ParentID)
+		parent, err := s.repo.GetByID(ctx, appID, divisionID, *req.ParentID)
 		if err != nil {
 			return nil, ErrParentNotFound
 		}
@@ -64,10 +64,11 @@ func (s *service) Create(ctx context.Context, appID int, req CreateCategoryReque
 	}
 
 	created, err := s.repo.Create(ctx, Category{
-		AppID:    appID,
-		ParentID: req.ParentID,
-		Name:     req.Name,
-		Status:   1,
+		AppID:      appID,
+		DivisionID: divisionID,
+		ParentID:   req.ParentID,
+		Name:       req.Name,
+		Status:     1,
 	}, parentPath)
 	if err != nil {
 		slog.Error("failed to create category", "name", req.Name, "app_id", appID, "error", err)
@@ -77,24 +78,24 @@ func (s *service) Create(ctx context.Context, appID int, req CreateCategoryReque
 	return created, nil
 }
 
-func (s *service) GetByID(ctx context.Context, appID, id int) (*Category, error) {
-	return s.repo.GetByID(ctx, appID, id)
+func (s *service) GetByID(ctx context.Context, appID, divisionID, id int) (*Category, error) {
+	return s.repo.GetByID(ctx, appID, divisionID, id)
 }
 
-func (s *service) List(ctx context.Context, appID int, parentID *int, status *int8, limit, offset int) ([]*Category, error) {
-	return s.repo.List(ctx, appID, parentID, status, limit, offset)
+func (s *service) List(ctx context.Context, appID, divisionID int, parentID *int, status *int8, limit, offset int) ([]*Category, error) {
+	return s.repo.List(ctx, appID, divisionID, parentID, status, limit, offset)
 }
 
-func (s *service) Descendants(ctx context.Context, appID, id int) ([]*Category, error) {
-	c, err := s.repo.GetByID(ctx, appID, id)
+func (s *service) Descendants(ctx context.Context, appID, divisionID, id int) ([]*Category, error) {
+	c, err := s.repo.GetByID(ctx, appID, divisionID, id)
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.Descendants(ctx, appID, c.Path)
+	return s.repo.Descendants(ctx, appID, divisionID, c.Path)
 }
 
-func (s *service) Update(ctx context.Context, appID, id int, req UpdateCategoryRequest) (*Category, error) {
-	existing, err := s.repo.GetByID(ctx, appID, id)
+func (s *service) Update(ctx context.Context, appID, divisionID, id int, req UpdateCategoryRequest) (*Category, error) {
+	existing, err := s.repo.GetByID(ctx, appID, divisionID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func (s *service) Update(ctx context.Context, appID, id int, req UpdateCategoryR
 	if req.Status != nil {
 		existing.Status = *req.Status
 	}
-	updated, err := s.repo.Update(ctx, appID, id, existing)
+	updated, err := s.repo.Update(ctx, appID, divisionID, id, existing)
 	if err != nil {
 		slog.Error("failed to update category", "id", id, "app_id", appID, "error", err)
 		return nil, err
@@ -113,8 +114,8 @@ func (s *service) Update(ctx context.Context, appID, id int, req UpdateCategoryR
 	return updated, nil
 }
 
-func (s *service) Move(ctx context.Context, appID, id int, req MoveCategoryRequest) (*Category, error) {
-	c, err := s.repo.GetByID(ctx, appID, id)
+func (s *service) Move(ctx context.Context, appID, divisionID, id int, req MoveCategoryRequest) (*Category, error) {
+	c, err := s.repo.GetByID(ctx, appID, divisionID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +125,7 @@ func (s *service) Move(ctx context.Context, appID, id int, req MoveCategoryReque
 		if *req.ParentID == id {
 			return nil, ErrMoveToSelf
 		}
-		newParent, err := s.repo.GetByID(ctx, appID, *req.ParentID)
+		newParent, err := s.repo.GetByID(ctx, appID, divisionID, *req.ParentID)
 		if err != nil {
 			return nil, ErrParentNotFound
 		}
@@ -138,16 +139,16 @@ func (s *service) Move(ctx context.Context, appID, id int, req MoveCategoryReque
 	oldPath := c.Path
 	newPath := fmt.Sprintf("%s%d/", newParentPath, id)
 
-	if err := s.repo.Move(ctx, id, req.ParentID, oldPath, newPath); err != nil {
+	if err := s.repo.Move(ctx, appID, divisionID, id, req.ParentID, oldPath, newPath); err != nil {
 		slog.Error("failed to move category", "id", id, "app_id", appID, "error", err)
 		return nil, err
 	}
 	slog.Info("category moved", "id", id, "old_path", oldPath, "new_path", newPath)
-	return s.repo.GetByID(ctx, appID, id)
+	return s.repo.GetByID(ctx, appID, divisionID, id)
 }
 
-func (s *service) Delete(ctx context.Context, appID, id int) error {
-	if _, err := s.repo.GetByID(ctx, appID, id); err != nil {
+func (s *service) Delete(ctx context.Context, appID, divisionID, id int) error {
+	if _, err := s.repo.GetByID(ctx, appID, divisionID, id); err != nil {
 		return err
 	}
 
@@ -167,7 +168,7 @@ func (s *service) Delete(ctx context.Context, appID, id int) error {
 		return ErrHasProducts
 	}
 
-	if err := s.repo.Delete(ctx, appID, id); err != nil {
+	if err := s.repo.Delete(ctx, appID, divisionID, id); err != nil {
 		slog.Error("failed to delete category", "id", id, "app_id", appID, "error", err)
 		return err
 	}

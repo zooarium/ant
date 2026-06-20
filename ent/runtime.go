@@ -35,11 +35,11 @@ func init() {
 	// attribute.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	attribute.UpdateDefaultUpdatedAt = attributeDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// attributeDescName is the schema descriptor for name field.
-	attributeDescName := attributeFields[2].Descriptor()
+	attributeDescName := attributeFields[3].Descriptor()
 	// attribute.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	attribute.NameValidator = attributeDescName.Validators[0].(func(string) error)
 	// attributeDescStatus is the schema descriptor for status field.
-	attributeDescStatus := attributeFields[3].Descriptor()
+	attributeDescStatus := attributeFields[4].Descriptor()
 	// attribute.DefaultStatus holds the default value on creation for the status field.
 	attribute.DefaultStatus = attributeDescStatus.Default.(int8)
 	attributeoptionMixin := schema.AttributeOption{}.Mixin()
@@ -77,15 +77,15 @@ func init() {
 	// category.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	category.UpdateDefaultUpdatedAt = categoryDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// categoryDescName is the schema descriptor for name field.
-	categoryDescName := categoryFields[2].Descriptor()
+	categoryDescName := categoryFields[3].Descriptor()
 	// category.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	category.NameValidator = categoryDescName.Validators[0].(func(string) error)
 	// categoryDescDepth is the schema descriptor for depth field.
-	categoryDescDepth := categoryFields[4].Descriptor()
+	categoryDescDepth := categoryFields[5].Descriptor()
 	// category.DefaultDepth holds the default value on creation for the depth field.
 	category.DefaultDepth = categoryDescDepth.Default.(int8)
 	// categoryDescStatus is the schema descriptor for status field.
-	categoryDescStatus := categoryFields[5].Descriptor()
+	categoryDescStatus := categoryFields[6].Descriptor()
 	// category.DefaultStatus holds the default value on creation for the status field.
 	category.DefaultStatus = categoryDescStatus.Default.(int8)
 	orderMixin := schema.Order{}.Mixin()
@@ -219,15 +219,15 @@ func init() {
 	// product.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	product.UpdateDefaultUpdatedAt = productDescUpdatedAt.UpdateDefault.(func() time.Time)
 	// productDescName is the schema descriptor for name field.
-	productDescName := productFields[2].Descriptor()
+	productDescName := productFields[3].Descriptor()
 	// product.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	product.NameValidator = productDescName.Validators[0].(func(string) error)
 	// productDescPrice is the schema descriptor for price field.
-	productDescPrice := productFields[3].Descriptor()
+	productDescPrice := productFields[4].Descriptor()
 	// product.DefaultPrice holds the default value on creation for the price field.
 	product.DefaultPrice = productDescPrice.Default.(float64)
 	// productDescStatus is the schema descriptor for status field.
-	productDescStatus := productFields[4].Descriptor()
+	productDescStatus := productFields[5].Descriptor()
 	// product.DefaultStatus holds the default value on creation for the status field.
 	product.DefaultStatus = productDescStatus.Default.(int8)
 	productattributeMixin := schema.ProductAttribute{}.Mixin()

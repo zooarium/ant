@@ -70,6 +70,11 @@ func AppID(v int) predicate.Category {
 	return predicate.Category(sql.FieldEQ(FieldAppID, v))
 }
 
+// DivisionID applies equality check predicate on the "division_id" field. It's identical to DivisionIDEQ.
+func DivisionID(v int) predicate.Category {
+	return predicate.Category(sql.FieldEQ(FieldDivisionID, v))
+}
+
 // ParentID applies equality check predicate on the "parent_id" field. It's identical to ParentIDEQ.
 func ParentID(v int) predicate.Category {
 	return predicate.Category(sql.FieldEQ(FieldParentID, v))
@@ -213,6 +218,46 @@ func AppIDLT(v int) predicate.Category {
 // AppIDLTE applies the LTE predicate on the "app_id" field.
 func AppIDLTE(v int) predicate.Category {
 	return predicate.Category(sql.FieldLTE(FieldAppID, v))
+}
+
+// DivisionIDEQ applies the EQ predicate on the "division_id" field.
+func DivisionIDEQ(v int) predicate.Category {
+	return predicate.Category(sql.FieldEQ(FieldDivisionID, v))
+}
+
+// DivisionIDNEQ applies the NEQ predicate on the "division_id" field.
+func DivisionIDNEQ(v int) predicate.Category {
+	return predicate.Category(sql.FieldNEQ(FieldDivisionID, v))
+}
+
+// DivisionIDIn applies the In predicate on the "division_id" field.
+func DivisionIDIn(vs ...int) predicate.Category {
+	return predicate.Category(sql.FieldIn(FieldDivisionID, vs...))
+}
+
+// DivisionIDNotIn applies the NotIn predicate on the "division_id" field.
+func DivisionIDNotIn(vs ...int) predicate.Category {
+	return predicate.Category(sql.FieldNotIn(FieldDivisionID, vs...))
+}
+
+// DivisionIDGT applies the GT predicate on the "division_id" field.
+func DivisionIDGT(v int) predicate.Category {
+	return predicate.Category(sql.FieldGT(FieldDivisionID, v))
+}
+
+// DivisionIDGTE applies the GTE predicate on the "division_id" field.
+func DivisionIDGTE(v int) predicate.Category {
+	return predicate.Category(sql.FieldGTE(FieldDivisionID, v))
+}
+
+// DivisionIDLT applies the LT predicate on the "division_id" field.
+func DivisionIDLT(v int) predicate.Category {
+	return predicate.Category(sql.FieldLT(FieldDivisionID, v))
+}
+
+// DivisionIDLTE applies the LTE predicate on the "division_id" field.
+func DivisionIDLTE(v int) predicate.Category {
+	return predicate.Category(sql.FieldLTE(FieldDivisionID, v))
 }
 
 // ParentIDEQ applies the EQ predicate on the "parent_id" field.

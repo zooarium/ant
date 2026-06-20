@@ -2492,6 +2492,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "division_id": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -2619,6 +2622,9 @@ const docTemplate = `{
                 },
                 "display": {
                     "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
@@ -3298,6 +3304,9 @@ const docTemplate = `{
                 },
                 "created_at": {
                     "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
