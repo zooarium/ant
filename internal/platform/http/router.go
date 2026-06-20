@@ -1,12 +1,11 @@
 package http
 
 import (
+	"net/http"
 	"time"
 
 	_ "ant/docs"
 	"ant/pkg/config"
-
-	"keeper/pkg/auth"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,7 +18,7 @@ import (
 // NewRouter creates a new chi router with middleware and routes. Entity
 // handlers are mounted inside the JWT-protected group via the mount hook
 // (wired in main to avoid an import cycle with the domain packages).
-func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager, mount func(r chi.Router)) *chi.Mux {
+func NewRouter(cfg *config.Config, authMW func(http.Handler) http.Handler, mount func(r chi.Router)) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -42,7 +41,7 @@ func NewRouter(cfg *config.Config, jwtManager *auth.JWTManager, mount func(r chi
 	r.Handle("/metrics", promhttp.Handler())
 
 	r.Group(func(r chi.Router) {
-		r.Use(auth.Middleware(jwtManager))
+		r.Use(authMW)
 		mount(r)
 	})
 
