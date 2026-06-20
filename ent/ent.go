@@ -11,6 +11,7 @@ import (
 	"ant/ent/orderproduct"
 	"ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/storefront"
 	"context"
 	"errors"
 	"fmt"
@@ -88,6 +89,7 @@ func checkColumn(t, c string) error {
 			orderproduct.Table:     orderproduct.ValidColumn,
 			product.Table:          product.ValidColumn,
 			productattribute.Table: productattribute.ValidColumn,
+			storefront.Table:       storefront.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

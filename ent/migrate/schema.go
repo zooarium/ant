@@ -299,6 +299,32 @@ var (
 			},
 		},
 	}
+	// AntStorefrontColumns holds the columns for the "ant_storefront" table.
+	AntStorefrontColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "app_id", Type: field.TypeInt},
+		{Name: "division_id", Type: field.TypeInt},
+		{Name: "hero_image", Type: field.TypeString, Nullable: true},
+		{Name: "assessments", Type: field.TypeJSON},
+		{Name: "gallery", Type: field.TypeJSON},
+		{Name: "food_tags", Type: field.TypeJSON},
+		{Name: "status", Type: field.TypeInt8, Default: 1},
+	}
+	// AntStorefrontTable holds the schema information for the "ant_storefront" table.
+	AntStorefrontTable = &schema.Table{
+		Name:       "ant_storefront",
+		Columns:    AntStorefrontColumns,
+		PrimaryKey: []*schema.Column{AntStorefrontColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "storefront_app_id_division_id",
+				Unique:  true,
+				Columns: []*schema.Column{AntStorefrontColumns[3], AntStorefrontColumns[4]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AntAttributeTable,
@@ -309,6 +335,7 @@ var (
 		AntOrderProductTable,
 		AntProductTable,
 		AntProductAttributeTable,
+		AntStorefrontTable,
 	}
 )
 
@@ -343,5 +370,8 @@ func init() {
 	AntProductAttributeTable.ForeignKeys[1].RefTable = AntProductTable
 	AntProductAttributeTable.Annotation = &entsql.Annotation{
 		Table: "ant_product_attribute",
+	}
+	AntStorefrontTable.Annotation = &entsql.Annotation{
+		Table: "ant_storefront",
 	}
 }

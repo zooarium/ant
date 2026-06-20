@@ -28,6 +28,8 @@ type Tx struct {
 	Product *ProductClient
 	// ProductAttribute is the client for interacting with the ProductAttribute builders.
 	ProductAttribute *ProductAttributeClient
+	// Storefront is the client for interacting with the Storefront builders.
+	Storefront *StorefrontClient
 
 	// lazily loaded.
 	client     *Client
@@ -167,6 +169,7 @@ func (tx *Tx) init() {
 	tx.OrderProduct = NewOrderProductClient(tx.config)
 	tx.Product = NewProductClient(tx.config)
 	tx.ProductAttribute = NewProductAttributeClient(tx.config)
+	tx.Storefront = NewStorefrontClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

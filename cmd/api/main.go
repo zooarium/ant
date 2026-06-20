@@ -21,6 +21,8 @@ import (
 	"ant/internal/ordergroup"
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/product"
+	"ant/internal/storefront"
+	"ant/pkg/cache"
 	"ant/pkg/captcha"
 	"ant/pkg/config"
 
@@ -137,6 +139,10 @@ func main() {
 	orderGroupSvc := ordergroup.NewService(orderGroupRepo)
 	orderGroupHandler := ordergroup.NewHandler(orderGroupSvc)
 
+	storefrontRepo := storefront.NewRepository(client)
+	storefrontSvc := storefront.NewService(storefrontRepo, cache.New(cfg.Cache.StorefrontTTL))
+	storefrontHandler := storefront.NewHandler(storefrontSvc)
+
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)
 
 	// Captcha verifier for public write routes. Uses a shared HTTP client with
@@ -152,6 +158,7 @@ func main() {
 		r.Mount("/products", productHandler.Routes())
 		r.Mount("/orders", orderHandler.Routes())
 		r.Mount("/order-groups", orderGroupHandler.Routes())
+		r.Mount("/storefront", storefrontHandler.Routes())
 		// Public surface (reachable with guest tokens on the order-intake
 		// listener). Write routes carry captcha verification internally; the
 		// product catalog and tab reads are open.
@@ -160,6 +167,7 @@ func main() {
 			r.Mount("/products", productHandler.PublicRoutes())
 			r.Mount("/orders", orderHandler.PublicRoutes(captchaMW))
 			r.Mount("/order-groups", orderGroupHandler.PublicRoutes(captchaMW))
+			r.Mount("/storefront", storefrontHandler.PublicRoutes())
 		})
 	}
 

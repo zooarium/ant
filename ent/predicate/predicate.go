@@ -29,3 +29,6 @@ type Product func(*sql.Selector)
 
 // ProductAttribute is the predicate function for productattribute builders.
 type ProductAttribute func(*sql.Selector)
+
+// Storefront is the predicate function for storefront builders.
+type Storefront func(*sql.Selector)

@@ -12,6 +12,7 @@ import (
 	"ant/ent/product"
 	"ant/ent/productattribute"
 	"ant/ent/schema"
+	"ant/ent/storefront"
 	"time"
 )
 
@@ -253,4 +254,35 @@ func init() {
 	productattributeDescOptions := productattributeFields[3].Descriptor()
 	// productattribute.DefaultOptions holds the default value on creation for the options field.
 	productattribute.DefaultOptions = productattributeDescOptions.Default.([]schema.ProductAttributeOption)
+	storefrontMixin := schema.Storefront{}.Mixin()
+	storefrontMixinFields0 := storefrontMixin[0].Fields()
+	_ = storefrontMixinFields0
+	storefrontFields := schema.Storefront{}.Fields()
+	_ = storefrontFields
+	// storefrontDescCreatedAt is the schema descriptor for created_at field.
+	storefrontDescCreatedAt := storefrontMixinFields0[0].Descriptor()
+	// storefront.DefaultCreatedAt holds the default value on creation for the created_at field.
+	storefront.DefaultCreatedAt = storefrontDescCreatedAt.Default.(func() time.Time)
+	// storefrontDescUpdatedAt is the schema descriptor for updated_at field.
+	storefrontDescUpdatedAt := storefrontMixinFields0[1].Descriptor()
+	// storefront.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	storefront.DefaultUpdatedAt = storefrontDescUpdatedAt.Default.(func() time.Time)
+	// storefront.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	storefront.UpdateDefaultUpdatedAt = storefrontDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// storefrontDescAssessments is the schema descriptor for assessments field.
+	storefrontDescAssessments := storefrontFields[3].Descriptor()
+	// storefront.DefaultAssessments holds the default value on creation for the assessments field.
+	storefront.DefaultAssessments = storefrontDescAssessments.Default.([]schema.Assessment)
+	// storefrontDescGallery is the schema descriptor for gallery field.
+	storefrontDescGallery := storefrontFields[4].Descriptor()
+	// storefront.DefaultGallery holds the default value on creation for the gallery field.
+	storefront.DefaultGallery = storefrontDescGallery.Default.([]schema.GalleryImage)
+	// storefrontDescFoodTags is the schema descriptor for food_tags field.
+	storefrontDescFoodTags := storefrontFields[5].Descriptor()
+	// storefront.DefaultFoodTags holds the default value on creation for the food_tags field.
+	storefront.DefaultFoodTags = storefrontDescFoodTags.Default.([]schema.FoodTag)
+	// storefrontDescStatus is the schema descriptor for status field.
+	storefrontDescStatus := storefrontFields[6].Descriptor()
+	// storefront.DefaultStatus holds the default value on creation for the status field.
+	storefront.DefaultStatus = storefrontDescStatus.Default.(int8)
 }

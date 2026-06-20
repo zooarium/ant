@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  ant_ent_schema.Review:
+    properties:
+      author:
+        type: string
+      text:
+        type: string
+    type: object
   ant_internal_platform_render.Response:
     properties:
       data: {}
@@ -647,6 +654,81 @@ definitions:
     required:
     - name
     - status
+    type: object
+  internal_storefront.Assessment:
+    properties:
+      name:
+        type: string
+      rating:
+        type: number
+      reviews:
+        items:
+          $ref: '#/definitions/ant_ent_schema.Review'
+        type: array
+    type: object
+  internal_storefront.FoodTag:
+    properties:
+      label:
+        type: string
+      slug:
+        type: string
+    type: object
+  internal_storefront.GalleryImage:
+    properties:
+      caption:
+        type: string
+      sort:
+        type: integer
+      url:
+        type: string
+    type: object
+  internal_storefront.Storefront:
+    properties:
+      app_id:
+        type: integer
+      assessments:
+        items:
+          $ref: '#/definitions/internal_storefront.Assessment'
+        type: array
+      created_at:
+        type: string
+      division_id:
+        type: integer
+      food_tags:
+        items:
+          $ref: '#/definitions/internal_storefront.FoodTag'
+        type: array
+      gallery:
+        items:
+          $ref: '#/definitions/internal_storefront.GalleryImage'
+        type: array
+      hero_image:
+        type: string
+      id:
+        type: integer
+      status:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  internal_storefront.UpsertStorefrontRequest:
+    properties:
+      assessments:
+        items:
+          $ref: '#/definitions/internal_storefront.Assessment'
+        type: array
+      food_tags:
+        items:
+          $ref: '#/definitions/internal_storefront.FoodTag'
+        type: array
+      gallery:
+        items:
+          $ref: '#/definitions/internal_storefront.GalleryImage'
+        type: array
+      hero_image:
+        type: string
+      status:
+        type: integer
     type: object
 host: localhost:8082
 info:
@@ -2179,6 +2261,77 @@ paths:
       summary: Create an order (public)
       tags:
       - Public
+  /storefront:
+    get:
+      description: Get the tenant's storefront config (branding, gallery, food tags,
+        platform assessments). Returns an empty active storefront if none has been
+        saved yet.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_storefront.Storefront'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Get the storefront
+      tags:
+      - storefront
+    put:
+      consumes:
+      - application/json
+      description: Replace the whole storefront in one save. Gallery, food-tag, and
+        assessment add/edit/delete is done by sending the full desired arrays.
+      parameters:
+      - description: Storefront object
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_storefront.UpsertStorefrontRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/ant_internal_platform_render.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_storefront.Storefront'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Create or replace the storefront
+      tags:
+      - storefront
 securityDefinitions:
   Bearer:
     description: Type "Bearer" followed by a space and JWT token.

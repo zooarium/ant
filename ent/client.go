@@ -19,6 +19,7 @@ import (
 	"ant/ent/orderproduct"
 	"ant/ent/product"
 	"ant/ent/productattribute"
+	"ant/ent/storefront"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -47,6 +48,8 @@ type Client struct {
 	Product *ProductClient
 	// ProductAttribute is the client for interacting with the ProductAttribute builders.
 	ProductAttribute *ProductAttributeClient
+	// Storefront is the client for interacting with the Storefront builders.
+	Storefront *StorefrontClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -66,6 +69,7 @@ func (c *Client) init() {
 	c.OrderProduct = NewOrderProductClient(c.config)
 	c.Product = NewProductClient(c.config)
 	c.ProductAttribute = NewProductAttributeClient(c.config)
+	c.Storefront = NewStorefrontClient(c.config)
 }
 
 type (
@@ -166,6 +170,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		OrderProduct:     NewOrderProductClient(cfg),
 		Product:          NewProductClient(cfg),
 		ProductAttribute: NewProductAttributeClient(cfg),
+		Storefront:       NewStorefrontClient(cfg),
 	}, nil
 }
 
@@ -193,6 +198,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		OrderProduct:     NewOrderProductClient(cfg),
 		Product:          NewProductClient(cfg),
 		ProductAttribute: NewProductAttributeClient(cfg),
+		Storefront:       NewStorefrontClient(cfg),
 	}, nil
 }
 
@@ -223,7 +229,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Attribute, c.AttributeOption, c.Category, c.Order, c.OrderGroup,
-		c.OrderProduct, c.Product, c.ProductAttribute,
+		c.OrderProduct, c.Product, c.ProductAttribute, c.Storefront,
 	} {
 		n.Use(hooks...)
 	}
@@ -234,7 +240,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Attribute, c.AttributeOption, c.Category, c.Order, c.OrderGroup,
-		c.OrderProduct, c.Product, c.ProductAttribute,
+		c.OrderProduct, c.Product, c.ProductAttribute, c.Storefront,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -259,6 +265,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Product.mutate(ctx, m)
 	case *ProductAttributeMutation:
 		return c.ProductAttribute.mutate(ctx, m)
+	case *StorefrontMutation:
+		return c.Storefront.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -1552,14 +1560,147 @@ func (c *ProductAttributeClient) mutate(ctx context.Context, m *ProductAttribute
 	}
 }
 
+// StorefrontClient is a client for the Storefront schema.
+type StorefrontClient struct {
+	config
+}
+
+// NewStorefrontClient returns a client for the Storefront from the given config.
+func NewStorefrontClient(c config) *StorefrontClient {
+	return &StorefrontClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `storefront.Hooks(f(g(h())))`.
+func (c *StorefrontClient) Use(hooks ...Hook) {
+	c.hooks.Storefront = append(c.hooks.Storefront, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `storefront.Intercept(f(g(h())))`.
+func (c *StorefrontClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Storefront = append(c.inters.Storefront, interceptors...)
+}
+
+// Create returns a builder for creating a Storefront entity.
+func (c *StorefrontClient) Create() *StorefrontCreate {
+	mutation := newStorefrontMutation(c.config, OpCreate)
+	return &StorefrontCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Storefront entities.
+func (c *StorefrontClient) CreateBulk(builders ...*StorefrontCreate) *StorefrontCreateBulk {
+	return &StorefrontCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StorefrontClient) MapCreateBulk(slice any, setFunc func(*StorefrontCreate, int)) *StorefrontCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StorefrontCreateBulk{err: fmt.Errorf("calling to StorefrontClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StorefrontCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StorefrontCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Storefront.
+func (c *StorefrontClient) Update() *StorefrontUpdate {
+	mutation := newStorefrontMutation(c.config, OpUpdate)
+	return &StorefrontUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StorefrontClient) UpdateOne(_m *Storefront) *StorefrontUpdateOne {
+	mutation := newStorefrontMutation(c.config, OpUpdateOne, withStorefront(_m))
+	return &StorefrontUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StorefrontClient) UpdateOneID(id int) *StorefrontUpdateOne {
+	mutation := newStorefrontMutation(c.config, OpUpdateOne, withStorefrontID(id))
+	return &StorefrontUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Storefront.
+func (c *StorefrontClient) Delete() *StorefrontDelete {
+	mutation := newStorefrontMutation(c.config, OpDelete)
+	return &StorefrontDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StorefrontClient) DeleteOne(_m *Storefront) *StorefrontDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StorefrontClient) DeleteOneID(id int) *StorefrontDeleteOne {
+	builder := c.Delete().Where(storefront.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StorefrontDeleteOne{builder}
+}
+
+// Query returns a query builder for Storefront.
+func (c *StorefrontClient) Query() *StorefrontQuery {
+	return &StorefrontQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStorefront},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Storefront entity by its id.
+func (c *StorefrontClient) Get(ctx context.Context, id int) (*Storefront, error) {
+	return c.Query().Where(storefront.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StorefrontClient) GetX(ctx context.Context, id int) *Storefront {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StorefrontClient) Hooks() []Hook {
+	return c.hooks.Storefront
+}
+
+// Interceptors returns the client interceptors.
+func (c *StorefrontClient) Interceptors() []Interceptor {
+	return c.inters.Storefront
+}
+
+func (c *StorefrontClient) mutate(ctx context.Context, m *StorefrontMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StorefrontCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StorefrontUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StorefrontUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StorefrontDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Storefront mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
 		Attribute, AttributeOption, Category, Order, OrderGroup, OrderProduct, Product,
-		ProductAttribute []ent.Hook
+		ProductAttribute, Storefront []ent.Hook
 	}
 	inters struct {
 		Attribute, AttributeOption, Category, Order, OrderGroup, OrderProduct, Product,
-		ProductAttribute []ent.Interceptor
+		ProductAttribute, Storefront []ent.Interceptor
 	}
 )

@@ -17,7 +17,14 @@ type Config struct {
 	CORS        CORSConfig
 	Captcha     CaptchaConfig     `mapstructure:"CAPTCHA"`
 	PublicOrder PublicOrderConfig `mapstructure:"PUBLIC_ORDER"`
+	Cache       CacheConfig       `mapstructure:"CACHE"`
 	Secondary   []SecondaryConfig `mapstructure:"SECONDARY"`
+}
+
+// CacheConfig drives the short-lived in-memory caches for read-heavy,
+// rarely-changing responses (invalidated explicitly on writes).
+type CacheConfig struct {
+	StorefrontTTL time.Duration `mapstructure:"STOREFRONT_TTL"`
 }
 
 // CaptchaConfig drives Google reCAPTCHA v3 verification on public write routes.
@@ -107,6 +114,7 @@ func Load() (*Config, error) {
 	v.SetDefault("CAPTCHA.TIMEOUT", 3*time.Second)
 	v.SetDefault("PUBLIC_ORDER.MAX_ORDERS", 5)
 	v.SetDefault("PUBLIC_ORDER.WINDOW", 24*time.Hour)
+	v.SetDefault("CACHE.STOREFRONT_TTL", 60*time.Second)
 
 	v.SetEnvPrefix("ANT")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

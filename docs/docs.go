@@ -2468,9 +2468,136 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/storefront": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get the tenant's storefront config (branding, gallery, food tags, platform assessments). Returns an empty active storefront if none has been saved yet.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storefront"
+                ],
+                "summary": "Get the storefront",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_storefront.Storefront"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Replace the whole storefront in one save. Gallery, food-tag, and assessment add/edit/delete is done by sending the full desired arrays.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "storefront"
+                ],
+                "summary": "Create or replace the storefront",
+                "parameters": [
+                    {
+                        "description": "Storefront object",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_storefront.UpsertStorefrontRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_storefront.Storefront"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "ant_ent_schema.Review": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
         "ant_internal_platform_render.Response": {
             "type": "object",
             "properties": {
@@ -3358,6 +3485,121 @@ const docTemplate = `{
                         0,
                         1
                     ]
+                }
+            }
+        },
+        "internal_storefront.Assessment": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_ent_schema.Review"
+                    }
+                }
+            }
+        },
+        "internal_storefront.FoodTag": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_storefront.GalleryImage": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "type": "string"
+                },
+                "sort": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_storefront.Storefront": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "integer"
+                },
+                "assessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.Assessment"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
+                },
+                "food_tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.FoodTag"
+                    }
+                },
+                "gallery": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.GalleryImage"
+                    }
+                },
+                "hero_image": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_storefront.UpsertStorefrontRequest": {
+            "type": "object",
+            "properties": {
+                "assessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.Assessment"
+                    }
+                },
+                "food_tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.FoodTag"
+                    }
+                },
+                "gallery": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.GalleryImage"
+                    }
+                },
+                "hero_image": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
                 }
             }
         }

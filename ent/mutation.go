@@ -13,6 +13,7 @@ import (
 	"ant/ent/product"
 	"ant/ent/productattribute"
 	"ant/ent/schema"
+	"ant/ent/storefront"
 	"context"
 	"errors"
 	"fmt"
@@ -40,6 +41,7 @@ const (
 	TypeOrderProduct     = "OrderProduct"
 	TypeProduct          = "Product"
 	TypeProductAttribute = "ProductAttribute"
+	TypeStorefront       = "Storefront"
 )
 
 // AttributeMutation represents an operation that mutates the Attribute nodes in the graph.
@@ -7724,4 +7726,934 @@ func (m *ProductAttributeMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown ProductAttribute edge %s", name)
+}
+
+// StorefrontMutation represents an operation that mutates the Storefront nodes in the graph.
+type StorefrontMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int
+	created_at        *time.Time
+	updated_at        *time.Time
+	app_id            *int
+	addapp_id         *int
+	division_id       *int
+	adddivision_id    *int
+	hero_image        *string
+	assessments       *[]schema.Assessment
+	appendassessments []schema.Assessment
+	gallery           *[]schema.GalleryImage
+	appendgallery     []schema.GalleryImage
+	food_tags         *[]schema.FoodTag
+	appendfood_tags   []schema.FoodTag
+	status            *int8
+	addstatus         *int8
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*Storefront, error)
+	predicates        []predicate.Storefront
+}
+
+var _ ent.Mutation = (*StorefrontMutation)(nil)
+
+// storefrontOption allows management of the mutation configuration using functional options.
+type storefrontOption func(*StorefrontMutation)
+
+// newStorefrontMutation creates new mutation for the Storefront entity.
+func newStorefrontMutation(c config, op Op, opts ...storefrontOption) *StorefrontMutation {
+	m := &StorefrontMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStorefront,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStorefrontID sets the ID field of the mutation.
+func withStorefrontID(id int) storefrontOption {
+	return func(m *StorefrontMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Storefront
+		)
+		m.oldValue = func(ctx context.Context) (*Storefront, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Storefront.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStorefront sets the old Storefront of the mutation.
+func withStorefront(node *Storefront) storefrontOption {
+	return func(m *StorefrontMutation) {
+		m.oldValue = func(context.Context) (*Storefront, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StorefrontMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StorefrontMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StorefrontMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StorefrontMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Storefront.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StorefrontMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StorefrontMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StorefrontMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *StorefrontMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *StorefrontMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *StorefrontMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *StorefrontMutation) SetAppID(i int) {
+	m.app_id = &i
+	m.addapp_id = nil
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *StorefrontMutation) AppID() (r int, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldAppID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// AddAppID adds i to the "app_id" field.
+func (m *StorefrontMutation) AddAppID(i int) {
+	if m.addapp_id != nil {
+		*m.addapp_id += i
+	} else {
+		m.addapp_id = &i
+	}
+}
+
+// AddedAppID returns the value that was added to the "app_id" field in this mutation.
+func (m *StorefrontMutation) AddedAppID() (r int, exists bool) {
+	v := m.addapp_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *StorefrontMutation) ResetAppID() {
+	m.app_id = nil
+	m.addapp_id = nil
+}
+
+// SetDivisionID sets the "division_id" field.
+func (m *StorefrontMutation) SetDivisionID(i int) {
+	m.division_id = &i
+	m.adddivision_id = nil
+}
+
+// DivisionID returns the value of the "division_id" field in the mutation.
+func (m *StorefrontMutation) DivisionID() (r int, exists bool) {
+	v := m.division_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDivisionID returns the old "division_id" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldDivisionID(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDivisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDivisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDivisionID: %w", err)
+	}
+	return oldValue.DivisionID, nil
+}
+
+// AddDivisionID adds i to the "division_id" field.
+func (m *StorefrontMutation) AddDivisionID(i int) {
+	if m.adddivision_id != nil {
+		*m.adddivision_id += i
+	} else {
+		m.adddivision_id = &i
+	}
+}
+
+// AddedDivisionID returns the value that was added to the "division_id" field in this mutation.
+func (m *StorefrontMutation) AddedDivisionID() (r int, exists bool) {
+	v := m.adddivision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDivisionID resets all changes to the "division_id" field.
+func (m *StorefrontMutation) ResetDivisionID() {
+	m.division_id = nil
+	m.adddivision_id = nil
+}
+
+// SetHeroImage sets the "hero_image" field.
+func (m *StorefrontMutation) SetHeroImage(s string) {
+	m.hero_image = &s
+}
+
+// HeroImage returns the value of the "hero_image" field in the mutation.
+func (m *StorefrontMutation) HeroImage() (r string, exists bool) {
+	v := m.hero_image
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHeroImage returns the old "hero_image" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldHeroImage(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHeroImage is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHeroImage requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHeroImage: %w", err)
+	}
+	return oldValue.HeroImage, nil
+}
+
+// ClearHeroImage clears the value of the "hero_image" field.
+func (m *StorefrontMutation) ClearHeroImage() {
+	m.hero_image = nil
+	m.clearedFields[storefront.FieldHeroImage] = struct{}{}
+}
+
+// HeroImageCleared returns if the "hero_image" field was cleared in this mutation.
+func (m *StorefrontMutation) HeroImageCleared() bool {
+	_, ok := m.clearedFields[storefront.FieldHeroImage]
+	return ok
+}
+
+// ResetHeroImage resets all changes to the "hero_image" field.
+func (m *StorefrontMutation) ResetHeroImage() {
+	m.hero_image = nil
+	delete(m.clearedFields, storefront.FieldHeroImage)
+}
+
+// SetAssessments sets the "assessments" field.
+func (m *StorefrontMutation) SetAssessments(s []schema.Assessment) {
+	m.assessments = &s
+	m.appendassessments = nil
+}
+
+// Assessments returns the value of the "assessments" field in the mutation.
+func (m *StorefrontMutation) Assessments() (r []schema.Assessment, exists bool) {
+	v := m.assessments
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssessments returns the old "assessments" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldAssessments(ctx context.Context) (v []schema.Assessment, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssessments is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssessments requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssessments: %w", err)
+	}
+	return oldValue.Assessments, nil
+}
+
+// AppendAssessments adds s to the "assessments" field.
+func (m *StorefrontMutation) AppendAssessments(s []schema.Assessment) {
+	m.appendassessments = append(m.appendassessments, s...)
+}
+
+// AppendedAssessments returns the list of values that were appended to the "assessments" field in this mutation.
+func (m *StorefrontMutation) AppendedAssessments() ([]schema.Assessment, bool) {
+	if len(m.appendassessments) == 0 {
+		return nil, false
+	}
+	return m.appendassessments, true
+}
+
+// ResetAssessments resets all changes to the "assessments" field.
+func (m *StorefrontMutation) ResetAssessments() {
+	m.assessments = nil
+	m.appendassessments = nil
+}
+
+// SetGallery sets the "gallery" field.
+func (m *StorefrontMutation) SetGallery(si []schema.GalleryImage) {
+	m.gallery = &si
+	m.appendgallery = nil
+}
+
+// Gallery returns the value of the "gallery" field in the mutation.
+func (m *StorefrontMutation) Gallery() (r []schema.GalleryImage, exists bool) {
+	v := m.gallery
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGallery returns the old "gallery" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldGallery(ctx context.Context) (v []schema.GalleryImage, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGallery is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGallery requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGallery: %w", err)
+	}
+	return oldValue.Gallery, nil
+}
+
+// AppendGallery adds si to the "gallery" field.
+func (m *StorefrontMutation) AppendGallery(si []schema.GalleryImage) {
+	m.appendgallery = append(m.appendgallery, si...)
+}
+
+// AppendedGallery returns the list of values that were appended to the "gallery" field in this mutation.
+func (m *StorefrontMutation) AppendedGallery() ([]schema.GalleryImage, bool) {
+	if len(m.appendgallery) == 0 {
+		return nil, false
+	}
+	return m.appendgallery, true
+}
+
+// ResetGallery resets all changes to the "gallery" field.
+func (m *StorefrontMutation) ResetGallery() {
+	m.gallery = nil
+	m.appendgallery = nil
+}
+
+// SetFoodTags sets the "food_tags" field.
+func (m *StorefrontMutation) SetFoodTags(st []schema.FoodTag) {
+	m.food_tags = &st
+	m.appendfood_tags = nil
+}
+
+// FoodTags returns the value of the "food_tags" field in the mutation.
+func (m *StorefrontMutation) FoodTags() (r []schema.FoodTag, exists bool) {
+	v := m.food_tags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFoodTags returns the old "food_tags" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldFoodTags(ctx context.Context) (v []schema.FoodTag, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFoodTags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFoodTags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFoodTags: %w", err)
+	}
+	return oldValue.FoodTags, nil
+}
+
+// AppendFoodTags adds st to the "food_tags" field.
+func (m *StorefrontMutation) AppendFoodTags(st []schema.FoodTag) {
+	m.appendfood_tags = append(m.appendfood_tags, st...)
+}
+
+// AppendedFoodTags returns the list of values that were appended to the "food_tags" field in this mutation.
+func (m *StorefrontMutation) AppendedFoodTags() ([]schema.FoodTag, bool) {
+	if len(m.appendfood_tags) == 0 {
+		return nil, false
+	}
+	return m.appendfood_tags, true
+}
+
+// ResetFoodTags resets all changes to the "food_tags" field.
+func (m *StorefrontMutation) ResetFoodTags() {
+	m.food_tags = nil
+	m.appendfood_tags = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *StorefrontMutation) SetStatus(i int8) {
+	m.status = &i
+	m.addstatus = nil
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *StorefrontMutation) Status() (r int8, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the Storefront entity.
+// If the Storefront object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StorefrontMutation) OldStatus(ctx context.Context) (v int8, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// AddStatus adds i to the "status" field.
+func (m *StorefrontMutation) AddStatus(i int8) {
+	if m.addstatus != nil {
+		*m.addstatus += i
+	} else {
+		m.addstatus = &i
+	}
+}
+
+// AddedStatus returns the value that was added to the "status" field in this mutation.
+func (m *StorefrontMutation) AddedStatus() (r int8, exists bool) {
+	v := m.addstatus
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *StorefrontMutation) ResetStatus() {
+	m.status = nil
+	m.addstatus = nil
+}
+
+// Where appends a list predicates to the StorefrontMutation builder.
+func (m *StorefrontMutation) Where(ps ...predicate.Storefront) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StorefrontMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StorefrontMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Storefront, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StorefrontMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StorefrontMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Storefront).
+func (m *StorefrontMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StorefrontMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.created_at != nil {
+		fields = append(fields, storefront.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, storefront.FieldUpdatedAt)
+	}
+	if m.app_id != nil {
+		fields = append(fields, storefront.FieldAppID)
+	}
+	if m.division_id != nil {
+		fields = append(fields, storefront.FieldDivisionID)
+	}
+	if m.hero_image != nil {
+		fields = append(fields, storefront.FieldHeroImage)
+	}
+	if m.assessments != nil {
+		fields = append(fields, storefront.FieldAssessments)
+	}
+	if m.gallery != nil {
+		fields = append(fields, storefront.FieldGallery)
+	}
+	if m.food_tags != nil {
+		fields = append(fields, storefront.FieldFoodTags)
+	}
+	if m.status != nil {
+		fields = append(fields, storefront.FieldStatus)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StorefrontMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case storefront.FieldCreatedAt:
+		return m.CreatedAt()
+	case storefront.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case storefront.FieldAppID:
+		return m.AppID()
+	case storefront.FieldDivisionID:
+		return m.DivisionID()
+	case storefront.FieldHeroImage:
+		return m.HeroImage()
+	case storefront.FieldAssessments:
+		return m.Assessments()
+	case storefront.FieldGallery:
+		return m.Gallery()
+	case storefront.FieldFoodTags:
+		return m.FoodTags()
+	case storefront.FieldStatus:
+		return m.Status()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StorefrontMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case storefront.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case storefront.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case storefront.FieldAppID:
+		return m.OldAppID(ctx)
+	case storefront.FieldDivisionID:
+		return m.OldDivisionID(ctx)
+	case storefront.FieldHeroImage:
+		return m.OldHeroImage(ctx)
+	case storefront.FieldAssessments:
+		return m.OldAssessments(ctx)
+	case storefront.FieldGallery:
+		return m.OldGallery(ctx)
+	case storefront.FieldFoodTags:
+		return m.OldFoodTags(ctx)
+	case storefront.FieldStatus:
+		return m.OldStatus(ctx)
+	}
+	return nil, fmt.Errorf("unknown Storefront field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorefrontMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case storefront.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case storefront.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case storefront.FieldAppID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case storefront.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDivisionID(v)
+		return nil
+	case storefront.FieldHeroImage:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHeroImage(v)
+		return nil
+	case storefront.FieldAssessments:
+		v, ok := value.([]schema.Assessment)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssessments(v)
+		return nil
+	case storefront.FieldGallery:
+		v, ok := value.([]schema.GalleryImage)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGallery(v)
+		return nil
+	case storefront.FieldFoodTags:
+		v, ok := value.([]schema.FoodTag)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFoodTags(v)
+		return nil
+	case storefront.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Storefront field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StorefrontMutation) AddedFields() []string {
+	var fields []string
+	if m.addapp_id != nil {
+		fields = append(fields, storefront.FieldAppID)
+	}
+	if m.adddivision_id != nil {
+		fields = append(fields, storefront.FieldDivisionID)
+	}
+	if m.addstatus != nil {
+		fields = append(fields, storefront.FieldStatus)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StorefrontMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case storefront.FieldAppID:
+		return m.AddedAppID()
+	case storefront.FieldDivisionID:
+		return m.AddedDivisionID()
+	case storefront.FieldStatus:
+		return m.AddedStatus()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StorefrontMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case storefront.FieldAppID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAppID(v)
+		return nil
+	case storefront.FieldDivisionID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDivisionID(v)
+		return nil
+	case storefront.FieldStatus:
+		v, ok := value.(int8)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatus(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Storefront numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StorefrontMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(storefront.FieldHeroImage) {
+		fields = append(fields, storefront.FieldHeroImage)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StorefrontMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StorefrontMutation) ClearField(name string) error {
+	switch name {
+	case storefront.FieldHeroImage:
+		m.ClearHeroImage()
+		return nil
+	}
+	return fmt.Errorf("unknown Storefront nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StorefrontMutation) ResetField(name string) error {
+	switch name {
+	case storefront.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case storefront.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case storefront.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case storefront.FieldDivisionID:
+		m.ResetDivisionID()
+		return nil
+	case storefront.FieldHeroImage:
+		m.ResetHeroImage()
+		return nil
+	case storefront.FieldAssessments:
+		m.ResetAssessments()
+		return nil
+	case storefront.FieldGallery:
+		m.ResetGallery()
+		return nil
+	case storefront.FieldFoodTags:
+		m.ResetFoodTags()
+		return nil
+	case storefront.FieldStatus:
+		m.ResetStatus()
+		return nil
+	}
+	return fmt.Errorf("unknown Storefront field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StorefrontMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StorefrontMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StorefrontMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StorefrontMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StorefrontMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StorefrontMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StorefrontMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Storefront unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StorefrontMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Storefront edge %s", name)
 }
