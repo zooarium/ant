@@ -33,7 +33,7 @@ func (h *Handler) Routes() chi.Router {
 // token's app_id/division_id claims.
 func (h *Handler) PublicRoutes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", h.Get)
+	r.Get("/", h.GetPublic)
 	return r
 }
 
@@ -74,6 +74,32 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := h.svc.Get(r.Context(), claims.AppID, claims.DivisionID)
+	if err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	render.JSON(w, http.StatusOK, item)
+}
+
+// GetPublic handles reading the storefront for the public storefront page.
+// @Summary Get the storefront (public)
+// @Description Read-only storefront config (branding, gallery, food tags, platform assessments) plus the active product catalog (the menu) for a guest-token caller on the order-intake listener. Products are unpaginated but capped by PUBLIC_STOREFRONT.MAX_PRODUCTS; each carries its category ref so the UI can group the menu client-side. Scoped to the guest token's app_id/division_id claims. Returns an empty active storefront if none has been saved yet.
+// @Tags Public
+// @Produce json
+// @Success 200 {object} render.Response{data=PublicStorefront}
+// @Failure 401 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /public/storefront [get]
+func (h *Handler) GetPublic(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	item, err := h.svc.GetPublic(r.Context(), claims.AppID, claims.UserID, claims.DivisionID)
 	if err != nil {
 		h.renderError(w, err)
 		return

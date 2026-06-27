@@ -140,7 +140,7 @@ func main() {
 	orderGroupHandler := ordergroup.NewHandler(orderGroupSvc)
 
 	storefrontRepo := storefront.NewRepository(client)
-	storefrontSvc := storefront.NewService(storefrontRepo, cache.New(cfg.Cache.StorefrontTTL))
+	storefrontSvc := storefront.NewService(storefrontRepo, cache.New(cfg.Cache.StorefrontTTL), productSvc, cfg.PublicStorefront.MaxProducts)
 	storefrontHandler := storefront.NewHandler(storefrontSvc)
 
 	jwtManager := auth.NewJWTManager(cfg.Auth.JWTSecret, cfg.Auth.JWTExpiry)

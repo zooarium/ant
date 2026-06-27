@@ -31,6 +31,10 @@ CAPTCHA:
 PUBLIC_ORDER:
   MAX_ORDERS: 5
   WINDOW: 24h
+# Public storefront read (GET /public/storefront). MAX_PRODUCTS caps how many
+# products are embedded in the menu so the (unpaginated) response stays finite.
+PUBLIC_STOREFRONT:
+  MAX_PRODUCTS: 1000
 # In-memory cache TTLs for read-heavy, rarely-changing responses. Invalidated
 # explicitly on writes; the public storefront read is the hot path.
 CACHE:

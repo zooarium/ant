@@ -9,17 +9,18 @@ import (
 )
 
 type Config struct {
-	Environment   string `mapstructure:"ENVIRONMENT"`
-	Server        ServerConfig
-	Database      DatabaseConfig
-	Log           LogConfig  `mapstructure:"LOG"`
-	Auth          AuthConfig `mapstructure:"AUTH"`
-	CORS          CORSConfig
-	Captcha       CaptchaConfig       `mapstructure:"CAPTCHA"`
-	PublicOrder   PublicOrderConfig   `mapstructure:"PUBLIC_ORDER"`
-	Cache         CacheConfig         `mapstructure:"CACHE"`
-	Secondary     []SecondaryConfig   `mapstructure:"SECONDARY"`
-	Impersonation ImpersonationConfig `mapstructure:"IMPERSONATION"`
+	Environment      string `mapstructure:"ENVIRONMENT"`
+	Server           ServerConfig
+	Database         DatabaseConfig
+	Log              LogConfig  `mapstructure:"LOG"`
+	Auth             AuthConfig `mapstructure:"AUTH"`
+	CORS             CORSConfig
+	Captcha          CaptchaConfig          `mapstructure:"CAPTCHA"`
+	PublicOrder      PublicOrderConfig      `mapstructure:"PUBLIC_ORDER"`
+	PublicStorefront PublicStorefrontConfig `mapstructure:"PUBLIC_STOREFRONT"`
+	Cache            CacheConfig            `mapstructure:"CACHE"`
+	Secondary        []SecondaryConfig      `mapstructure:"SECONDARY"`
+	Impersonation    ImpersonationConfig    `mapstructure:"IMPERSONATION"`
 }
 
 // ImpersonationConfig lets this service accept keeper-minted impersonation
@@ -36,6 +37,13 @@ type ImpersonationConfig struct {
 	RevocationCheck bool          `mapstructure:"REVOCATION_CHECK"`
 	RevocationTTL   time.Duration `mapstructure:"REVOCATION_TTL"`
 	RevocationHTTP  time.Duration `mapstructure:"REVOCATION_TIMEOUT"`
+}
+
+// PublicStorefrontConfig bounds the public storefront read. MaxProducts caps
+// how many products are embedded in GET /public/storefront (the menu), so the
+// response stays finite even though it is not paginated.
+type PublicStorefrontConfig struct {
+	MaxProducts int `mapstructure:"MAX_PRODUCTS"`
 }
 
 // CacheConfig drives the short-lived in-memory caches for read-heavy,
@@ -131,6 +139,7 @@ func Load() (*Config, error) {
 	v.SetDefault("CAPTCHA.TIMEOUT", 3*time.Second)
 	v.SetDefault("PUBLIC_ORDER.MAX_ORDERS", 5)
 	v.SetDefault("PUBLIC_ORDER.WINDOW", 24*time.Hour)
+	v.SetDefault("PUBLIC_STOREFRONT.MAX_PRODUCTS", 1000)
 	v.SetDefault("CACHE.STOREFRONT_TTL", 60*time.Second)
 	v.SetDefault("IMPERSONATION.ENABLED", false)
 	v.SetDefault("IMPERSONATION.JWT_SECRET", "a-separate-impersonation-token-secret-key")

@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"ant/internal/product"
 )
 
 var (
@@ -47,20 +49,30 @@ type Cache interface {
 	Delete(key string)
 }
 
+// ProductLister is the slice of the product service the public storefront
+// needs: list the tenant's products (satisfied directly by product.Service).
+type ProductLister interface {
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]product.Product, error)
+}
+
 // Service is the business-logic contract for the storefront.
 type Service interface {
 	Get(ctx context.Context, appID, divisionID int) (*Storefront, error)
+	GetPublic(ctx context.Context, appID, userID, divisionID int) (*PublicStorefront, error)
 	Upsert(ctx context.Context, appID, divisionID int, req UpsertStorefrontRequest) (*Storefront, error)
 }
 
 type service struct {
-	repo  Repository
-	cache Cache
+	repo        Repository
+	cache       Cache
+	products    ProductLister
+	maxProducts int
 }
 
-// NewService creates a new storefront service.
-func NewService(repo Repository, cache Cache) Service {
-	return &service{repo: repo, cache: cache}
+// NewService creates a new storefront service. maxProducts bounds the product
+// catalog embedded in the public storefront read.
+func NewService(repo Repository, cache Cache, products ProductLister, maxProducts int) Service {
+	return &service{repo: repo, cache: cache, products: products, maxProducts: maxProducts}
 }
 
 func cacheKey(appID, divisionID int) string {
@@ -94,6 +106,28 @@ func (s *service) Get(ctx context.Context, appID, divisionID int) (*Storefront, 
 
 	s.cache.Set(key, sf)
 	return sf, nil
+}
+
+// GetPublic returns the storefront config plus the tenant's active product
+// catalog (the menu) for the public page. Products are unpaginated but bounded
+// by maxProducts; only active products are returned.
+func (s *service) GetPublic(ctx context.Context, appID, userID, divisionID int) (*PublicStorefront, error) {
+	sf, err := s.Get(ctx, appID, divisionID)
+	if err != nil {
+		return nil, err
+	}
+
+	active := int8(1)
+	products, err := s.products.List(ctx, appID, userID, divisionID, s.maxProducts, 0, &active, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(products) >= s.maxProducts {
+		slog.Warn("public storefront product list hit cap, menu may be truncated",
+			"app_id", appID, "division_id", divisionID, "max_products", s.maxProducts)
+	}
+
+	return &PublicStorefront{Storefront: sf, Products: products}, nil
 }
 
 // Upsert validates and persists the whole storefront, then refreshes the cache.

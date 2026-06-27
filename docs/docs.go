@@ -2469,6 +2469,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/public/storefront": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Read-only storefront config (branding, gallery, food tags, platform assessments) plus the active product catalog (the menu) for a guest-token caller on the order-intake listener. Products are unpaginated but capped by PUBLIC_STOREFRONT.MAX_PRODUCTS; each carries its category ref so the UI can group the menu client-side. Scoped to the guest token's app_id/division_id claims. Returns an empty active storefront if none has been saved yet.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Get the storefront (public)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/ant_internal_platform_render.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/internal_storefront.PublicStorefront"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/storefront": {
             "get": {
                 "security": [
@@ -2606,6 +2655,98 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ant_internal_product.AssignedAttribute": {
+            "type": "object",
+            "properties": {
+                "attribute_id": {
+                    "type": "integer"
+                },
+                "is_mandatory": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "options": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_internal_product.AttributeOption"
+                    }
+                }
+            }
+        },
+        "ant_internal_product.AttributeOption": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "price_delta": {
+                    "type": "number"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "ant_internal_product.CategoryRef": {
+            "type": "object",
+            "properties": {
+                "display": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "ant_internal_product.Product": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "integer"
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_internal_product.AssignedAttribute"
+                    }
+                },
+                "category": {
+                    "$ref": "#/definitions/ant_internal_product.CategoryRef"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "integer"
                 }
             }
@@ -3526,6 +3667,56 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_storefront.PublicStorefront": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "integer"
+                },
+                "assessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.Assessment"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "division_id": {
+                    "type": "integer"
+                },
+                "food_tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.FoodTag"
+                    }
+                },
+                "gallery": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_storefront.GalleryImage"
+                    }
+                },
+                "hero_image": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_internal_product.Product"
+                    }
+                },
+                "status": {
+                    "type": "integer"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }

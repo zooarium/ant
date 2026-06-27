@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"ant/ent/schema"
+	"ant/internal/product"
 )
 
 // The JSON value types are shared with the ent schema so the API shape and the
@@ -29,6 +30,16 @@ type Storefront struct {
 	Status      int8           `json:"status"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+// PublicStorefront is the public read shape: the storefront config plus the
+// tenant's active product catalog (the menu). Products are returned unpaginated
+// but bounded by PUBLIC_STOREFRONT.MAX_PRODUCTS; each carries its category ref
+// (with display) so the UI can group the menu client-side without a separate
+// categories array.
+type PublicStorefront struct {
+	*Storefront
+	Products []product.Product `json:"products"`
 }
 
 // UpsertStorefrontRequest is the payload for creating/replacing the storefront.
