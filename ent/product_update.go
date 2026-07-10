@@ -155,6 +155,20 @@ func (_u *ProductUpdate) AddStatus(v int8) *ProductUpdate {
 	return _u
 }
 
+// SetFeatured sets the "featured" field.
+func (_u *ProductUpdate) SetFeatured(v bool) *ProductUpdate {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ProductUpdate) SetNillableFeatured(v *bool) *ProductUpdate {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // SetCategoryID sets the "category_id" field.
 func (_u *ProductUpdate) SetCategoryID(v int) *ProductUpdate {
 	_u.mutation.SetCategoryID(v)
@@ -320,6 +334,9 @@ func (_u *ProductUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(product.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(product.FieldFeatured, field.TypeBool, value)
 	}
 	if _u.mutation.AttributesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -540,6 +557,20 @@ func (_u *ProductUpdateOne) AddStatus(v int8) *ProductUpdateOne {
 	return _u
 }
 
+// SetFeatured sets the "featured" field.
+func (_u *ProductUpdateOne) SetFeatured(v bool) *ProductUpdateOne {
+	_u.mutation.SetFeatured(v)
+	return _u
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_u *ProductUpdateOne) SetNillableFeatured(v *bool) *ProductUpdateOne {
+	if v != nil {
+		_u.SetFeatured(*v)
+	}
+	return _u
+}
+
 // SetCategoryID sets the "category_id" field.
 func (_u *ProductUpdateOne) SetCategoryID(v int) *ProductUpdateOne {
 	_u.mutation.SetCategoryID(v)
@@ -735,6 +766,9 @@ func (_u *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err er
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(product.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.Featured(); ok {
+		_spec.SetField(product.FieldFeatured, field.TypeBool, value)
 	}
 	if _u.mutation.AttributesCleared() {
 		edge := &sqlgraph.EdgeSpec{

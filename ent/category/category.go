@@ -32,6 +32,8 @@ const (
 	FieldDepth = "depth"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldOrd holds the string denoting the ord field in the database.
+	FieldOrd = "ord"
 	// EdgeChildren holds the string denoting the children edge name in mutations.
 	EdgeChildren = "children"
 	// EdgeParent holds the string denoting the parent edge name in mutations.
@@ -69,6 +71,7 @@ var Columns = []string{
 	FieldPath,
 	FieldDepth,
 	FieldStatus,
+	FieldOrd,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -94,6 +97,8 @@ var (
 	DefaultDepth int8
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
+	// DefaultOrd holds the default value on creation for the "ord" field.
+	DefaultOrd int
 )
 
 // OrderOption defines the ordering options for the Category queries.
@@ -147,6 +152,11 @@ func ByDepth(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByOrd orders the results by the ord field.
+func ByOrd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOrd, opts...).ToFunc()
 }
 
 // ByChildrenCount orders the results by children count.

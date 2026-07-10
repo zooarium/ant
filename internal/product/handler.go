@@ -123,6 +123,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 // @Param offset query int false "Items to skip (default 0)"
 // @Param status query int false "Filter by status (0 or 1)"
 // @Param category_id query int false "Filter by category (includes the category's entire subtree)"
+// @Param featured query bool false "Filter by featured flag (featured products always sort first)"
 // @Success 200 {object} render.Response{data=[]Product}
 // @Failure 401 {object} render.Response
 // @Failure 500 {object} render.Response
@@ -138,7 +139,8 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	p := platformhttp.ParsePagination(r)
 	status := platformhttp.ParseStatusFilter(r)
 	categoryID := platformhttp.ParseCategoryFilter(r)
-	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, p.Limit, p.Offset, status, categoryID)
+	featured := platformhttp.ParseFeaturedFilter(r)
+	items, err := h.svc.List(r.Context(), claims.AppID, claims.UserID, claims.DivisionID, p.Limit, p.Offset, status, categoryID, featured)
 	if err != nil {
 		render.Error(w, http.StatusInternalServerError, err.Error())
 		return

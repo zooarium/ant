@@ -115,6 +115,20 @@ func (_c *CategoryCreate) SetNillableStatus(v *int8) *CategoryCreate {
 	return _c
 }
 
+// SetOrd sets the "ord" field.
+func (_c *CategoryCreate) SetOrd(v int) *CategoryCreate {
+	_c.mutation.SetOrd(v)
+	return _c
+}
+
+// SetNillableOrd sets the "ord" field if the given value is not nil.
+func (_c *CategoryCreate) SetNillableOrd(v *int) *CategoryCreate {
+	if v != nil {
+		_c.SetOrd(*v)
+	}
+	return _c
+}
+
 // AddChildIDs adds the "children" edge to the Category entity by IDs.
 func (_c *CategoryCreate) AddChildIDs(ids ...int) *CategoryCreate {
 	_c.mutation.AddChildIDs(ids...)
@@ -201,6 +215,10 @@ func (_c *CategoryCreate) defaults() {
 		v := category.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.Ord(); !ok {
+		v := category.DefaultOrd
+		_c.mutation.SetOrd(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -233,6 +251,9 @@ func (_c *CategoryCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Category.status"`)}
+	}
+	if _, ok := _c.mutation.Ord(); !ok {
+		return &ValidationError{Name: "ord", err: errors.New(`ent: missing required field "Category.ord"`)}
 	}
 	return nil
 }
@@ -291,6 +312,10 @@ func (_c *CategoryCreate) createSpec() (*Category, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(category.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Ord(); ok {
+		_spec.SetField(category.FieldOrd, field.TypeInt, value)
+		_node.Ord = value
 	}
 	if nodes := _c.mutation.ChildrenIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

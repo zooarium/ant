@@ -19,6 +19,7 @@ type Category struct {
 	Path       string    `json:"path"`
 	Depth      int8      `json:"depth"`
 	Status     int8      `json:"status"`
+	Ord        int       `json:"ord"`
 	Display    string    `json:"display"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
@@ -40,6 +41,17 @@ type UpdateCategoryRequest struct {
 // parent_id promotes the category to a root.
 type MoveCategoryRequest struct {
 	ParentID *int `json:"parent_id"`
+}
+
+// ReorderRequest sets the display position (ord) of many categories at once,
+// atomically — the shape a drag-and-drop reorder produces.
+type ReorderRequest struct {
+	Items []ReorderItem `json:"items" validate:"required,min=1,max=500,dive"`
+}
+
+type ReorderItem struct {
+	ID  int `json:"id" validate:"required"`
+	Ord int `json:"ord"`
 }
 
 // ParsePathIDs returns the ordered ids embedded in a materialized path

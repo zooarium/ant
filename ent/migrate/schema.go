@@ -73,6 +73,7 @@ var (
 		{Name: "path", Type: field.TypeString},
 		{Name: "depth", Type: field.TypeInt8, Default: 0},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "ord", Type: field.TypeInt, Default: 0},
 		{Name: "parent_id", Type: field.TypeInt, Nullable: true},
 	}
 	// AntCategoryTable holds the schema information for the "ant_category" table.
@@ -83,7 +84,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ant_category_ant_category_children",
-				Columns:    []*schema.Column{AntCategoryColumns[9]},
+				Columns:    []*schema.Column{AntCategoryColumns[10]},
 				RefColumns: []*schema.Column{AntCategoryColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -97,7 +98,7 @@ var (
 			{
 				Name:    "category_app_id_division_id_parent_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntCategoryColumns[3], AntCategoryColumns[4], AntCategoryColumns[9]},
+				Columns: []*schema.Column{AntCategoryColumns[3], AntCategoryColumns[4], AntCategoryColumns[10]},
 			},
 		},
 	}
@@ -229,6 +230,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "price", Type: field.TypeFloat64, Default: 0},
 		{Name: "status", Type: field.TypeInt8, Default: 1},
+		{Name: "featured", Type: field.TypeBool, Default: false},
 		{Name: "category_id", Type: field.TypeInt, Nullable: true},
 	}
 	// AntProductTable holds the schema information for the "ant_product" table.
@@ -239,7 +241,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "ant_product_ant_category_products",
-				Columns:    []*schema.Column{AntProductColumns[9]},
+				Columns:    []*schema.Column{AntProductColumns[10]},
 				RefColumns: []*schema.Column{AntCategoryColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -253,7 +255,7 @@ var (
 			{
 				Name:    "product_app_id_division_id_category_id",
 				Unique:  false,
-				Columns: []*schema.Column{AntProductColumns[3], AntProductColumns[5], AntProductColumns[9]},
+				Columns: []*schema.Column{AntProductColumns[3], AntProductColumns[5], AntProductColumns[10]},
 			},
 		},
 	}

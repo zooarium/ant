@@ -95,6 +95,11 @@ func Status(v int8) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldStatus, v))
 }
 
+// Featured applies equality check predicate on the "featured" field. It's identical to FeaturedEQ.
+func Featured(v bool) predicate.Product {
+	return predicate.Product(sql.FieldEQ(FieldFeatured, v))
+}
+
 // CategoryID applies equality check predicate on the "category_id" field. It's identical to CategoryIDEQ.
 func CategoryID(v int) predicate.Product {
 	return predicate.Product(sql.FieldEQ(FieldCategoryID, v))
@@ -443,6 +448,16 @@ func StatusLT(v int8) predicate.Product {
 // StatusLTE applies the LTE predicate on the "status" field.
 func StatusLTE(v int8) predicate.Product {
 	return predicate.Product(sql.FieldLTE(FieldStatus, v))
+}
+
+// FeaturedEQ applies the EQ predicate on the "featured" field.
+func FeaturedEQ(v bool) predicate.Product {
+	return predicate.Product(sql.FieldEQ(FieldFeatured, v))
+}
+
+// FeaturedNEQ applies the NEQ predicate on the "featured" field.
+func FeaturedNEQ(v bool) predicate.Product {
+	return predicate.Product(sql.FieldNEQ(FieldFeatured, v))
 }
 
 // CategoryIDEQ applies the EQ predicate on the "category_id" field.

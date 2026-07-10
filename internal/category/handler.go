@@ -31,6 +31,7 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/", h.Create)
 	r.Get("/", h.List)
+	r.Put("/reorder", h.Reorder)
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", h.GetByID)
 		r.Put("/", h.Update)
@@ -75,7 +76,8 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrParentNotFound),
 		errors.Is(err, ErrParentInactive),
 		errors.Is(err, ErrMoveToSelf),
-		errors.Is(err, ErrMoveToDescendant):
+		errors.Is(err, ErrMoveToDescendant),
+		errors.Is(err, ErrDuplicateReorder):
 		render.Error(w, http.StatusBadRequest, err.Error())
 	default:
 		render.Error(w, http.StatusInternalServerError, err.Error())
@@ -319,6 +321,45 @@ func (h *Handler) Move(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, http.StatusOK, item)
+}
+
+// Reorder handles bulk-setting category display positions.
+// @Summary Reorder categories
+// @Description Atomically set the display position (ord) of many categories at once. Categories list in ord ASC, id ASC.
+// @Tags categories
+// @Accept json
+// @Produce json
+// @Param body body ReorderRequest true "Category positions"
+// @Success 204 "No Content"
+// @Failure 400 {object} render.Response
+// @Failure 401 {object} render.Response
+// @Failure 404 {object} render.Response
+// @Failure 500 {object} render.Response
+// @Security Bearer
+// @Router /categories/reorder [put]
+func (h *Handler) Reorder(w http.ResponseWriter, r *http.Request) {
+	claims, err := h.getClaims(r)
+	if err != nil {
+		render.Error(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var req ReorderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		render.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if err := h.validate.Struct(req); err != nil {
+		render.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.svc.Reorder(r.Context(), claims.AppID, claims.DivisionID, req); err != nil {
+		h.renderError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Delete handles deleting a category.

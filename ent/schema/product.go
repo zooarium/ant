@@ -39,6 +39,10 @@ func (Product) Fields() []ent.Field {
 			Default(0),
 		field.Int8("status").
 			Default(1),
+		// featured marks a product for prominent placement; featured products
+		// sort before others in all listings (admin and public).
+		field.Bool("featured").
+			Default(false),
 		field.Int("category_id").
 			Optional().
 			Nillable(),

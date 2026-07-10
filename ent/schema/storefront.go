@@ -14,7 +14,10 @@ import (
 // without a schema migration. The per-platform review count cap (3) is
 // enforced in the service layer, not the schema.
 type Assessment struct {
-	Name    string   `json:"name"`
+	Name string `json:"name"`
+	// URL links to the platform's dedicated page for this storefront
+	// (e.g. its Zomato/Swiggy/Google listing). Optional.
+	URL     string   `json:"url"`
 	Rating  float64  `json:"rating"`
 	Reviews []Review `json:"reviews"`
 }

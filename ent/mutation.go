@@ -1568,6 +1568,8 @@ type CategoryMutation struct {
 	adddepth        *int8
 	status          *int8
 	addstatus       *int8
+	ord             *int
+	addord          *int
 	clearedFields   map[string]struct{}
 	children        map[int]struct{}
 	removedchildren map[int]struct{}
@@ -2097,6 +2099,62 @@ func (m *CategoryMutation) ResetStatus() {
 	m.addstatus = nil
 }
 
+// SetOrd sets the "ord" field.
+func (m *CategoryMutation) SetOrd(i int) {
+	m.ord = &i
+	m.addord = nil
+}
+
+// Ord returns the value of the "ord" field in the mutation.
+func (m *CategoryMutation) Ord() (r int, exists bool) {
+	v := m.ord
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrd returns the old "ord" field's value of the Category entity.
+// If the Category object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CategoryMutation) OldOrd(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrd: %w", err)
+	}
+	return oldValue.Ord, nil
+}
+
+// AddOrd adds i to the "ord" field.
+func (m *CategoryMutation) AddOrd(i int) {
+	if m.addord != nil {
+		*m.addord += i
+	} else {
+		m.addord = &i
+	}
+}
+
+// AddedOrd returns the value that was added to the "ord" field in this mutation.
+func (m *CategoryMutation) AddedOrd() (r int, exists bool) {
+	v := m.addord
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOrd resets all changes to the "ord" field.
+func (m *CategoryMutation) ResetOrd() {
+	m.ord = nil
+	m.addord = nil
+}
+
 // AddChildIDs adds the "children" edge to the Category entity by ids.
 func (m *CategoryMutation) AddChildIDs(ids ...int) {
 	if m.children == nil {
@@ -2266,7 +2324,7 @@ func (m *CategoryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CategoryMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, category.FieldCreatedAt)
 	}
@@ -2294,6 +2352,9 @@ func (m *CategoryMutation) Fields() []string {
 	if m.status != nil {
 		fields = append(fields, category.FieldStatus)
 	}
+	if m.ord != nil {
+		fields = append(fields, category.FieldOrd)
+	}
 	return fields
 }
 
@@ -2320,6 +2381,8 @@ func (m *CategoryMutation) Field(name string) (ent.Value, bool) {
 		return m.Depth()
 	case category.FieldStatus:
 		return m.Status()
+	case category.FieldOrd:
+		return m.Ord()
 	}
 	return nil, false
 }
@@ -2347,6 +2410,8 @@ func (m *CategoryMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldDepth(ctx)
 	case category.FieldStatus:
 		return m.OldStatus(ctx)
+	case category.FieldOrd:
+		return m.OldOrd(ctx)
 	}
 	return nil, fmt.Errorf("unknown Category field %s", name)
 }
@@ -2419,6 +2484,13 @@ func (m *CategoryMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetStatus(v)
 		return nil
+	case category.FieldOrd:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrd(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Category field %s", name)
 }
@@ -2439,6 +2511,9 @@ func (m *CategoryMutation) AddedFields() []string {
 	if m.addstatus != nil {
 		fields = append(fields, category.FieldStatus)
 	}
+	if m.addord != nil {
+		fields = append(fields, category.FieldOrd)
+	}
 	return fields
 }
 
@@ -2455,6 +2530,8 @@ func (m *CategoryMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedDepth()
 	case category.FieldStatus:
 		return m.AddedStatus()
+	case category.FieldOrd:
+		return m.AddedOrd()
 	}
 	return nil, false
 }
@@ -2491,6 +2568,13 @@ func (m *CategoryMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddStatus(v)
+		return nil
+	case category.FieldOrd:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOrd(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Category numeric field %s", name)
@@ -2554,6 +2638,9 @@ func (m *CategoryMutation) ResetField(name string) error {
 		return nil
 	case category.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case category.FieldOrd:
+		m.ResetOrd()
 		return nil
 	}
 	return fmt.Errorf("unknown Category field %s", name)
@@ -5945,6 +6032,7 @@ type ProductMutation struct {
 	addprice          *float64
 	status            *int8
 	addstatus         *int8
+	featured          *bool
 	clearedFields     map[string]struct{}
 	attributes        map[int]struct{}
 	removedattributes map[int]struct{}
@@ -6442,6 +6530,42 @@ func (m *ProductMutation) ResetStatus() {
 	m.addstatus = nil
 }
 
+// SetFeatured sets the "featured" field.
+func (m *ProductMutation) SetFeatured(b bool) {
+	m.featured = &b
+}
+
+// Featured returns the value of the "featured" field in the mutation.
+func (m *ProductMutation) Featured() (r bool, exists bool) {
+	v := m.featured
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatured returns the old "featured" field's value of the Product entity.
+// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProductMutation) OldFeatured(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatured is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatured requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatured: %w", err)
+	}
+	return oldValue.Featured, nil
+}
+
+// ResetFeatured resets all changes to the "featured" field.
+func (m *ProductMutation) ResetFeatured() {
+	m.featured = nil
+}
+
 // SetCategoryID sets the "category_id" field.
 func (m *ProductMutation) SetCategoryID(i int) {
 	m.category = &i
@@ -6606,7 +6730,7 @@ func (m *ProductMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProductMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, product.FieldCreatedAt)
 	}
@@ -6630,6 +6754,9 @@ func (m *ProductMutation) Fields() []string {
 	}
 	if m.status != nil {
 		fields = append(fields, product.FieldStatus)
+	}
+	if m.featured != nil {
+		fields = append(fields, product.FieldFeatured)
 	}
 	if m.category != nil {
 		fields = append(fields, product.FieldCategoryID)
@@ -6658,6 +6785,8 @@ func (m *ProductMutation) Field(name string) (ent.Value, bool) {
 		return m.Price()
 	case product.FieldStatus:
 		return m.Status()
+	case product.FieldFeatured:
+		return m.Featured()
 	case product.FieldCategoryID:
 		return m.CategoryID()
 	}
@@ -6685,6 +6814,8 @@ func (m *ProductMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldPrice(ctx)
 	case product.FieldStatus:
 		return m.OldStatus(ctx)
+	case product.FieldFeatured:
+		return m.OldFeatured(ctx)
 	case product.FieldCategoryID:
 		return m.OldCategoryID(ctx)
 	}
@@ -6751,6 +6882,13 @@ func (m *ProductMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStatus(v)
+		return nil
+	case product.FieldFeatured:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatured(v)
 		return nil
 	case product.FieldCategoryID:
 		v, ok := value.(int)
@@ -6903,6 +7041,9 @@ func (m *ProductMutation) ResetField(name string) error {
 		return nil
 	case product.FieldStatus:
 		m.ResetStatus()
+		return nil
+	case product.FieldFeatured:
+		m.ResetFeatured()
 		return nil
 	case product.FieldCategoryID:
 		m.ResetCategoryID()

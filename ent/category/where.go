@@ -100,6 +100,11 @@ func Status(v int8) predicate.Category {
 	return predicate.Category(sql.FieldEQ(FieldStatus, v))
 }
 
+// Ord applies equality check predicate on the "ord" field. It's identical to OrdEQ.
+func Ord(v int) predicate.Category {
+	return predicate.Category(sql.FieldEQ(FieldOrd, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.Category {
 	return predicate.Category(sql.FieldEQ(FieldCreatedAt, v))
@@ -498,6 +503,46 @@ func StatusLT(v int8) predicate.Category {
 // StatusLTE applies the LTE predicate on the "status" field.
 func StatusLTE(v int8) predicate.Category {
 	return predicate.Category(sql.FieldLTE(FieldStatus, v))
+}
+
+// OrdEQ applies the EQ predicate on the "ord" field.
+func OrdEQ(v int) predicate.Category {
+	return predicate.Category(sql.FieldEQ(FieldOrd, v))
+}
+
+// OrdNEQ applies the NEQ predicate on the "ord" field.
+func OrdNEQ(v int) predicate.Category {
+	return predicate.Category(sql.FieldNEQ(FieldOrd, v))
+}
+
+// OrdIn applies the In predicate on the "ord" field.
+func OrdIn(vs ...int) predicate.Category {
+	return predicate.Category(sql.FieldIn(FieldOrd, vs...))
+}
+
+// OrdNotIn applies the NotIn predicate on the "ord" field.
+func OrdNotIn(vs ...int) predicate.Category {
+	return predicate.Category(sql.FieldNotIn(FieldOrd, vs...))
+}
+
+// OrdGT applies the GT predicate on the "ord" field.
+func OrdGT(v int) predicate.Category {
+	return predicate.Category(sql.FieldGT(FieldOrd, v))
+}
+
+// OrdGTE applies the GTE predicate on the "ord" field.
+func OrdGTE(v int) predicate.Category {
+	return predicate.Category(sql.FieldGTE(FieldOrd, v))
+}
+
+// OrdLT applies the LT predicate on the "ord" field.
+func OrdLT(v int) predicate.Category {
+	return predicate.Category(sql.FieldLT(FieldOrd, v))
+}
+
+// OrdLTE applies the LTE predicate on the "ord" field.
+func OrdLTE(v int) predicate.Category {
+	return predicate.Category(sql.FieldLTE(FieldOrd, v))
 }
 
 // HasChildren applies the HasEdge predicate on the "children" edge.

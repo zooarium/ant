@@ -1,4 +1,4 @@
-h1:XMwWyk3RHoqcmbQQuwCuPW7yf3FSwyDpHQalOxIQFcQ=
+h1:49QCQAFf3RhxC+lhP2YTTZpde8cdttnWHoz8kTzuuBk=
 20260611152924_init.sql h1:YjMu8iqIusxkNY88nPxFZlTbRvrxtSe+qvgWldNXnNU=
 20260613063925_add_order_tax_percent.sql h1:ZmhlHeT1+hp/HJbbfPcK03ZoWqfSHH6JeQLBD52BqYU=
 20260613065532_add_order_ip_device.sql h1:9FEPWzRExkmnHbr5H3K23Hg1n6b/hf660VYQAOlz3bI=
@@ -6,3 +6,4 @@ h1:XMwWyk3RHoqcmbQQuwCuPW7yf3FSwyDpHQalOxIQFcQ=
 20260619120209_add_category.sql h1:cenSeVJQj8XNoG1ZP1xBt1D+ZCxQl6GTAj6wYP7xeoc=
 20260620020404_sync_division_indexes.sql h1:AC0J8Bz0fhT+ZXbIhOMWdIpMIC0bhH/qak0OkV41C3U=
 20260620020412_add_storefront.sql h1:mWvpxrdoMz+UslIBFqYQulRDQzgS3pgMrwTVkea80XQ=
+20260707125850_product_featured_category_ord.sql h1:wuuv0mswbIoGFn5A50SwLhMcXfimHA9qlS78e0K9tJg=

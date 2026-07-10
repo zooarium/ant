@@ -508,6 +508,66 @@ const docTemplate = `{
                 }
             }
         },
+        "/categories/reorder": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Atomically set the display position (ord) of many categories at once. Categories list in ord ASC, id ASC.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Reorder categories",
+                "parameters": [
+                    {
+                        "description": "Category positions",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_category.ReorderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ant_internal_platform_render.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/categories/{id}": {
             "get": {
                 "security": [
@@ -1849,6 +1909,12 @@ const docTemplate = `{
                         "description": "Filter by category (includes the category's entire subtree)",
                         "name": "category_id",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by featured flag (featured products always sort first)",
+                        "name": "featured",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2704,6 +2770,10 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "ord": {
+                    "description": "Ord is the category's tenant-defined display position, so public\nclients can order menu groups without a separate categories call.",
+                    "type": "integer"
                 }
             }
         },
@@ -2730,6 +2800,9 @@ const docTemplate = `{
                 },
                 "division_id": {
                     "type": "integer"
+                },
+                "featured": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
@@ -2900,6 +2973,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "ord": {
+                    "type": "integer"
+                },
                 "parent_id": {
                     "type": "integer"
                 },
@@ -2934,6 +3010,36 @@ const docTemplate = `{
             "properties": {
                 "parent_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_category.ReorderItem": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "ord": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_category.ReorderRequest": {
+            "type": "object",
+            "required": [
+                "items"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/internal_category.ReorderItem"
+                    }
                 }
             }
         },
@@ -3517,6 +3623,10 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "ord": {
+                    "description": "Ord is the category's tenant-defined display position, so public\nclients can order menu groups without a separate categories call.",
+                    "type": "integer"
                 }
             }
         },
@@ -3534,6 +3644,9 @@ const docTemplate = `{
                 },
                 "category_id": {
                     "type": "integer"
+                },
+                "featured": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string",
@@ -3576,6 +3689,9 @@ const docTemplate = `{
                 "division_id": {
                     "type": "integer"
                 },
+                "featured": {
+                    "type": "boolean"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3612,6 +3728,9 @@ const docTemplate = `{
                 "category_id": {
                     "type": "integer"
                 },
+                "featured": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string",
                     "maxLength": 200
@@ -3643,6 +3762,10 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/ant_ent_schema.Review"
                     }
+                },
+                "url": {
+                    "description": "URL links to the platform's dedicated page for this storefront\n(e.g. its Zomato/Swiggy/Google listing). Optional.",
+                    "type": "string"
                 }
             }
         },

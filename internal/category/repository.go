@@ -102,7 +102,7 @@ func (r *categoryRepository) List(ctx context.Context, appID, divisionID int, pa
 		q = q.Where(entcategory.StatusEQ(*status))
 	}
 	rows, err := q.
-		Order(ent.Asc(entcategory.FieldID)).
+		Order(ent.Asc(entcategory.FieldOrd), ent.Asc(entcategory.FieldID)).
 		Limit(limit).
 		Offset(offset).
 		All(ctx)
@@ -237,6 +237,48 @@ func (r *categoryRepository) moveTx(ctx context.Context, tx *ent.Tx, appID, divi
 	return nil
 }
 
+// Reorder atomically sets the ord of the given categories inside one
+// transaction, verifying first (inside the tx) that every id belongs to the
+// app and division — a partial or cross-tenant set is rejected wholesale.
+func (r *categoryRepository) Reorder(ctx context.Context, appID, divisionID int, items []ReorderItem) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		slog.Error("database error: failed to begin transaction for category reorder", "error", err)
+		return fmt.Errorf("begin tx: %w", err)
+	}
+
+	ids := make([]int, len(items))
+	for i, it := range items {
+		ids[i] = it.ID
+	}
+	count, err := tx.Category.Query().
+		Where(entcategory.IDIn(ids...), entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID)).
+		Count(ctx)
+	if err == nil && count != len(items) {
+		err = ErrCategoryNotFound
+	}
+	if err == nil {
+		for _, it := range items {
+			if _, uerr := tx.Category.UpdateOneID(it.ID).SetOrd(it.Ord).Save(ctx); uerr != nil {
+				err = uerr
+				break
+			}
+		}
+	}
+	if err != nil {
+		if rerr := tx.Rollback(); rerr != nil {
+			slog.Error("database error: failed to rollback category reorder", "error", rerr)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		slog.Error("database error: failed to commit category reorder", "error", err)
+		return fmt.Errorf("commit tx: %w", err)
+	}
+	return nil
+}
+
 // CountChildren returns the number of direct children of a category.
 func (r *categoryRepository) CountChildren(ctx context.Context, id int) (int, error) {
 	return r.client.Category.Query().
@@ -339,6 +381,7 @@ func (r *categoryRepository) mapToModel(c *ent.Category) *Category {
 		Path:       c.Path,
 		Depth:      c.Depth,
 		Status:     c.Status,
+		Ord:        c.Ord,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
 	}

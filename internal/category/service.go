@@ -15,6 +15,7 @@ var (
 	ErrMoveToDescendant = errors.New("cannot move category to its own descendant")
 	ErrHasChildren      = errors.New("category has children; remove them first")
 	ErrHasProducts      = errors.New("category has assigned products; reassign them first")
+	ErrDuplicateReorder = errors.New("duplicate category id in reorder request")
 )
 
 // Repository is the data-access contract for categories.
@@ -25,6 +26,7 @@ type Repository interface {
 	Descendants(ctx context.Context, appID, divisionID int, path string) ([]*Category, error)
 	Update(ctx context.Context, appID, divisionID, id int, c *Category) (*Category, error)
 	Move(ctx context.Context, appID, divisionID, id int, newParentID *int, oldPath, newPath string) error
+	Reorder(ctx context.Context, appID, divisionID int, items []ReorderItem) error
 	CountChildren(ctx context.Context, id int) (int, error)
 	CountProducts(ctx context.Context, id int) (int, error)
 	Delete(ctx context.Context, appID, divisionID, id int) error
@@ -38,6 +40,7 @@ type Service interface {
 	Descendants(ctx context.Context, appID, divisionID, id int) ([]*Category, error)
 	Update(ctx context.Context, appID, divisionID, id int, req UpdateCategoryRequest) (*Category, error)
 	Move(ctx context.Context, appID, divisionID, id int, req MoveCategoryRequest) (*Category, error)
+	Reorder(ctx context.Context, appID, divisionID int, req ReorderRequest) error
 	Delete(ctx context.Context, appID, divisionID, id int) error
 }
 
@@ -145,6 +148,22 @@ func (s *service) Move(ctx context.Context, appID, divisionID, id int, req MoveC
 	}
 	slog.Info("category moved", "id", id, "old_path", oldPath, "new_path", newPath)
 	return s.repo.GetByID(ctx, appID, divisionID, id)
+}
+
+func (s *service) Reorder(ctx context.Context, appID, divisionID int, req ReorderRequest) error {
+	seen := make(map[int]struct{}, len(req.Items))
+	for _, it := range req.Items {
+		if _, dup := seen[it.ID]; dup {
+			return ErrDuplicateReorder
+		}
+		seen[it.ID] = struct{}{}
+	}
+	if err := s.repo.Reorder(ctx, appID, divisionID, req.Items); err != nil {
+		slog.Error("failed to reorder categories", "app_id", appID, "division_id", divisionID, "error", err)
+		return err
+	}
+	slog.Info("categories reordered", "app_id", appID, "division_id", divisionID, "count", len(req.Items))
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, appID, divisionID, id int) error {

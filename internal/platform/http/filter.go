@@ -21,6 +21,20 @@ func ParseStatusFilter(r *http.Request) *int8 {
 	return &s
 }
 
+// ParseFeaturedFilter extracts an optional featured query parameter
+// (true/false/1/0). A missing or non-boolean value yields nil (no filter).
+func ParseFeaturedFilter(r *http.Request) *bool {
+	v := r.URL.Query().Get("featured")
+	if v == "" {
+		return nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return nil
+	}
+	return &b
+}
+
 // ParseCategoryFilter extracts an optional category_id query parameter. A
 // missing or non-integer value yields nil (no filter). When set, the product
 // list is scoped to that category and its entire subtree.

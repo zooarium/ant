@@ -46,6 +46,10 @@ func (Category) Fields() []ent.Field {
 			Default(0),
 		field.Int8("status").
 			Default(1),
+		// ord is the tenant-defined display position; categories list in
+		// ord ASC, id ASC so preferred categories surface first.
+		field.Int("ord").
+			Default(0),
 	}
 }
 

@@ -45,6 +45,11 @@ definitions:
         type: integer
       name:
         type: string
+      ord:
+        description: |-
+          Ord is the category's tenant-defined display position, so public
+          clients can order menu groups without a separate categories call.
+        type: integer
     type: object
   ant_internal_product.Product:
     properties:
@@ -62,6 +67,8 @@ definitions:
         type: string
       division_id:
         type: integer
+      featured:
+        type: boolean
       id:
         type: integer
       name:
@@ -175,6 +182,8 @@ definitions:
         type: integer
       name:
         type: string
+      ord:
+        type: integer
       parent_id:
         type: integer
       path:
@@ -198,6 +207,26 @@ definitions:
     properties:
       parent_id:
         type: integer
+    type: object
+  internal_category.ReorderItem:
+    properties:
+      id:
+        type: integer
+      ord:
+        type: integer
+    required:
+    - id
+    type: object
+  internal_category.ReorderRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_category.ReorderItem'
+        maxItems: 500
+        minItems: 1
+        type: array
+    required:
+    - items
     type: object
   internal_category.UpdateCategoryRequest:
     properties:
@@ -640,6 +669,11 @@ definitions:
         type: integer
       name:
         type: string
+      ord:
+        description: |-
+          Ord is the category's tenant-defined display position, so public
+          clients can order menu groups without a separate categories call.
+        type: integer
     type: object
   internal_product.CreateProductRequest:
     properties:
@@ -649,6 +683,8 @@ definitions:
         type: array
       category_id:
         type: integer
+      featured:
+        type: boolean
       name:
         maxLength: 200
         type: string
@@ -679,6 +715,8 @@ definitions:
         type: string
       division_id:
         type: integer
+      featured:
+        type: boolean
       id:
         type: integer
       name:
@@ -700,6 +738,8 @@ definitions:
         type: array
       category_id:
         type: integer
+      featured:
+        type: boolean
       name:
         maxLength: 200
         type: string
@@ -725,6 +765,11 @@ definitions:
         items:
           $ref: '#/definitions/ant_ent_schema.Review'
         type: array
+      url:
+        description: |-
+          URL links to the platform's dedicated page for this storefront
+          (e.g. its Zomato/Swiggy/Google listing). Optional.
+        type: string
     type: object
   internal_storefront.FoodTag:
     properties:
@@ -1349,6 +1394,45 @@ paths:
       summary: Move a category to a new parent
       tags:
       - categories
+  /categories/reorder:
+    put:
+      consumes:
+      - application/json
+      description: Atomically set the display position (ord) of many categories at
+        once. Categories list in ord ASC, id ASC.
+      parameters:
+      - description: Category positions
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_category.ReorderRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ant_internal_platform_render.Response'
+      security:
+      - Bearer: []
+      summary: Reorder categories
+      tags:
+      - categories
   /health:
     get:
       description: Get the health status of the service
@@ -1960,6 +2044,10 @@ paths:
         in: query
         name: category_id
         type: integer
+      - description: Filter by featured flag (featured products always sort first)
+        in: query
+        name: featured
+        type: boolean
       produces:
       - application/json
       responses:

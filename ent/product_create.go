@@ -102,6 +102,20 @@ func (_c *ProductCreate) SetNillableStatus(v *int8) *ProductCreate {
 	return _c
 }
 
+// SetFeatured sets the "featured" field.
+func (_c *ProductCreate) SetFeatured(v bool) *ProductCreate {
+	_c.mutation.SetFeatured(v)
+	return _c
+}
+
+// SetNillableFeatured sets the "featured" field if the given value is not nil.
+func (_c *ProductCreate) SetNillableFeatured(v *bool) *ProductCreate {
+	if v != nil {
+		_c.SetFeatured(*v)
+	}
+	return _c
+}
+
 // SetCategoryID sets the "category_id" field.
 func (_c *ProductCreate) SetCategoryID(v int) *ProductCreate {
 	_c.mutation.SetCategoryID(v)
@@ -187,6 +201,10 @@ func (_c *ProductCreate) defaults() {
 		v := product.DefaultStatus
 		_c.mutation.SetStatus(v)
 	}
+	if _, ok := _c.mutation.Featured(); !ok {
+		v := product.DefaultFeatured
+		_c.mutation.SetFeatured(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -219,6 +237,9 @@ func (_c *ProductCreate) check() error {
 	}
 	if _, ok := _c.mutation.Status(); !ok {
 		return &ValidationError{Name: "status", err: errors.New(`ent: missing required field "Product.status"`)}
+	}
+	if _, ok := _c.mutation.Featured(); !ok {
+		return &ValidationError{Name: "featured", err: errors.New(`ent: missing required field "Product.featured"`)}
 	}
 	return nil
 }
@@ -277,6 +298,10 @@ func (_c *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(product.FieldStatus, field.TypeInt8, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Featured(); ok {
+		_spec.SetField(product.FieldFeatured, field.TypeBool, value)
+		_node.Featured = value
 	}
 	if nodes := _c.mutation.AttributesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

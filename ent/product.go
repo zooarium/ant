@@ -34,6 +34,8 @@ type Product struct {
 	Price float64 `json:"price,omitempty"`
 	// Status holds the value of the "status" field.
 	Status int8 `json:"status,omitempty"`
+	// Featured holds the value of the "featured" field.
+	Featured bool `json:"featured,omitempty"`
 	// CategoryID holds the value of the "category_id" field.
 	CategoryID *int `json:"category_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -78,6 +80,8 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case product.FieldFeatured:
+			values[i] = new(sql.NullBool)
 		case product.FieldPrice:
 			values[i] = new(sql.NullFloat64)
 		case product.FieldID, product.FieldAppID, product.FieldUserID, product.FieldDivisionID, product.FieldStatus, product.FieldCategoryID:
@@ -155,6 +159,12 @@ func (_m *Product) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = int8(value.Int64)
 			}
+		case product.FieldFeatured:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field featured", values[i])
+			} else if value.Valid {
+				_m.Featured = value.Bool
+			}
 		case product.FieldCategoryID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field category_id", values[i])
@@ -231,6 +241,9 @@ func (_m *Product) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Status))
+	builder.WriteString(", ")
+	builder.WriteString("featured=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Featured))
 	builder.WriteString(", ")
 	if v := _m.CategoryID; v != nil {
 		builder.WriteString("category_id=")

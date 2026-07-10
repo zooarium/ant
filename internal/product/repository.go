@@ -141,6 +141,7 @@ func (r *productRepository) Create(ctx context.Context, item Product, assignment
 		SetName(item.Name).
 		SetPrice(item.Price).
 		SetStatus(item.Status).
+		SetFeatured(item.Featured).
 		SetNillableCategoryID(item.CategoryID).
 		Save(ctx)
 	if err != nil {
@@ -155,12 +156,15 @@ func (r *productRepository) Create(ctx context.Context, item Product, assignment
 	return r.GetByID(ctx, item.AppID, item.UserID, item.DivisionID, e.ID)
 }
 
-func (r *productRepository) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
+func (r *productRepository) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int, featured *bool) ([]Product, error) {
 	q := r.client.Product.
 		Query().
 		Where(entproduct.AppID(appID), entproduct.DivisionID(divisionID))
 	if status != nil {
 		q = q.Where(entproduct.Status(*status))
+	}
+	if featured != nil {
+		q = q.Where(entproduct.Featured(*featured))
 	}
 	if categoryID != nil {
 		// Hierarchical filter: include the category and its whole subtree. An
@@ -175,7 +179,7 @@ func (r *productRepository) List(ctx context.Context, appID, userID, divisionID,
 		q = q.Where(entproduct.CategoryIDIn(ids...))
 	}
 	es, err := q.
-		Order(ent.Asc(entproduct.FieldID)).
+		Order(ent.Desc(entproduct.FieldFeatured), ent.Asc(entproduct.FieldID)).
 		Limit(limit).
 		Offset(offset).
 		All(ctx)
@@ -260,7 +264,8 @@ func (r *productRepository) Update(ctx context.Context, appID, userID, divisionI
 		Where(entproduct.ID(id), entproduct.AppID(appID), entproduct.DivisionID(divisionID)).
 		SetName(item.Name).
 		SetPrice(item.Price).
-		SetStatus(item.Status)
+		SetStatus(item.Status).
+		SetFeatured(item.Featured)
 	// Full sync: a nil category_id clears any existing assignment.
 	if item.CategoryID != nil {
 		upd = upd.SetCategoryID(*item.CategoryID)
@@ -344,6 +349,7 @@ func (r *productRepository) mapToModel(e *ent.Product) Product {
 		Name:       e.Name,
 		Price:      e.Price,
 		Status:     e.Status,
+		Featured:   e.Featured,
 		CategoryID: e.CategoryID,
 		CreatedAt:  e.CreatedAt,
 		UpdatedAt:  e.UpdatedAt,
@@ -367,7 +373,7 @@ func (r *productRepository) decorateCategories(ctx context.Context, appID, divis
 	cats, err := r.client.Category.
 		Query().
 		Where(entcategory.AppIDEQ(appID), entcategory.DivisionIDEQ(divisionID), entcategory.IDIn(intKeys(catIDs)...)).
-		Select(entcategory.FieldID, entcategory.FieldName, entcategory.FieldPath).
+		Select(entcategory.FieldID, entcategory.FieldName, entcategory.FieldPath, entcategory.FieldOrd).
 		All(ctx)
 	if err != nil {
 		return fmt.Errorf("load product categories: %w", err)
@@ -376,11 +382,12 @@ func (r *productRepository) decorateCategories(ctx context.Context, appID, divis
 	type catInfo struct {
 		name string
 		path string
+		ord  int
 	}
 	infoByID := make(map[int]catInfo, len(cats))
 	ancestorIDs := make(map[int]struct{})
 	for _, c := range cats {
-		infoByID[c.ID] = catInfo{name: c.Name, path: c.Path}
+		infoByID[c.ID] = catInfo{name: c.Name, path: c.Path, ord: c.Ord}
 		ids := category.ParsePathIDs(c.Path)
 		if len(ids) > 1 {
 			for _, a := range ids[:len(ids)-1] {
@@ -419,6 +426,7 @@ func (r *productRepository) decorateCategories(ctx context.Context, appID, divis
 			ID:      id,
 			Name:    info.name,
 			Display: category.BuildDisplay(info.name, ancestors),
+			Ord:     info.ord,
 		}
 	}
 

@@ -89,6 +89,10 @@ func init() {
 	categoryDescStatus := categoryFields[6].Descriptor()
 	// category.DefaultStatus holds the default value on creation for the status field.
 	category.DefaultStatus = categoryDescStatus.Default.(int8)
+	// categoryDescOrd is the schema descriptor for ord field.
+	categoryDescOrd := categoryFields[7].Descriptor()
+	// category.DefaultOrd holds the default value on creation for the ord field.
+	category.DefaultOrd = categoryDescOrd.Default.(int)
 	orderMixin := schema.Order{}.Mixin()
 	orderMixinFields0 := orderMixin[0].Fields()
 	_ = orderMixinFields0
@@ -231,6 +235,10 @@ func init() {
 	productDescStatus := productFields[5].Descriptor()
 	// product.DefaultStatus holds the default value on creation for the status field.
 	product.DefaultStatus = productDescStatus.Default.(int8)
+	// productDescFeatured is the schema descriptor for featured field.
+	productDescFeatured := productFields[6].Descriptor()
+	// product.DefaultFeatured holds the default value on creation for the featured field.
+	product.DefaultFeatured = productDescFeatured.Default.(bool)
 	productattributeMixin := schema.ProductAttribute{}.Mixin()
 	productattributeMixinFields0 := productattributeMixin[0].Fields()
 	_ = productattributeMixinFields0

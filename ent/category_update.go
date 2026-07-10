@@ -167,6 +167,27 @@ func (_u *CategoryUpdate) AddStatus(v int8) *CategoryUpdate {
 	return _u
 }
 
+// SetOrd sets the "ord" field.
+func (_u *CategoryUpdate) SetOrd(v int) *CategoryUpdate {
+	_u.mutation.ResetOrd()
+	_u.mutation.SetOrd(v)
+	return _u
+}
+
+// SetNillableOrd sets the "ord" field if the given value is not nil.
+func (_u *CategoryUpdate) SetNillableOrd(v *int) *CategoryUpdate {
+	if v != nil {
+		_u.SetOrd(*v)
+	}
+	return _u
+}
+
+// AddOrd adds value to the "ord" field.
+func (_u *CategoryUpdate) AddOrd(v int) *CategoryUpdate {
+	_u.mutation.AddOrd(v)
+	return _u
+}
+
 // AddChildIDs adds the "children" edge to the Category entity by IDs.
 func (_u *CategoryUpdate) AddChildIDs(ids ...int) *CategoryUpdate {
 	_u.mutation.AddChildIDs(ids...)
@@ -345,6 +366,12 @@ func (_u *CategoryUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(category.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.Ord(); ok {
+		_spec.SetField(category.FieldOrd, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrd(); ok {
+		_spec.AddField(category.FieldOrd, field.TypeInt, value)
 	}
 	if _u.mutation.ChildrenCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -623,6 +650,27 @@ func (_u *CategoryUpdateOne) AddStatus(v int8) *CategoryUpdateOne {
 	return _u
 }
 
+// SetOrd sets the "ord" field.
+func (_u *CategoryUpdateOne) SetOrd(v int) *CategoryUpdateOne {
+	_u.mutation.ResetOrd()
+	_u.mutation.SetOrd(v)
+	return _u
+}
+
+// SetNillableOrd sets the "ord" field if the given value is not nil.
+func (_u *CategoryUpdateOne) SetNillableOrd(v *int) *CategoryUpdateOne {
+	if v != nil {
+		_u.SetOrd(*v)
+	}
+	return _u
+}
+
+// AddOrd adds value to the "ord" field.
+func (_u *CategoryUpdateOne) AddOrd(v int) *CategoryUpdateOne {
+	_u.mutation.AddOrd(v)
+	return _u
+}
+
 // AddChildIDs adds the "children" edge to the Category entity by IDs.
 func (_u *CategoryUpdateOne) AddChildIDs(ids ...int) *CategoryUpdateOne {
 	_u.mutation.AddChildIDs(ids...)
@@ -831,6 +879,12 @@ func (_u *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err 
 	}
 	if value, ok := _u.mutation.AddedStatus(); ok {
 		_spec.AddField(category.FieldStatus, field.TypeInt8, value)
+	}
+	if value, ok := _u.mutation.Ord(); ok {
+		_spec.SetField(category.FieldOrd, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedOrd(); ok {
+		_spec.AddField(category.FieldOrd, field.TypeInt, value)
 	}
 	if _u.mutation.ChildrenCleared() {
 		edge := &sqlgraph.EdgeSpec{

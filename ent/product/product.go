@@ -30,6 +30,8 @@ const (
 	FieldPrice = "price"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldFeatured holds the string denoting the featured field in the database.
+	FieldFeatured = "featured"
 	// FieldCategoryID holds the string denoting the category_id field in the database.
 	FieldCategoryID = "category_id"
 	// EdgeAttributes holds the string denoting the attributes edge name in mutations.
@@ -65,6 +67,7 @@ var Columns = []string{
 	FieldName,
 	FieldPrice,
 	FieldStatus,
+	FieldFeatured,
 	FieldCategoryID,
 }
 
@@ -91,6 +94,8 @@ var (
 	DefaultPrice float64
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus int8
+	// DefaultFeatured holds the default value on creation for the "featured" field.
+	DefaultFeatured bool
 )
 
 // OrderOption defines the ordering options for the Product queries.
@@ -139,6 +144,11 @@ func ByPrice(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByFeatured orders the results by the featured field.
+func ByFeatured(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatured, opts...).ToFunc()
 }
 
 // ByCategoryID orders the results by the category_id field.

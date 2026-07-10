@@ -12,6 +12,7 @@ type Product struct {
 	Name       string              `json:"name"`
 	Price      float64             `json:"price"`
 	Status     int8                `json:"status"`
+	Featured   bool                `json:"featured"`
 	CategoryID *int                `json:"category_id"`
 	Category   *CategoryRef        `json:"category,omitempty"`
 	Attributes []AssignedAttribute `json:"attributes,omitempty"`
@@ -26,6 +27,9 @@ type CategoryRef struct {
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Display string `json:"display"`
+	// Ord is the category's tenant-defined display position, so public
+	// clients can order menu groups without a separate categories call.
+	Ord int `json:"ord"`
 }
 
 // AssignedAttribute is an attribute glued to a product, with the product's
@@ -62,6 +66,7 @@ type CreateProductRequest struct {
 	Name       string                       `json:"name" validate:"required,max=200"`
 	Price      float64                      `json:"price" validate:"gte=0"`
 	Status     *int8                        `json:"status" validate:"omitempty,oneof=0 1"`
+	Featured   bool                         `json:"featured"`
 	CategoryID *int                         `json:"category_id" validate:"omitempty"`
 	Attributes []AttributeAssignmentRequest `json:"attributes" validate:"omitempty,dive"`
 }
@@ -72,6 +77,7 @@ type UpdateProductRequest struct {
 	Name       string                       `json:"name" validate:"required,max=200"`
 	Price      float64                      `json:"price" validate:"gte=0"`
 	Status     *int8                        `json:"status" validate:"required,oneof=0 1"`
+	Featured   bool                         `json:"featured"`
 	CategoryID *int                         `json:"category_id" validate:"omitempty"`
 	Attributes []AttributeAssignmentRequest `json:"attributes" validate:"omitempty,dive"`
 }

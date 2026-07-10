@@ -21,7 +21,7 @@ var (
 
 type Repository interface {
 	Create(ctx context.Context, item Product, assignments []AttributeAssignmentRequest) (Product, error)
-	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int, featured *bool) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error)
 	Update(ctx context.Context, appID, userID, divisionID, id int, item Product, assignments []AttributeAssignmentRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, divisionID, id int) error
@@ -29,7 +29,7 @@ type Repository interface {
 
 type Service interface {
 	Create(ctx context.Context, appID, userID, divisionID int, req CreateProductRequest) (Product, error)
-	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error)
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int, featured *bool) ([]Product, error)
 	GetByID(ctx context.Context, appID, userID, divisionID, id int) (Product, error)
 	Update(ctx context.Context, appID, userID, divisionID, id int, req UpdateProductRequest) (Product, error)
 	Delete(ctx context.Context, appID, userID, divisionID, id int) error
@@ -84,6 +84,7 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req
 		Name:       req.Name,
 		Price:      req.Price,
 		Status:     status,
+		Featured:   req.Featured,
 		CategoryID: req.CategoryID,
 	}
 	created, err := s.repo.Create(ctx, item, req.Attributes)
@@ -97,8 +98,8 @@ func (s *service) Create(ctx context.Context, appID, userID, divisionID int, req
 	return created, nil
 }
 
-func (s *service) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]Product, error) {
-	items, err := s.repo.List(ctx, appID, userID, divisionID, limit, offset, status, categoryID)
+func (s *service) List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int, featured *bool) ([]Product, error) {
+	items, err := s.repo.List(ctx, appID, userID, divisionID, limit, offset, status, categoryID, featured)
 	if err != nil {
 		slog.Error("failed to list products", "error", err, "app_id", appID, "user_id", userID)
 		return nil, err
@@ -128,6 +129,7 @@ func (s *service) Update(ctx context.Context, appID, userID, divisionID, id int,
 		Name:       req.Name,
 		Price:      req.Price,
 		Status:     *req.Status,
+		Featured:   req.Featured,
 		CategoryID: req.CategoryID,
 	}
 	updated, err := s.repo.Update(ctx, appID, userID, divisionID, id, item, req.Attributes)

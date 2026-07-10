@@ -52,7 +52,7 @@ type Cache interface {
 // ProductLister is the slice of the product service the public storefront
 // needs: list the tenant's products (satisfied directly by product.Service).
 type ProductLister interface {
-	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int) ([]product.Product, error)
+	List(ctx context.Context, appID, userID, divisionID, limit, offset int, status *int8, categoryID *int, featured *bool) ([]product.Product, error)
 }
 
 // Service is the business-logic contract for the storefront.
@@ -118,7 +118,7 @@ func (s *service) GetPublic(ctx context.Context, appID, userID, divisionID int) 
 	}
 
 	active := int8(1)
-	products, err := s.products.List(ctx, appID, userID, divisionID, s.maxProducts, 0, &active, nil)
+	products, err := s.products.List(ctx, appID, userID, divisionID, s.maxProducts, 0, &active, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -179,6 +179,12 @@ func validate(req UpsertStorefrontRequest) error {
 		}
 		if len(a.Name) > maxNameLen {
 			return invalid("assessments[%d].name exceeds %d chars", i, maxNameLen)
+		}
+		if len(a.URL) > maxHeroURLLen {
+			return invalid("assessments[%d].url exceeds %d chars", i, maxHeroURLLen)
+		}
+		if a.URL != "" && !isHTTPURL(a.URL) {
+			return invalid("assessments[%d].url must be an http(s) URL", i)
 		}
 		if a.Rating < 0 || a.Rating > maxRating {
 			return invalid("assessments[%d].rating must be between 0 and %g", i, maxRating)
@@ -267,6 +273,7 @@ func normalizeAssessments(in []Assessment) []Assessment {
 		out = append(out, Assessment{
 			Name:    strings.TrimSpace(a.Name),
 			Rating:  a.Rating,
+			URL:     strings.TrimSpace(a.URL),
 			Reviews: reviews,
 		})
 	}
