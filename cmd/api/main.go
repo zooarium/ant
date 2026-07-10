@@ -25,6 +25,7 @@ import (
 	"ant/pkg/cache"
 	"ant/pkg/captcha"
 	"ant/pkg/config"
+	"ant/pkg/keeper"
 
 	"keeper/pkg/auth"
 
@@ -131,13 +132,18 @@ func main() {
 	productSvc := product.NewService(productRepo)
 	productHandler := product.NewHandler(productSvc)
 
+	// Keeper s2s client: enriches order/group detail reads with the tenant's
+	// public profile (name, contact). Shared HTTP client with config timeout;
+	// profiles cached in-memory for KEEPER.APP_TTL.
+	keeperClient := keeper.NewClient(&http.Client{Timeout: cfg.Keeper.Timeout}, cfg.Keeper.BaseURL, cfg.Keeper.AppTTL)
+
 	orderRepo := order.NewRepository(client)
 	orderSvc := order.NewService(orderRepo)
-	orderHandler := order.NewHandler(orderSvc, cfg.PublicOrder.MaxOrders, cfg.PublicOrder.Window)
+	orderHandler := order.NewHandler(orderSvc, cfg.PublicOrder.MaxOrders, cfg.PublicOrder.Window, keeperClient)
 
 	orderGroupRepo := ordergroup.NewRepository(client)
 	orderGroupSvc := ordergroup.NewService(orderGroupRepo)
-	orderGroupHandler := ordergroup.NewHandler(orderGroupSvc)
+	orderGroupHandler := ordergroup.NewHandler(orderGroupSvc, keeperClient)
 
 	storefrontRepo := storefront.NewRepository(client)
 	storefrontSvc := storefront.NewService(storefrontRepo, cache.New(cfg.Cache.StorefrontTTL), productSvc, cfg.PublicStorefront.MaxProducts)

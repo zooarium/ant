@@ -2,6 +2,8 @@ package ordergroup
 
 import (
 	"time"
+
+	"ant/pkg/keeper"
 )
 
 // Order group (tab) status values.
@@ -28,15 +30,38 @@ type OrderGroup struct {
 	Orders    []OrderSummary `json:"orders,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
+	// App is the tenant's public profile (name, contact), enriched from keeper
+	// on detail reads. Nil when keeper is unreachable — never blocks the read.
+	App *keeper.AppProfile `json:"app,omitempty"`
 }
 
-// OrderSummary is a lightweight view of a member order within a group.
+// OrderSummary is a lightweight view of a member order within a group. Items
+// are the snapshotted products (already loaded to compute Total), carried so
+// the public tab/history views can show what was ordered without a per-order
+// detail fetch.
 type OrderSummary struct {
-	ID           int       `json:"id"`
-	CustomerName string    `json:"customer_name"`
-	Status       int8      `json:"status"`
-	OrderedAt    time.Time `json:"ordered_at"`
-	Total        float64   `json:"total"`
+	ID           int         `json:"id"`
+	CustomerName string      `json:"customer_name"`
+	Status       int8        `json:"status"`
+	OrderedAt    time.Time   `json:"ordered_at"`
+	Total        float64     `json:"total"`
+	Products     []OrderItem `json:"products,omitempty"`
+}
+
+// OrderItem is a snapshotted product line within an order summary.
+type OrderItem struct {
+	ProductName string          `json:"product_name"`
+	Price       float64         `json:"price"`
+	Quantity    int             `json:"quantity"`
+	Attributes  []OrderItemAttr `json:"attributes"`
+	LineTotal   float64         `json:"line_total"`
+}
+
+// OrderItemAttr is a chosen attribute option snapshot on an order item.
+type OrderItemAttr struct {
+	AttributeName string  `json:"attribute_name"`
+	OptionValue   string  `json:"option_value"`
+	PriceDelta    float64 `json:"price_delta"`
 }
 
 type CreateOrderGroupRequest struct {
