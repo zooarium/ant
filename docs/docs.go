@@ -2713,6 +2713,56 @@ const docTemplate = `{
                 }
             }
         },
+        "ant_internal_order.OrderItem": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_internal_order.OrderItemAttribute"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "line_total": {
+                    "description": "LineTotal is (Price + sum of attribute PriceDelta) * Quantity.",
+                    "type": "number"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ant_internal_order.OrderItemAttribute": {
+            "type": "object",
+            "properties": {
+                "attribute_id": {
+                    "type": "integer"
+                },
+                "attribute_name": {
+                    "type": "string"
+                },
+                "option_id": {
+                    "type": "integer"
+                },
+                "option_value": {
+                    "type": "string"
+                },
+                "price_delta": {
+                    "type": "number"
+                }
+            }
+        },
         "ant_internal_platform_render.Response": {
             "type": "object",
             "properties": {
@@ -3463,6 +3513,10 @@ const docTemplate = `{
                 "division_id": {
                     "type": "integer"
                 },
+                "grand_total": {
+                    "description": "GrandTotal is Total + TaxTotal. Populated on detail reads.",
+                    "type": "number"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3483,11 +3537,15 @@ const docTemplate = `{
                 "status": {
                     "type": "integer"
                 },
+                "tax_total": {
+                    "description": "TaxTotal is the sum over member orders of total * tax_percent / 100,\ncomputed per order so mixed rates within a group (rate changed mid-tab)\nstay correct. Populated on detail reads.",
+                    "type": "number"
+                },
                 "token": {
                     "type": "string"
                 },
                 "total": {
-                    "description": "Total is the sum of all member orders' totals. Populated on detail reads.",
+                    "description": "Total is the sum of all member orders' pre-tax totals. Populated on\ndetail reads.",
                     "type": "number"
                 },
                 "updated_at": {
@@ -3510,10 +3568,22 @@ const docTemplate = `{
                 "ordered_at": {
                     "type": "string"
                 },
+                "products": {
+                    "description": "Products are the order's snapshotted items (already eager-loaded for the\ntotal computation), so a public group view can print the full tab.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ant_internal_order.OrderItem"
+                    }
+                },
                 "status": {
                     "type": "integer"
                 },
+                "tax_percent": {
+                    "description": "TaxPercent is the tax rate applied to this order as a percentage.",
+                    "type": "number"
+                },
                 "total": {
+                    "description": "Total is the pre-tax order amount.",
                     "type": "number"
                 }
             }

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"time"
 
+	"ant/pkg/keeper"
+
 	"github.com/go-playground/validator/v10"
 )
 
@@ -26,6 +28,7 @@ var (
 	ErrInvalidCustomerContact    = errors.New("invalid customer contact number")
 	ErrOrderGroupInvalid         = errors.New("order group not found")
 	ErrPublicOrderLimit          = errors.New("public order limit reached for this device")
+	ErrTaxPercentNotAllowed      = errors.New("tax_percent is not allowed on public orders")
 )
 
 // customer contact: digits with optional leading +, spaces and dashes allowed.
@@ -55,12 +58,16 @@ type Service interface {
 
 type service struct {
 	repo     Repository
+	keeper   *keeper.Client
 	validate *validator.Validate
 }
 
-func NewService(repo Repository) Service {
+// NewService builds the order service. keeperClient supplies the tenant's app
+// profile (tax rate) for public orders; nil disables the lookup (tax stays 0).
+func NewService(repo Repository, keeperClient *keeper.Client) Service {
 	return &service{
 		repo:     repo,
+		keeper:   keeperClient,
 		validate: validator.New(),
 	}
 }
@@ -136,6 +143,12 @@ func (s *service) CreatePublic(ctx context.Context, appID, userID, divisionID in
 	if err := s.validate.Struct(req.CreateOrderRequest); err != nil {
 		return Order{}, fmt.Errorf("validate request: %w", err)
 	}
+	// Tax is never guest-controlled: the rate comes from the app profile, not
+	// the payload. Reject rather than silently ignore so a mistaken client is
+	// told its value was not applied.
+	if req.TaxPercent != nil {
+		return Order{}, ErrTaxPercentNotAllowed
+	}
 	if !contactPattern.MatchString(req.CustomerContact) {
 		return Order{}, ErrInvalidCustomerContact
 	}
@@ -149,11 +162,18 @@ func (s *service) CreatePublic(ctx context.Context, appID, userID, divisionID in
 		IPAddress:       ipAddress,
 		DeviceID:        req.DeviceID,
 	}
-	if req.TaxPercent != nil {
-		item.TaxPercent = *req.TaxPercent
-	}
 	if req.OrderedAt != nil {
 		item.OrderedAt = *req.OrderedAt
+	}
+	// Tax rate comes from the tenant's app profile, never the guest payload.
+	// Keeper unreachable degrades to 0% (order still flows); reception can
+	// correct the rate via the authenticated update endpoint.
+	if s.keeper != nil {
+		if p := s.keeper.AppProfile(ctx, appID); p != nil {
+			item.TaxPercent = p.TaxPercent
+		} else {
+			slog.Warn("public order: app profile unavailable, tax defaults to 0", "app_id", appID)
+		}
 	}
 	created, err := s.repo.CreatePublic(ctx, item, req.Products, req.GroupID, req.GroupLabel, maxOrders, window)
 	if err != nil {

@@ -99,7 +99,8 @@ type CreateOrderRequest struct {
 }
 
 // CreatePublicOrderRequest is the payload for the public order-intake endpoint.
-// It embeds CreateOrderRequest (reusing all of its rules) and adds a honeypot
+// It embeds CreateOrderRequest (reusing all of its rules), except tax_percent,
+// which is rejected with 400 — tax is never guest-controlled. It adds a honeypot
 // field: a legitimate client leaves Honeypot empty, so any non-empty value
 // marks the request as a bot and is silently dropped. The JSON name "website"
 // is generic so it blends in as a normal hidden form field.

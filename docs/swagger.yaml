@@ -7,6 +7,39 @@ definitions:
       text:
         type: string
     type: object
+  ant_internal_order.OrderItem:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/ant_internal_order.OrderItemAttribute'
+        type: array
+      id:
+        type: integer
+      line_total:
+        description: LineTotal is (Price + sum of attribute PriceDelta) * Quantity.
+        type: number
+      price:
+        type: number
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  ant_internal_order.OrderItemAttribute:
+    properties:
+      attribute_id:
+        type: integer
+      attribute_name:
+        type: string
+      option_id:
+        type: integer
+      option_value:
+        type: string
+      price_delta:
+        type: number
+    type: object
   ant_internal_platform_render.Response:
     properties:
       data: {}
@@ -560,6 +593,9 @@ definitions:
         type: string
       division_id:
         type: integer
+      grand_total:
+        description: GrandTotal is Total + TaxTotal. Populated on detail reads.
+        type: number
       id:
         type: integer
       label:
@@ -575,11 +611,18 @@ definitions:
         type: integer
       status:
         type: integer
+      tax_total:
+        description: |-
+          TaxTotal is the sum over member orders of total * tax_percent / 100,
+          computed per order so mixed rates within a group (rate changed mid-tab)
+          stay correct. Populated on detail reads.
+        type: number
       token:
         type: string
       total:
-        description: Total is the sum of all member orders' totals. Populated on detail
-          reads.
+        description: |-
+          Total is the sum of all member orders' pre-tax totals. Populated on
+          detail reads.
         type: number
       updated_at:
         type: string
@@ -594,9 +637,20 @@ definitions:
         type: integer
       ordered_at:
         type: string
+      products:
+        description: |-
+          Products are the order's snapshotted items (already eager-loaded for the
+          total computation), so a public group view can print the full tab.
+        items:
+          $ref: '#/definitions/ant_internal_order.OrderItem'
+        type: array
       status:
         type: integer
+      tax_percent:
+        description: TaxPercent is the tax rate applied to this order as a percentage.
+        type: number
       total:
+        description: Total is the pre-tax order amount.
         type: number
     type: object
   internal_ordergroup.UpdateOrderGroupRequest:

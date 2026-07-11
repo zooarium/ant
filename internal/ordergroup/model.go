@@ -2,6 +2,8 @@ package ordergroup
 
 import (
 	"time"
+
+	"ant/internal/order"
 )
 
 // Order group (tab) status values.
@@ -22,8 +24,15 @@ type OrderGroup struct {
 	Status     int8   `json:"status"`
 	// OrdersCount is the number of orders in the group.
 	OrdersCount int `json:"orders_count"`
-	// Total is the sum of all member orders' totals. Populated on detail reads.
+	// Total is the sum of all member orders' pre-tax totals. Populated on
+	// detail reads.
 	Total float64 `json:"total"`
+	// TaxTotal is the sum over member orders of total * tax_percent / 100,
+	// computed per order so mixed rates within a group (rate changed mid-tab)
+	// stay correct. Populated on detail reads.
+	TaxTotal float64 `json:"tax_total"`
+	// GrandTotal is Total + TaxTotal. Populated on detail reads.
+	GrandTotal float64 `json:"grand_total"`
 	// Orders is the member order summary list. Populated on detail reads.
 	Orders    []OrderSummary `json:"orders,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
@@ -36,7 +45,13 @@ type OrderSummary struct {
 	CustomerName string    `json:"customer_name"`
 	Status       int8      `json:"status"`
 	OrderedAt    time.Time `json:"ordered_at"`
-	Total        float64   `json:"total"`
+	// TaxPercent is the tax rate applied to this order as a percentage.
+	TaxPercent float64 `json:"tax_percent"`
+	// Total is the pre-tax order amount.
+	Total float64 `json:"total"`
+	// Products are the order's snapshotted items (already eager-loaded for the
+	// total computation), so a public group view can print the full tab.
+	Products []order.OrderItem `json:"products"`
 }
 
 type CreateOrderGroupRequest struct {

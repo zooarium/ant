@@ -148,7 +148,7 @@ func sumOrderItems(ctx context.Context, tx *ent.Tx, orderID int) (float64, error
 	}
 	var total float64
 	for _, it := range items {
-		total += mapItem(it).LineTotal
+		total += MapItem(it).LineTotal
 	}
 	return total, nil
 }
@@ -361,7 +361,7 @@ func (r *orderRepository) GetByID(ctx context.Context, appID, userID, divisionID
 	o.Products = make([]OrderItem, len(e.Edges.Products))
 	var total float64
 	for i, op := range e.Edges.Products {
-		o.Products[i] = mapItem(op)
+		o.Products[i] = MapItem(op)
 		total += o.Products[i].LineTotal
 	}
 	o.ProductsCount = len(o.Products)
@@ -582,7 +582,7 @@ func (r *orderRepository) mapToModel(e *ent.Order) Order {
 	}
 }
 
-func mapItem(e *ent.OrderProduct) OrderItem {
+func MapItem(e *ent.OrderProduct) OrderItem {
 	attrs := make([]OrderItemAttribute, len(e.Attributes))
 	unit := e.Price
 	for i, a := range e.Attributes {

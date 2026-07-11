@@ -7,6 +7,7 @@ import (
 	"ant/ent"
 	entorder "ant/ent/order"
 	entordergroup "ant/ent/ordergroup"
+	"ant/internal/order"
 )
 
 type orderGroupRepository struct {
@@ -15,16 +16,6 @@ type orderGroupRepository struct {
 
 func NewRepository(client *ent.Client) *orderGroupRepository {
 	return &orderGroupRepository{client: client}
-}
-
-// orderProductTotal computes the line total of one snapshotted order item:
-// (base price + sum of chosen option deltas) * quantity.
-func orderProductTotal(op *ent.OrderProduct) float64 {
-	unit := op.Price
-	for _, a := range op.Attributes {
-		unit += a.PriceDelta
-	}
-	return unit * float64(op.Quantity)
 }
 
 func (r *orderGroupRepository) Create(ctx context.Context, item OrderGroup) (OrderGroup, error) {
@@ -106,23 +97,27 @@ func withOrders(oq *ent.OrderQuery) {
 func (r *orderGroupRepository) hydrateGroup(e *ent.OrderGroup) OrderGroup {
 	g := r.mapToModel(e)
 	g.Orders = make([]OrderSummary, len(e.Edges.Orders))
-	var total float64
 	for i, o := range e.Edges.Orders {
+		items := make([]order.OrderItem, len(o.Edges.Products))
 		var ot float64
-		for _, op := range o.Edges.Products {
-			ot += orderProductTotal(op)
+		for j, op := range o.Edges.Products {
+			items[j] = order.MapItem(op)
+			ot += items[j].LineTotal
 		}
 		g.Orders[i] = OrderSummary{
 			ID:           o.ID,
 			CustomerName: o.CustomerName,
 			Status:       o.Status,
 			OrderedAt:    o.OrderedAt,
+			TaxPercent:   o.TaxPercent,
 			Total:        ot,
+			Products:     items,
 		}
-		total += ot
+		g.Total += ot
+		g.TaxTotal += ot * o.TaxPercent / 100
 	}
 	g.OrdersCount = len(g.Orders)
-	g.Total = total
+	g.GrandTotal = g.Total + g.TaxTotal
 	return g
 }
 

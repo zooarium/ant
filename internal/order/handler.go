@@ -89,7 +89,8 @@ func (h *Handler) renderError(w http.ResponseWriter, err error) {
 		errors.Is(err, ErrInvalidOrderItem),
 		errors.Is(err, ErrDuplicateOrderItem),
 		errors.Is(err, ErrOrderGroupInvalid),
-		errors.Is(err, ErrInvalidCustomerContact):
+		errors.Is(err, ErrInvalidCustomerContact),
+		errors.Is(err, ErrTaxPercentNotAllowed):
 		render.Error(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrPublicOrderLimit):
 		render.Error(w, http.StatusTooManyRequests, ErrPublicOrderLimit.Error())
