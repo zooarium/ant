@@ -9,7 +9,6 @@ import (
 
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/platform/render"
-	"ant/pkg/keeper"
 
 	"keeper/pkg/auth"
 
@@ -20,16 +19,12 @@ import (
 type Handler struct {
 	svc      Service
 	validate *validator.Validate
-	// apps enriches detail reads with the tenant's public profile. May be nil
-	// (enrichment disabled).
-	apps *keeper.Client
 }
 
-func NewHandler(svc Service, apps *keeper.Client) *Handler {
+func NewHandler(svc Service) *Handler {
 	return &Handler{
 		svc:      svc,
 		validate: validator.New(),
-		apps:     apps,
 	}
 }
 
@@ -177,10 +172,6 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.renderError(w, err)
 		return
-	}
-
-	if h.apps != nil {
-		item.App = h.apps.AppProfile(r.Context(), claims.AppID)
 	}
 
 	render.JSON(w, http.StatusOK, item)
@@ -384,10 +375,6 @@ func (h *Handler) GetByTokenPublic(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.renderError(w, err)
 		return
-	}
-
-	if h.apps != nil {
-		item.App = h.apps.AppProfile(r.Context(), claims.AppID)
 	}
 
 	render.JSON(w, http.StatusOK, item)

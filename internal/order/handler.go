@@ -12,7 +12,6 @@ import (
 
 	platformhttp "ant/internal/platform/http"
 	"ant/internal/platform/render"
-	"ant/pkg/keeper"
 
 	"keeper/pkg/auth"
 
@@ -28,18 +27,14 @@ type Handler struct {
 	// public create. Zero maxPublicOrders disables the cap.
 	maxPublicOrders   int
 	publicOrderWindow time.Duration
-	// apps enriches detail reads with the tenant's public profile. May be nil
-	// (enrichment disabled).
-	apps *keeper.Client
 }
 
-func NewHandler(svc Service, maxPublicOrders int, publicOrderWindow time.Duration, apps *keeper.Client) *Handler {
+func NewHandler(svc Service, maxPublicOrders int, publicOrderWindow time.Duration) *Handler {
 	return &Handler{
 		svc:               svc,
 		validate:          validator.New(),
 		maxPublicOrders:   maxPublicOrders,
 		publicOrderWindow: publicOrderWindow,
-		apps:              apps,
 	}
 }
 
@@ -244,10 +239,6 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.renderError(w, err)
 		return
-	}
-
-	if h.apps != nil {
-		item.App = h.apps.AppProfile(r.Context(), claims.AppID)
 	}
 
 	render.JSON(w, http.StatusOK, item)

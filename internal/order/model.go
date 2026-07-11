@@ -2,8 +2,6 @@ package order
 
 import (
 	"time"
-
-	"ant/pkg/keeper"
 )
 
 // Order status values.
@@ -43,9 +41,6 @@ type Order struct {
 	Products  []OrderItem `json:"products,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`
 	UpdatedAt time.Time   `json:"updated_at"`
-	// App is the tenant's public profile (name, contact), enriched from keeper
-	// on detail reads. Nil when keeper is unreachable — never blocks the read.
-	App *keeper.AppProfile `json:"app,omitempty"`
 }
 
 // OrderItem is a denormalized snapshot of a product at the moment it was

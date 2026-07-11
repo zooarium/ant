@@ -109,25 +109,8 @@ func (r *orderGroupRepository) hydrateGroup(e *ent.OrderGroup) OrderGroup {
 	var total float64
 	for i, o := range e.Edges.Orders {
 		var ot float64
-		items := make([]OrderItem, len(o.Edges.Products))
-		for j, op := range o.Edges.Products {
-			line := orderProductTotal(op)
-			ot += line
-			attrs := make([]OrderItemAttr, len(op.Attributes))
-			for k, a := range op.Attributes {
-				attrs[k] = OrderItemAttr{
-					AttributeName: a.AttributeName,
-					OptionValue:   a.OptionValue,
-					PriceDelta:    a.PriceDelta,
-				}
-			}
-			items[j] = OrderItem{
-				ProductName: op.ProductName,
-				Price:       op.Price,
-				Quantity:    op.Quantity,
-				Attributes:  attrs,
-				LineTotal:   line,
-			}
+		for _, op := range o.Edges.Products {
+			ot += orderProductTotal(op)
 		}
 		g.Orders[i] = OrderSummary{
 			ID:           o.ID,
@@ -135,7 +118,6 @@ func (r *orderGroupRepository) hydrateGroup(e *ent.OrderGroup) OrderGroup {
 			Status:       o.Status,
 			OrderedAt:    o.OrderedAt,
 			Total:        ot,
-			Products:     items,
 		}
 		total += ot
 	}

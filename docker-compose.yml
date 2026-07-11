@@ -23,12 +23,6 @@ services:
       - ANT_IMPERSONATION_ENABLED=true
       - ANT_IMPERSONATION_JWT_SECRET=a-separate-impersonation-token-secret-key
       - ANT_IMPERSONATION_REVOCATION_CHECK=false
-      # Keeper s2s (app-profile enrichment). Keeper runs in its own compose
-      # project, so join its network and address the container directly.
-      - ANT_KEEPER_BASE_URL=http://keeper-api-1:8080
-    networks:
-      - default
-      - keeper
     restart: always
 
   atlas:
@@ -37,8 +31,3 @@ services:
       - .:/app
       - ./data:/data
     working_dir: /app
-
-networks:
-  keeper:
-    external: true
-    name: keeper_default

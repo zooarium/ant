@@ -21,16 +21,6 @@ type Config struct {
 	Cache            CacheConfig            `mapstructure:"CACHE"`
 	Secondary        []SecondaryConfig      `mapstructure:"SECONDARY"`
 	Impersonation    ImpersonationConfig    `mapstructure:"IMPERSONATION"`
-	Keeper           KeeperConfig           `mapstructure:"KEEPER"`
-}
-
-// KeeperConfig drives the s2s client used to enrich responses with tenant
-// (app) details from keeper's public profile endpoint. AppTTL bounds how long
-// profiles (and misses) are cached in memory.
-type KeeperConfig struct {
-	BaseURL string        `mapstructure:"BASE_URL"`
-	Timeout time.Duration `mapstructure:"TIMEOUT"`
-	AppTTL  time.Duration `mapstructure:"APP_TTL"`
 }
 
 // ImpersonationConfig lets this service accept keeper-minted impersonation
@@ -151,9 +141,6 @@ func Load() (*Config, error) {
 	v.SetDefault("PUBLIC_ORDER.WINDOW", 24*time.Hour)
 	v.SetDefault("PUBLIC_STOREFRONT.MAX_PRODUCTS", 1000)
 	v.SetDefault("CACHE.STOREFRONT_TTL", 60*time.Second)
-	v.SetDefault("KEEPER.BASE_URL", "http://keeper:8080")
-	v.SetDefault("KEEPER.TIMEOUT", 3*time.Second)
-	v.SetDefault("KEEPER.APP_TTL", 10*time.Minute)
 	v.SetDefault("IMPERSONATION.ENABLED", false)
 	v.SetDefault("IMPERSONATION.JWT_SECRET", "a-separate-impersonation-token-secret-key")
 	v.SetDefault("IMPERSONATION.AUDIENCE", "ant")
