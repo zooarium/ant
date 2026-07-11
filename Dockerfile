@@ -21,6 +21,7 @@ RUN apk --no-cache add ca-certificates sqlite-libs
 WORKDIR /app
 
 COPY --from=builder /app/ant .
+COPY CHANGELOG.md .
 COPY --from=builder /app/config ./config
 
 EXPOSE 8082 8083

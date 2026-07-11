@@ -28,7 +28,7 @@ DOCKER_GO := docker run --rm \
 	-e CGO_ENABLED=1 -e CGO_CFLAGS="-D_LARGEFILE64_SOURCE" \
 	$(DEV_IMAGE)
 
-.PHONY: all build up down restart logs ps test benchmark fmt lint swag clean shell help tidy vet generate vendor coverage coverage-view build-local build-prod sql migrate-gen migrate-apply deps-upgrade go-upgrade config-check dev-image sync-tools docker-upgrade health info release
+.PHONY: all build up down restart logs ps test benchmark fmt lint swag clean shell help tidy vet generate vendor coverage coverage-view build-local build-prod sql migrate-gen migrate-apply deps-upgrade go-upgrade config-check dev-image sync-tools docker-upgrade health info release version
 
 # Build the per-service dev image. Layer-cached: rebuilds only when Dockerfile.dev or GO_VERSION changes.
 dev-image:
@@ -199,6 +199,7 @@ help:
 	@echo "  sql            Run SQL query (use query=...)"
 	@echo "  config-check   Validate config incl. secondary listeners"
 	@echo "  release        Release VERSION=x.y.z (rotate CHANGELOG, commit, tag)"
+	@echo "  version        Print current version (from CHANGELOG.md)"
 	@echo "  clean          Deep clean containers/images"
 	@echo "  health         Check service health endpoint (curl /health)"
 	@echo "  info           Show service metadata (name, port, purpose, Go version)"
@@ -213,3 +214,6 @@ release:
 	@sed -i "s/^## \[Unreleased\]$$/## [Unreleased]\n\n## [$(VERSION)] - $$(date +%F)/" CHANGELOG.md
 	@git add CHANGELOG.md && git commit -m "release v$(VERSION)" && git tag "v$(VERSION)"
 	@echo "Released v$(VERSION). Push: git push && git push origin v$(VERSION)"
+
+version:
+	@v=$$(sed -n 's/^## \[\([0-9][0-9.]*\)\].*/\1/p' CHANGELOG.md 2>/dev/null | head -1); echo "$${v:-dev}"
