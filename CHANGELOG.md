@@ -6,5 +6,7 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-07-11
+
 ### Added
 - Changelog and `make release` versioning workflow.
