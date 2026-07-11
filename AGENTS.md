@@ -2,6 +2,7 @@
 
 ## Core Mandates
 - **MUST**: Run `make fmt` after every code change.
+- **MUST**: Record every code change under `## [Unreleased]` in CHANGELOG.md (Added/Changed/Fixed/Removed) as part of the same change.
 
 ## Project Overview
 Ant is a Go microservice. Built with Go, SQLite, Ent ORM, Chi router, JWT auth.

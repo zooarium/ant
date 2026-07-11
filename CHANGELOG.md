@@ -6,6 +6,10 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 
 ## [Unreleased]
 
+### Added
+- Version in `GET /health` response, read from CHANGELOG.md.
+- `make version` target; version shown in `make info`.
+
 ## [0.0.1] - 2026-07-11
 
 ### Added
