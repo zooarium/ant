@@ -156,6 +156,7 @@ health:
 info:
 	@echo "Service:        $(SERVICE)"
 	@echo "Purpose:        $(SERVICE_DESC)"
+	@printf "Version:        "; $(MAKE) -s version
 	@echo "Primary port:   $(HEALTH_PORT)"
 	@echo "Health:         $(HEALTH_URL)"
 	@echo "Go (toolchain): $(GO_VERSION)"
