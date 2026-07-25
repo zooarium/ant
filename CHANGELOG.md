@@ -6,6 +6,8 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-07-25
+
 ### Added
 - Request ID middleware (`internal/platform/http/requestlog.go`): `chi/middleware.RequestID` first in the chain on primary and secondary routers, structured JSON request-completion log (method/path/status/duration/remote addr) replacing chi's plain-text logger, `X-Request-Id` echoed on every response.
 - `GET /ready`: DB-ping readiness check (`internal/db/client.go` `Ping`), separate from the pure-liveness `GET /health`; 503 on unreachable DB. Registered on primary and secondary listeners (order-intake included).
