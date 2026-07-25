@@ -4,15 +4,14 @@ package keeper
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
-	"ant/pkg/cache"
+	"keeper/pkg/cache"
+	"keeper/pkg/s2s"
 )
 
 // Address mirrors keeper's public app address.
@@ -49,16 +48,14 @@ type AppProfile struct {
 // front, so the hot order-read path stays cheap and keeper's rate-limited
 // public endpoint is not hammered.
 type Client struct {
-	http  *http.Client
-	base  string
+	rest  *s2s.Client
 	cache *cache.TTLCache
 }
 
 // NewClient builds a Client. httpClient must carry a non-zero timeout.
 func NewClient(httpClient *http.Client, baseURL string, ttl time.Duration) *Client {
 	return &Client{
-		http:  httpClient,
-		base:  strings.TrimRight(baseURL, "/"),
+		rest:  s2s.New(httpClient, baseURL),
 		cache: cache.New(ttl),
 	}
 }
@@ -81,31 +78,10 @@ func (c *Client) AppProfile(ctx context.Context, appID int) *AppProfile {
 }
 
 func (c *Client) fetch(ctx context.Context, appID int) *AppProfile {
-	url := fmt.Sprintf("%s/apps/%d/public", c.base, appID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		slog.Warn("keeper app profile: build request failed", "app_id", appID, "error", err)
+	var profile AppProfile
+	if err := c.rest.Get(ctx, fmt.Sprintf("/apps/%d/public", appID), &profile); err != nil {
+		slog.Warn("keeper app profile: fetch failed", "app_id", appID, "error", err)
 		return nil
 	}
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		slog.Warn("keeper app profile: request failed", "app_id", appID, "error", err)
-		return nil
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		slog.Warn("keeper app profile: non-200", "app_id", appID, "status", resp.StatusCode)
-		return nil
-	}
-
-	var body struct {
-		Data AppProfile `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		slog.Warn("keeper app profile: decode failed", "app_id", appID, "error", err)
-		return nil
-	}
-	return &body.Data
+	return &profile
 }
