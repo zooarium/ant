@@ -17,36 +17,46 @@ import (
 
 // NewClient opens an ent client for the configured driver and runs
 // auto-migration. Supported drivers: "sqlite3" (default) and "postgres".
-func NewClient(driver, path, dsn string) (*ent.Client, error) {
+// The returned *entsql.Driver is the same connection used by the client;
+// keep it around for readiness pings (ent.Client exposes no driver
+// accessor of its own).
+func NewClient(driver, path, dsn string) (*ent.Client, *entsql.Driver, error) {
 	switch driver {
 	case "", "sqlite3":
 		return NewSQLiteClient(path)
 	case "postgres":
 		return NewPostgresClient(dsn)
 	default:
-		return nil, fmt.Errorf("unsupported database driver: %q", driver)
+		return nil, nil, fmt.Errorf("unsupported database driver: %q", driver)
 	}
 }
 
-func NewSQLiteClient(path string) (*ent.Client, error) {
+func NewSQLiteClient(path string) (*ent.Client, *entsql.Driver, error) {
 	slog.Info("opening sqlite connection", "path", path)
-	client, err := ent.Open(dialect.SQLite, fmt.Sprintf("file:%s?cache=shared&_fk=1", path))
+	drv, err := entsql.Open(dialect.SQLite, fmt.Sprintf("file:%s?cache=shared&_fk=1", path))
 	if err != nil {
 		slog.Error("failed to open sqlite connection", "path", path, "error", err)
-		return nil, fmt.Errorf("failed opening connection to sqlite: %w", err)
+		return nil, nil, fmt.Errorf("failed opening connection to sqlite: %w", err)
 	}
-	return migrateClient(client)
+	client, err := migrateClient(ent.NewClient(ent.Driver(drv)))
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, drv, nil
 }
 
-func NewPostgresClient(dsn string) (*ent.Client, error) {
+func NewPostgresClient(dsn string) (*ent.Client, *entsql.Driver, error) {
 	slog.Info("opening postgres connection")
 	drv, err := entsql.Open(dialect.Postgres, dsn)
 	if err != nil {
 		slog.Error("failed to open postgres connection", "error", err)
-		return nil, fmt.Errorf("failed opening connection to postgres: %w", err)
+		return nil, nil, fmt.Errorf("failed opening connection to postgres: %w", err)
 	}
-	client := ent.NewClient(ent.Driver(drv))
-	return migrateClient(client)
+	client, err := migrateClient(ent.NewClient(ent.Driver(drv)))
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, drv, nil
 }
 
 func migrateClient(client *ent.Client) (*ent.Client, error) {
@@ -66,4 +76,11 @@ func migrateClient(client *ent.Client) (*ent.Client, error) {
 
 	slog.Info("database initialization completed")
 	return client, nil
+}
+
+// Ping verifies the database connection is alive, for use by readiness
+// checks. Works uniformly across sqlite3/postgres since it's a plain
+// connection ping, not a query.
+func Ping(ctx context.Context, drv *entsql.Driver) error {
+	return drv.DB().PingContext(ctx)
 }

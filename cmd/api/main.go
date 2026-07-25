@@ -15,6 +15,7 @@ import (
 
 	"ant/docs"
 	"ant/internal/attribute"
+	"ant/internal/audit"
 	"ant/internal/category"
 	"ant/internal/db"
 	"ant/internal/order"
@@ -28,6 +29,7 @@ import (
 
 	"keeper/pkg/auth"
 	"keeper/pkg/cache"
+	"keeper/pkg/httpclient"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -107,9 +109,23 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(mw, &slog.HandlerOptions{Level: logLevel}))
 	slog.SetDefault(logger)
 
+	// Audit trail is a separate file from api.log — who-changed-what should
+	// stay readable on its own, not interleaved with request/debug noise.
+	auditLogFile, err := os.OpenFile(filepath.Join(cfg.Log.Dir, "audit.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("failed to open audit log file: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := auditLogFile.Close(); err != nil {
+			slog.Error("failed to close audit log file", "error", err)
+		}
+	}()
+	auditLogger := slog.New(slog.NewJSONHandler(auditLogFile, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
 	docs.SwaggerInfo.Host = cfg.Server.Host
 
-	client, err := db.NewClient(cfg.Database.Driver, cfg.Database.Path, cfg.Database.DSN)
+	client, dbDriver, err := db.NewClient(cfg.Database.Driver, cfg.Database.Path, cfg.Database.DSN)
 	if err != nil {
 		slog.Error("failed to open database client", "error", err, "driver", cfg.Database.Driver)
 		os.Exit(1)
@@ -119,6 +135,7 @@ func main() {
 			slog.Error("failed to close database client", "error", err)
 		}
 	}()
+	client.Use(audit.Hook(auditLogger))
 
 	attributeRepo := attribute.NewRepository(client)
 	attributeSvc := attribute.NewService(attributeRepo)
@@ -135,7 +152,7 @@ func main() {
 	// Keeper s2s client: supplies the tenant's app profile (tax rate) for
 	// public order creation. Shared HTTP client with config timeout; profiles
 	// cached in-memory for KEEPER.APP_TTL.
-	keeperClient := keeper.NewClient(&http.Client{Timeout: cfg.Keeper.Timeout}, cfg.Keeper.BaseURL, cfg.Keeper.AppTTL)
+	keeperClient := keeper.NewClient(httpclient.New(httpclient.Config{Timeout: cfg.Keeper.Timeout, Name: "keeper-s2s"}), cfg.Keeper.BaseURL, cfg.Keeper.AppTTL)
 
 	orderRepo := order.NewRepository(client)
 	orderSvc := order.NewService(orderRepo, keeperClient)
@@ -160,7 +177,7 @@ func main() {
 		impMgr := auth.NewJWTManager(cfg.Impersonation.JWTSecret, 0)
 		var revoked auth.RevocationChecker
 		if cfg.Impersonation.RevocationCheck {
-			revClient := &http.Client{Timeout: cfg.Impersonation.RevocationHTTP}
+			revClient := httpclient.New(httpclient.Config{Timeout: cfg.Impersonation.RevocationHTTP, Name: "impersonation-revocation"})
 			revoked = auth.NewHTTPRevocationChecker(revClient, cfg.Impersonation.KeeperBaseURL, cfg.Impersonation.RevocationTTL)
 		}
 		authMW = auth.ImpersonationAwareMiddleware(jwtManager, impMgr, cfg.Impersonation.Audience, revoked)
@@ -170,7 +187,7 @@ func main() {
 	// Captcha verifier for public write routes. Uses a shared HTTP client with
 	// the timeout from config (never the zero-timeout default client). When
 	// captcha is disabled this is a no-op verifier, so the wiring is identical.
-	captchaClient := &http.Client{Timeout: cfg.Captcha.Timeout}
+	captchaClient := httpclient.New(httpclient.Config{Timeout: cfg.Captcha.Timeout, Name: "captcha"})
 	captchaVerifier := captcha.New(cfg.Captcha.Enabled, cfg.Captcha.Secret, cfg.Captcha.MinScore, captchaClient)
 	captchaMW := platformhttp.CaptchaMiddleware(captchaVerifier)
 
@@ -193,7 +210,7 @@ func main() {
 		})
 	}
 
-	router := platformhttp.NewRouter(cfg, authMW, mount)
+	router := platformhttp.NewRouter(cfg, authMW, mount, dbDriver)
 
 	srv := &http.Server{
 		Addr:         cfg.Server.Addr,
@@ -218,7 +235,7 @@ func main() {
 			continue
 		}
 
-		secondaryRouter, err := platformhttp.NewSecondaryRouter(cfg, sec, jwtManager, mount)
+		secondaryRouter, err := platformhttp.NewSecondaryRouter(cfg, sec, jwtManager, mount, dbDriver)
 		if err != nil {
 			slog.Error("failed to build secondary router", "name", sec.Name, "error", err)
 			os.Exit(1)

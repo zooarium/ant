@@ -104,3 +104,21 @@ make build && make up
 
 Auto-migration runs on startup — no separate migration step needed for
 routine updates.
+
+## 10. Backup & Restore
+
+`make backup` runs `sqlite3 .backup` against `data/ant.db` (online-safe —
+safe to run while the service is up) into `data/backups/`, timestamped, and
+prunes anything older than 14 days. Schedule it with cron:
+
+```bash
+0 3 * * * cd /opt/ant && make backup >> log/backup.log 2>&1
+```
+
+To restore: `make restore FILE=data/backups/ant-20260101-030000.db`. This
+stops the container, snapshots the current live DB into `data/backups/`
+first (so a bad restore is itself recoverable), copies the chosen backup
+over `data/ant.db`, then restarts.
+
+This covers SQLite only. Postgres backup (`pg_dump`/WAL archiving) is
+deferred to the documented future migration.

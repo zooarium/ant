@@ -7,6 +7,7 @@ import (
 	_ "ant/docs"
 	"ant/pkg/config"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -18,7 +19,7 @@ import (
 // NewRouter creates a new chi router with middleware and routes. Entity
 // handlers are mounted inside the JWT-protected group via the mount hook
 // (wired in main to avoid an import cycle with the domain packages).
-func NewRouter(cfg *config.Config, authMW func(http.Handler) http.Handler, mount func(r chi.Router)) *chi.Mux {
+func NewRouter(cfg *config.Config, authMW func(http.Handler) http.Handler, mount func(r chi.Router), dbDriver *entsql.Driver) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -26,7 +27,8 @@ func NewRouter(cfg *config.Config, authMW func(http.Handler) http.Handler, mount
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders: []string{"Origin", "Content-Type", "Authorization", CaptchaTokenHeader},
 	}))
-	r.Use(middleware.Logger)
+	r.Use(middleware.RequestID)
+	r.Use(RequestLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(MetricsMiddleware)
 	r.Use(httprate.LimitByIP(100, 1*time.Minute))
@@ -36,6 +38,7 @@ func NewRouter(cfg *config.Config, authMW func(http.Handler) http.Handler, mount
 	))
 
 	r.Get("/health", HealthHandler)
+	r.Get("/ready", ReadyHandler(dbDriver))
 
 	// Prometheus metrics endpoint, exempt from JWT auth.
 	r.Handle("/metrics", promhttp.Handler())

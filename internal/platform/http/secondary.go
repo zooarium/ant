@@ -10,6 +10,7 @@ import (
 
 	"keeper/pkg/auth"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -30,7 +31,7 @@ var allowedMethods = map[string]bool{
 // the verifying key (e.g. keeper's guest secret) so tokens minted for this
 // surface are useless elsewhere. Swagger is not exposed; /health and
 // /metrics are.
-func NewSecondaryRouter(cfg *config.Config, sec *config.SecondaryConfig, jwtManager *auth.JWTManager, mount func(r chi.Router)) (*chi.Mux, error) {
+func NewSecondaryRouter(cfg *config.Config, sec *config.SecondaryConfig, jwtManager *auth.JWTManager, mount func(r chi.Router), dbDriver *entsql.Driver) (*chi.Mux, error) {
 	allow, err := allowRoutes(sec.Routes)
 	if err != nil {
 		return nil, err
@@ -48,12 +49,14 @@ func NewSecondaryRouter(cfg *config.Config, sec *config.SecondaryConfig, jwtMana
 		AllowedMethods: []string{"GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders: []string{"Origin", "Content-Type", "Authorization", CaptchaTokenHeader},
 	}))
-	r.Use(middleware.Logger)
+	r.Use(middleware.RequestID)
+	r.Use(RequestLogger)
 	r.Use(middleware.Recoverer)
 	r.Use(MetricsMiddleware)
 	r.Use(httprate.LimitByIP(sec.RateLimit.Requests, sec.RateLimit.Window))
 
 	r.Get("/health", HealthHandler)
+	r.Get("/ready", ReadyHandler(dbDriver))
 
 	// Prometheus metrics endpoint, exempt from auth and the allow-list.
 	r.Handle("/metrics", promhttp.Handler())
