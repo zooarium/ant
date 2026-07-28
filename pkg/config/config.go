@@ -22,6 +22,16 @@ type Config struct {
 	Secondary        []SecondaryConfig      `mapstructure:"SECONDARY"`
 	Impersonation    ImpersonationConfig    `mapstructure:"IMPERSONATION"`
 	Keeper           KeeperConfig           `mapstructure:"KEEPER"`
+	Falcon           FalconConfig           `mapstructure:"FALCON"`
+}
+
+// FalconConfig points internal/policy's Tier 1 (coarse CRUD) authorization
+// cache at falcon's internal-s2s listener. ServiceID is this service's own
+// numeric id in falcon's fal_service table (set once registered there).
+type FalconConfig struct {
+	BaseURL   string        `mapstructure:"BASE_URL"`
+	Timeout   time.Duration `mapstructure:"TIMEOUT"`
+	ServiceID int           `mapstructure:"SERVICE_ID"`
 }
 
 // KeeperConfig drives the s2s client used to read tenant (app) details from
@@ -60,6 +70,9 @@ type PublicStorefrontConfig struct {
 // rarely-changing responses (invalidated explicitly on writes).
 type CacheConfig struct {
 	StorefrontTTL time.Duration `mapstructure:"STOREFRONT_TTL"`
+	// PolicyTTL is how long internal/policy's compiled role->permission map is
+	// served from cache before the next request past expiry refreshes it.
+	PolicyTTL time.Duration `mapstructure:"POLICY_TTL"`
 }
 
 // CaptchaConfig drives Google reCAPTCHA v3 verification on public write routes.
@@ -151,6 +164,10 @@ func Load() (*Config, error) {
 	v.SetDefault("PUBLIC_ORDER.WINDOW", 24*time.Hour)
 	v.SetDefault("PUBLIC_STOREFRONT.MAX_PRODUCTS", 1000)
 	v.SetDefault("CACHE.STOREFRONT_TTL", 60*time.Second)
+	v.SetDefault("CACHE.POLICY_TTL", 60*time.Second)
+	v.SetDefault("FALCON.BASE_URL", "http://falcon-api-1:9091")
+	v.SetDefault("FALCON.TIMEOUT", 3*time.Second)
+	v.SetDefault("FALCON.SERVICE_ID", 0)
 	v.SetDefault("KEEPER.BASE_URL", "http://keeper:8080")
 	v.SetDefault("KEEPER.TIMEOUT", 3*time.Second)
 	v.SetDefault("KEEPER.APP_TTL", 10*time.Minute)

@@ -39,6 +39,17 @@ PUBLIC_STOREFRONT:
 # explicitly on writes; the public storefront read is the hot path.
 CACHE:
   STOREFRONT_TTL: 60s
+  # internal/policy's compiled role->permission map, pulled from falcon.
+  POLICY_TTL: 60s
+# internal/policy's Tier 1 authorization cache reads falcon's internal-s2s
+# listener over the shared "falcon" compose network (falcon-api-1, not
+# falcon's published service-name DNS, only the container name).
+FALCON:
+  BASE_URL: "http://falcon-api-1:9091"
+  TIMEOUT: 3s
+  # ant's own numeric id in falcon's fal_service table (register ant via
+  # POST /services on falcon first, then set this).
+  SERVICE_ID: 0
 # Optional secondary listeners: extra ports in the same process, each
 # exposing only its allow-listed routes. Identity always comes from JWT;
 # JWT_SECRET (optional) makes the listener verify with a different signing

@@ -6,6 +6,9 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 
 ## [Unreleased]
 
+### Added
+- `internal/policy`: Tier 1 (coarse CRUD) authorization cache — pulls falcon's role->permission export (`GET /services/{id}/permissions/map` on falcon's `internal-s2s` listener), compiles it into `map[roleName]RolePolicy`, and serves it from an in-memory TTL cache (`CACHE.POLICY_TTL`, default 60s), refreshing lazily on read past expiry. New `FALCON.SERVICE_ID` config (ant's own id in falcon's `fal_service` table) and `FALCON.BASE_URL`/`TIMEOUT`. Warmed eagerly at startup (non-fatal on failure); fails closed (empty map) if falcon is unreachable past the TTL. Enforcement (checking a request against this map) is a separate step.
+
 ## [0.0.5] - 2026-07-28
 
 ### Changed

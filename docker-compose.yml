@@ -30,6 +30,7 @@ services:
     networks:
       - default
       - keeper
+      - falcon
     restart: always
     mem_limit: 256m
     cpus: "1.0"
@@ -50,3 +51,6 @@ networks:
   keeper:
     external: true
     name: keeper_default
+  falcon:
+    external: true
+    name: falcon_default
