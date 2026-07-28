@@ -6,6 +6,8 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-07-28
+
 ### Changed
 - `internal/db/client.go` SQLite DSN: enabled WAL journal mode and 5s busy timeout (`_journal_mode=WAL&_busy_timeout=5000`) for better write concurrency.
 - Re-vendored `keeper/pkg/auth`: `RoleUser` renamed to `RoleAdmin` upstream (value unchanged, `0`). No caller changes needed in ant.
