@@ -46,6 +46,7 @@ Key facts:
 - Table names: singular, `ant_` prefix (e.g. `ant_thing`)
 - Ent annotation: `entsql.Annotation{Table: "ant_thing"}`
 - Env vars: `ANT_` prefix
+- URL slugs: hyphenated, never underscore (e.g. `/order-intake`, not `/order_intake`)
 
 ## Architecture
 Handler → Service → Repository (strict direction)

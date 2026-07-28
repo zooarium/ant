@@ -33,7 +33,7 @@ func NewClient(driver, path, dsn string) (*ent.Client, *entsql.Driver, error) {
 
 func NewSQLiteClient(path string) (*ent.Client, *entsql.Driver, error) {
 	slog.Info("opening sqlite connection", "path", path)
-	drv, err := entsql.Open(dialect.SQLite, fmt.Sprintf("file:%s?cache=shared&_fk=1", path))
+	drv, err := entsql.Open(dialect.SQLite, fmt.Sprintf("file:%s?cache=shared&_fk=1&_journal_mode=WAL&_busy_timeout=5000", path))
 	if err != nil {
 		slog.Error("failed to open sqlite connection", "path", path, "error", err)
 		return nil, nil, fmt.Errorf("failed opening connection to sqlite: %w", err)
