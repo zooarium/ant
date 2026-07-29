@@ -7,7 +7,11 @@ Release with `make release VERSION=x.y.z` — rotates this file, commits, tags `
 ## [Unreleased]
 
 ### Added
-- `internal/policy`: Tier 1 (coarse CRUD) authorization cache — pulls falcon's role->permission export (`GET /services/{id}/permissions/map` on falcon's `internal-s2s` listener), compiles it into `map[roleName]RolePolicy`, and serves it from an in-memory TTL cache (`CACHE.POLICY_TTL`, default 60s), refreshing lazily on read past expiry. New `FALCON.SERVICE_ID` config (ant's own id in falcon's `fal_service` table) and `FALCON.BASE_URL`/`TIMEOUT`. Warmed eagerly at startup (non-fatal on failure); fails closed (empty map) if falcon is unreachable past the TTL. Enforcement (checking a request against this map) is a separate step.
+- `internal/policy.Can()`: RBAC Tier 1 enforcement (coarse CRUD + sudo bypass), consuming the policy cache below. Checks a sudo bypass first (global, or tenant-scoped via the assignment's `app_id`), then falls back to a coarse resource/action permission match, unioned across all of a user's roles. Field/ownership checks are deferred to Tier 2/3 (steps 7.2/7.3) — not yet wired into any entity handler.
+- `internal/policy`: Tier 1 (coarse CRUD) authorization cache — pulls falcon's role->permission export (`GET /services/{id}/permissions/map` on falcon's `internal-s2s` listener), compiles it into `map[roleName]RolePolicy`, and serves it from an in-memory TTL cache (`CACHE.POLICY_TTL`, default 60s), refreshing lazily on read past expiry. New `FALCON.SERVICE_ID` config, set to `3` — ant's fixed id in falcon's `fal_service` table, seeded by falcon's `20260729092300_seed_fal_service` migration (identical across all envs) — and `FALCON.BASE_URL`/`TIMEOUT`. Warmed eagerly at startup (non-fatal on failure); fails closed (empty map) if falcon is unreachable past the TTL. Enforcement (checking a request against this map) is a separate step.
+
+### Changed
+- Re-vendored `keeper/pkg/auth`: `UserClaims.Roles` changed type from `[]string` to `[]RoleAssignment` (name + falcon `service_id`/`app_id` scope) — needed so `Can()`'s sudo tenant-scope check has per-assignment scope at request time. No caller changes needed in ant (nothing here read `claims.Roles` yet).
 
 ## [0.0.5] - 2026-07-28
 
