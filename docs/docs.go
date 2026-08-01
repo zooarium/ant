@@ -922,7 +922,7 @@ const docTemplate = `{
         },
         "/health": {
             "get": {
-                "description": "Get the health status of the service",
+                "description": "Get the health status and version of the service",
                 "produces": [
                     "application/json"
                 ],
