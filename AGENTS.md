@@ -46,6 +46,7 @@ Key facts:
 - Table names: singular, `ant_` prefix (e.g. `ant_thing`)
 - Ent annotation: `entsql.Annotation{Table: "ant_thing"}`
 - Env vars: `ANT_` prefix
+- URL slugs: hyphenated, never underscore (e.g. `/order-intake`, not `/order_intake`)
 
 ## Architecture
 Handler → Service → Repository (strict direction)
@@ -60,6 +61,7 @@ Handler → Service → Repository (strict direction)
 7. `make swag` — regenerate swagger
 8. `make config-check` — validate config (incl. secondary listeners) after config changes
 9. `make build && make up` — deploy
+10. `make release VERSION=x.y.z` — release: rotates CHANGELOG.md `[Unreleased]` into version section, commits, tags `vx.y.z` (push tags manually)
 
 ## Engineering Constraints (mandatory for all new code)
 
